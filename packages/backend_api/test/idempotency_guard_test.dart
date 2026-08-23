@@ -46,28 +46,31 @@ void main() {
     );
   });
 
-  test('different authenticated actor is commandIdCollision with zero mutation', () {
-    var mutationCount = 0;
+  test(
+    'different authenticated actor is commandIdCollision with zero mutation',
+    () {
+      var mutationCount = 0;
 
-    IdempotencyGuard.executeIfNew<void>(
-      existing: existing,
-      actorUid: 'uid-b',
-      inputHashVersion: 1,
-      inputHash: 'hash-a',
-      applyNewCommand: () => mutationCount += 1,
-    );
-
-    expect(mutationCount, 0);
-    expect(
-      IdempotencyGuard.classify(
+      IdempotencyGuard.executeIfNew<void>(
         existing: existing,
         actorUid: 'uid-b',
         inputHashVersion: 1,
         inputHash: 'hash-a',
-      ),
-      IdempotencyDisposition.commandIdCollision,
-    );
-  });
+        applyNewCommand: () => mutationCount += 1,
+      );
+
+      expect(mutationCount, 0);
+      expect(
+        IdempotencyGuard.classify(
+          existing: existing,
+          actorUid: 'uid-b',
+          inputHashVersion: 1,
+          inputHash: 'hash-a',
+        ),
+        IdempotencyDisposition.commandIdCollision,
+      );
+    },
+  );
 
   test('new command is the only path that invokes mutation callback', () {
     var mutationCount = 0;

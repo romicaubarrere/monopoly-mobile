@@ -43,7 +43,10 @@ void main() {
     });
 
     test('TV-37 expectedVersion change produces collision hash', () {
-      final Map<String, Object?> material = _buyProperty(version: 43, propertyId: 'prop-17');
+      final Map<String, Object?> material = _buyProperty(
+        version: 43,
+        propertyId: 'prop-17',
+      );
       expect(
         SemanticFingerprintV1.sha256Hex(material),
         '3f01096ae2ab2bb7da08d63123bacaa51285c03f58340661821e27855cc6e9ac',
@@ -51,7 +54,10 @@ void main() {
     });
 
     test('TV-38 payload change produces collision hash', () {
-      final Map<String, Object?> material = _buyProperty(version: 42, propertyId: 'prop-18');
+      final Map<String, Object?> material = _buyProperty(
+        version: 42,
+        propertyId: 'prop-18',
+      );
       expect(
         SemanticFingerprintV1.sha256Hex(material),
         '10d2aef3d71e10c40e5ad4ade21c3407f891b5d6c74529b8067d83f34c413ea2',
@@ -71,7 +77,10 @@ void main() {
   });
 }
 
-Map<String, Object?> _buyProperty({required int version, required String propertyId}) {
+Map<String, Object?> _buyProperty({
+  required int version,
+  required String propertyId,
+}) {
   return <String, Object?>{
     'v': 1,
     'family': 'game',

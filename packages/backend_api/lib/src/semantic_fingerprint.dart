@@ -40,7 +40,8 @@ abstract final class SemanticFingerprintV1 {
     }
 
     if (value is Map) {
-      final SplayTreeMap<String, Object?> sorted = SplayTreeMap<String, Object?>();
+      final SplayTreeMap<String, Object?> sorted =
+          SplayTreeMap<String, Object?>();
       for (final MapEntry<Object?, Object?> entry in value.entries) {
         final Object? key = entry.key;
         if (key is! String) {
