@@ -4,18 +4,19 @@ import 'tokens.dart';
 
 abstract final class AppTheme {
   static ThemeData get light {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppPalette.primary,
-      brightness: Brightness.light,
-    ).copyWith(
-      primary: AppPalette.primary,
-      onPrimary: Colors.white,
-      secondary: AppPalette.info,
-      surface: AppPalette.surface,
-      onSurface: AppPalette.ink,
-      error: AppPalette.danger,
-      outline: AppPalette.inkSecondary,
-    );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: AppPalette.primary,
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: AppPalette.primary,
+          onPrimary: Colors.white,
+          secondary: AppPalette.info,
+          surface: AppPalette.surface,
+          onSurface: AppPalette.ink,
+          error: AppPalette.danger,
+          outline: AppPalette.inkSecondary,
+        );
 
     final base = ThemeData(
       useMaterial3: true,

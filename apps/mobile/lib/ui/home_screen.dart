@@ -32,10 +32,8 @@ class HomeScreen extends StatelessWidget {
                     header: true,
                     child: Text(
                       'Una partida que entra en una mano.',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        height: 1.05,
-                      ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.x3),
@@ -59,16 +57,14 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: AppSpacing.x8),
                   Text(
                     'Shell de partida',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: AppSpacing.x2),
                   Text(
                     'Checkpoint estructural con 40 posiciones sintéticas. No contiene mapa, economía ni cartas DEC-065.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppPalette.inkSecondary,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(color: AppPalette.inkSecondary),
                   ),
                   const SizedBox(height: AppSpacing.x4),
                   const _GameShellPreview(),
@@ -108,7 +104,7 @@ class _Eyebrow extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        const Semantics(
+        Semantics(
           label: 'Estado de conexión: prototipo local',
           child: Icon(Icons.wifi_tethering_rounded, semanticLabel: null),
         ),
@@ -134,13 +130,16 @@ class _GameShellPreview extends StatelessWidget {
           children: [
             Row(
               children: [
-                const _TurnBadge(),
-                const Spacer(),
-                Text(
-                  'Saldo · \$ —',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    fontWeight: FontWeight.w800,
+                const Flexible(child: _TurnBadge()),
+                const SizedBox(width: AppSpacing.x2),
+                Flexible(
+                  child: Text(
+                    'Saldo · \$ —',
+                    textAlign: TextAlign.end,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -148,17 +147,13 @@ class _GameShellPreview extends StatelessWidget {
             const SizedBox(height: AppSpacing.x4),
             const _BoardContextPreview(),
             const SizedBox(height: AppSpacing.x4),
-            FilledButton(
-              onPressed: null,
-              child: const Text('Tirar dados'),
-            ),
+            FilledButton(onPressed: null, child: const Text('Tirar dados')),
             const SizedBox(height: AppSpacing.x2),
             Text(
               'Disponible cuando exista una partida confirmada.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppPalette.inkSecondary,
-              ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppPalette.inkSecondary),
             ),
           ],
         ),
@@ -185,10 +180,8 @@ class _TurnBadge extends StatelessWidget {
         ),
         child: Text(
           'TU TURNO · DEMO',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-          ),
+          style: Theme.of(context).textTheme.labelMedium
+              ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
         ),
       ),
     );
@@ -267,10 +260,11 @@ class _BoardContextPreview extends StatelessWidget {
                           Text(
                             'BOARD COMO CONTEXTO',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.6,
-                            ),
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.6,
+                                ),
                           ),
                         ],
                       ),

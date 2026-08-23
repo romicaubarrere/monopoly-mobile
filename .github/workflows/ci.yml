@@ -19,26 +19,6 @@ jobs:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
-      - name: Temporary UX formatter probe
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('apps/mobile/lib/ui/home_screen.dart')
-          text = path.read_text()
-          text = text.replace('        const Semantics(\n          label: \'Estado de conexión: prototipo local\',', '        Semantics(\n          label: \'Estado de conexión: prototipo local\',', 1)
-          old = '''            Row(\n              children: [\n                const _TurnBadge(),\n                const Spacer(),\n                Text(\n                  'Saldo · \\$ —',\n                  style: Theme.of(context).textTheme.titleMedium?.copyWith(\n                    fontFeatures: const [FontFeature.tabularFigures()],\n                    fontWeight: FontWeight.w800,\n                  ),\n                ),\n              ],\n            ),'''
-          new = '''            Row(\n              children: [\n                const Flexible(child: _TurnBadge()),\n                const SizedBox(width: AppSpacing.x2),\n                Flexible(\n                  child: Text(\n                    'Saldo · \\$ —',\n                    textAlign: TextAlign.end,\n                    style: Theme.of(context).textTheme.titleMedium?.copyWith(\n                      fontFeatures: const [FontFeature.tabularFigures()],\n                      fontWeight: FontWeight.w800,\n                    ),\n                  ),\n                ),\n              ],\n            ),'''
-          if old not in text:
-              raise SystemExit('game header pattern not found')
-          path.write_text(text.replace(old, new, 1))
-          PY
-          dart format apps/mobile/lib/design_system/app_theme.dart apps/mobile/lib/ui/home_screen.dart apps/mobile/test/app_smoke_test.dart apps/mobile/test/design_system_shell_test.dart
-          for file in apps/mobile/lib/design_system/app_theme.dart apps/mobile/lib/ui/home_screen.dart apps/mobile/test/app_smoke_test.dart apps/mobile/test/design_system_shell_test.dart; do
-            echo "BEGIN_BASE64:$file"
-            base64 -w0 "$file"
-            echo
-            echo "END_BASE64:$file"
-          done
       - name: Foundation gates
         run: ./tool/ci.sh
 

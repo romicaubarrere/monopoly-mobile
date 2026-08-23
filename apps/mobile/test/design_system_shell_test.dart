@@ -21,31 +21,32 @@ void main() {
     expect(joinSize.height, greaterThanOrEqualTo(AppSizes.minTouchTarget));
   });
 
-  testWidgets('compact width and 130 percent text scale keep shell renderable', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: AppTheme.light,
-        home: Center(
-          child: SizedBox(
-            width: 360,
-            height: 800,
-            child: MediaQuery(
-              data: const MediaQueryData(
-                size: Size(360, 800),
-                textScaler: TextScaler.linear(1.3),
+  testWidgets(
+    'compact width and 130 percent text scale keep shell renderable',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Center(
+            child: SizedBox(
+              width: 360,
+              height: 800,
+              child: MediaQuery(
+                data: const MediaQueryData(
+                  size: Size(360, 800),
+                  textScaler: TextScaler.linear(1.3),
+                ),
+                child: const HomeScreen(),
               ),
-              child: const HomeScreen(),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(tester.takeException(), isNull);
-    expect(find.textContaining('40 posiciones sintéticas'), findsOneWidget);
-  });
+      expect(tester.takeException(), isNull);
+      expect(find.textContaining('40 posiciones sintéticas'), findsOneWidget);
+    },
+  );
 
   testWidgets('theme exposes semantic Imprenta barrial colors', (tester) async {
     await tester.pumpWidget(
@@ -56,7 +57,7 @@ void main() {
     final theme = Theme.of(scaffold);
 
     expect(theme.scaffoldBackgroundColor, AppPalette.canvas);
-    expect(theme.colorScheme.primary, AppPalette.primary);
+    expect(theme.colorScheme.primary, ApPalette.primary);
     expect(theme.colorScheme.secondary, AppPalette.info);
   });
 }
