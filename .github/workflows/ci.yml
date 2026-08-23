@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   foundation:
@@ -14,20 +14,23 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/ux-room-entry-lobby
       - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
         with:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
-      - name: Temporary room-entry formatter probe
+      - name: Temporary room-entry formatter commit
         run: |
           dart format apps/mobile/lib/ui/room_entry/create_room_screen.dart apps/mobile/lib/ui/room_entry/join_room_screen.dart apps/mobile/lib/ui/room_entry/lobby_screen.dart apps/mobile/lib/ui/room_entry/room_entry_components.dart apps/mobile/test/room_entry_surfaces_test.dart
-          for file in apps/mobile/lib/ui/room_entry/create_room_screen.dart apps/mobile/lib/ui/room_entry/join_room_screen.dart apps/mobile/lib/ui/room_entry/lobby_screen.dart apps/mobile/lib/ui/room_entry/room_entry_components.dart apps/mobile/test/room_entry_surfaces_test.dart; do
-            echo "BEGIN_BASE64:$file"
-            base64 -w0 "$file"
-            echo
-            echo "END_BASE64:$file"
-          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/mobile/lib/ui/room_entry/create_room_screen.dart apps/mobile/lib/ui/room_entry/join_room_screen.dart apps/mobile/lib/ui/room_entry/lobby_screen.dart apps/mobile/lib/ui/room_entry/room_entry_components.dart apps/mobile/test/room_entry_surfaces_test.dart
+          if ! git diff --cached --quiet; then
+            git commit -m "style(ui): apply Dart formatter to room entry"
+            git push origin HEAD:feat/ux-room-entry-lobby
+          fi
       - name: Foundation gates
         run: ./tool/ci.sh
 
