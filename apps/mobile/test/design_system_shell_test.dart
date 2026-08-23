@@ -57,7 +57,7 @@ void main() {
     final theme = Theme.of(scaffold);
 
     expect(theme.scaffoldBackgroundColor, AppPalette.canvas);
-    expect(theme.colorScheme.primary, ApPalette.primary);
+    expect(theme.colorScheme.primary, AppPalette.primary);
     expect(theme.colorScheme.secondary, AppPalette.info);
   });
 }
