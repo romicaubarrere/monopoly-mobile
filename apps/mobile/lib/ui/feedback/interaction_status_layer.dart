@@ -20,6 +20,7 @@ class InteractionStatusLayer extends StatelessWidget {
       container: true,
       liveRegion: true,
       label: text,
+      excludeSemantics: true,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(AppSpacing.x3),
