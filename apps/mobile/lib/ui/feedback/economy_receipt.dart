@@ -30,7 +30,7 @@ class EconomyReceipt extends StatelessWidget {
     final semanticLabel = [
       'Cambio confirmado: $_deltaLabel.',
       summary,
-      if (resultingBalanceLabel != null) resultingBalanceLabel!,
+      ?resultingBalanceLabel,
     ].join(' ');
 
     return Semantics(
