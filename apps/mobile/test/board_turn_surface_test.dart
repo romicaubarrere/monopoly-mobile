@@ -81,7 +81,8 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Tirando…'));
+    final button = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(button.onPressed, isNull);
     expect(calls, 0);
     expect(find.byKey(const ValueKey('board-tile-0')), findsOneWidget);
   });
