@@ -37,6 +37,7 @@ class EconomyReceipt extends StatelessWidget {
       container: true,
       liveRegion: true,
       label: semanticLabel,
+      excludeSemantics: true,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(AppSpacing.x3),
@@ -63,9 +64,8 @@ class EconomyReceipt extends StatelessWidget {
                 children: [
                   Text(
                     summary,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   if (resultingBalanceLabel != null) ...[
                     const SizedBox(height: AppSpacing.x1),
