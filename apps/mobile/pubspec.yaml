@@ -1,0 +1,18 @@
+name: board_mobile
+publish_to: none
+resolution: workspace
+version: 0.1.0+1
+environment:
+  sdk: ^3.13.0
+  flutter: '>=3.47.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  board_game_contracts:
+    path: ../../packages/game_contracts
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true
