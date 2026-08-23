@@ -43,6 +43,7 @@ class AsyncActionButton extends StatelessWidget {
       button: true,
       enabled: isActionable,
       label: semanticLabel,
+      excludeSemantics: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
