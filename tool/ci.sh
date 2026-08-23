@@ -3,11 +3,7 @@ set -euo pipefail
 
 flutter --version
 dart --version
-flutter pub get
-
-# Temporary bootstrap evidence: print the resolver-produced lockfile so the
-# exact Flutter/Dart resolution can be committed in this PR.
-cat pubspec.lock
+flutter pub get --enforce-lockfile
 
 dart format --output=none --set-exit-if-changed apps packages backend
 
