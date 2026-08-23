@@ -8,3 +8,5 @@ workspace:
   - packages/game_contracts
   - packages/backend_api
   - backend/command_service
+dev_dependencies:
+  lints: ^6.0.0
