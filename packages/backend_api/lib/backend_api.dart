@@ -1,5 +1,8 @@
 library;
 
+export 'src/idempotency_guard.dart';
+export 'src/semantic_fingerprint.dart';
+
 /// Transport-neutral backend API boundary.
 ///
 /// HTTP/Firebase adapters belong outside game_core/game_contracts and must invoke
