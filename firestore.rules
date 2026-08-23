@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMember() {
+      return signedIn() && request.auth.uid in resource.data.memberUids;
+    }
+
+    match /rooms/{roomId} {
+      allow read: if isMember();
+      allow write: if false;
+    }
+
+    match /games/{gameId} {
+      allow read: if isMember();
+      allow write: if false;
+
+      match /commands/{operationId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /roomCodes/{codeHash} {
+      allow read, write: if false;
+    }
+
+    match /roomCommands/{commandId} {
+      allow read, write: if false;
+    }
+
+    match /gameSecrets/{gameId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
