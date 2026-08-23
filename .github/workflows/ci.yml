@@ -19,15 +19,6 @@ jobs:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
-      - name: Temporary read-only formatter probe
-        run: |
-          dart format apps/mobile/lib/ui/feedback/economy_receipt.dart apps/mobile/lib/ui/feedback/interaction_feedback_state.dart apps/mobile/lib/ui/feedback/interaction_status_layer.dart
-          for file in apps/mobile/lib/ui/feedback/economy_receipt.dart apps/mobile/lib/ui/feedback/interaction_feedback_state.dart apps/mobile/lib/ui/feedback/interaction_status_layer.dart; do
-            echo "BEGIN_BASE64:$file"
-            base64 -w0 "$file"
-            echo
-            echo "END_BASE64:$file"
-          done
       - name: Foundation gates
         run: ./tool/ci.sh
 
