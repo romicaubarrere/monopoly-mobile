@@ -4,11 +4,7 @@ import '../../design_system/tokens.dart';
 import 'interaction_feedback_state.dart';
 
 class InteractionStatusLayer extends StatelessWidget {
-  const InteractionStatusLayer({
-    required this.state,
-    this.message,
-    super.key,
-  });
+  const InteractionStatusLayer({required this.state, this.message, super.key});
 
   final InteractionFeedbackState state;
   final String? message;
