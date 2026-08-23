@@ -1,0 +1,11 @@
+name: board_backend_api
+publish_to: none
+resolution: workspace
+version: 0.1.0
+environment:
+  sdk: ^3.13.0
+dependencies:
+  board_game_contracts:
+    path: ../game_contracts
+dev_dependencies:
+  lints: ^6.0.0

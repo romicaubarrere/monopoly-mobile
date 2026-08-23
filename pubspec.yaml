@@ -1,0 +1,10 @@
+name: board_game_workspace
+publish_to: none
+environment:
+  sdk: ^3.13.0
+workspace:
+  - apps/mobile
+  - packages/game_core
+  - packages/game_contracts
+  - packages/backend_api
+  - backend/command_service
