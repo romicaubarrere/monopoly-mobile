@@ -14,10 +14,7 @@ class BoardGameApp extends StatelessWidget {
       title: 'Board Game',
       home: Scaffold(
         body: Center(
-          child: Semantics(
-            headingLevel: 1,
-            child: const Text('Board Game'),
-          ),
+          child: Semantics(headingLevel: 1, child: const Text('Board Game')),
         ),
       ),
     );
