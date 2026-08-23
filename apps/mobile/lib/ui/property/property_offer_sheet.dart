@@ -110,10 +110,7 @@ class PropertyOfferSheet extends StatelessWidget {
                   disabledReason: _buyDisabledReason,
                 ),
                 const SizedBox(height: AppSpacing.x3),
-                _DeclineButton(
-                  state: declineState,
-                  onPressed: onDecline,
-                ),
+                _DeclineButton(state: declineState, onPressed: onDecline),
               ],
             ),
           ),
@@ -131,21 +128,20 @@ class PropertyOfferSheet extends StatelessWidget {
       InteractionFeedbackState.disabled,
     PropertyOfferDecisionState.stale => InteractionFeedbackState.disabled,
     PropertyOfferDecisionState.rejected => InteractionFeedbackState.disabled,
-    PropertyOfferDecisionState.uncertain =>
-      InteractionFeedbackState.uncertain,
+    PropertyOfferDecisionState.uncertain => InteractionFeedbackState.uncertain,
     PropertyOfferDecisionState.offline => InteractionFeedbackState.offline,
   };
 
   InteractionFeedbackState get _declineFeedbackState => switch (state) {
     PropertyOfferDecisionState.available ||
-    PropertyOfferDecisionState.insufficientFunds => InteractionFeedbackState.idle,
+    PropertyOfferDecisionState.insufficientFunds =>
+      InteractionFeedbackState.idle,
     PropertyOfferDecisionState.pendingBuy => InteractionFeedbackState.disabled,
     PropertyOfferDecisionState.pendingDecline =>
       InteractionFeedbackState.pending,
     PropertyOfferDecisionState.stale => InteractionFeedbackState.disabled,
     PropertyOfferDecisionState.rejected => InteractionFeedbackState.disabled,
-    PropertyOfferDecisionState.uncertain =>
-      InteractionFeedbackState.uncertain,
+    PropertyOfferDecisionState.uncertain => InteractionFeedbackState.uncertain,
     PropertyOfferDecisionState.offline => InteractionFeedbackState.offline,
   };
 
@@ -157,8 +153,7 @@ class PropertyOfferSheet extends StatelessWidget {
       InteractionFeedbackState.pending,
     PropertyOfferDecisionState.stale => InteractionFeedbackState.stale,
     PropertyOfferDecisionState.rejected => InteractionFeedbackState.rejected,
-    PropertyOfferDecisionState.uncertain =>
-      InteractionFeedbackState.uncertain,
+    PropertyOfferDecisionState.uncertain => InteractionFeedbackState.uncertain,
     PropertyOfferDecisionState.offline => InteractionFeedbackState.offline,
   };
 
@@ -241,9 +236,8 @@ class _PropertyIdentity extends StatelessWidget {
               children: [
                 Text(
                   propertyLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: AppSpacing.x1),
                 Text(
@@ -263,7 +257,10 @@ class _PropertyIdentity extends StatelessWidget {
 }
 
 class _PrimaryEconomy extends StatelessWidget {
-  const _PrimaryEconomy({required this.priceLabel, required this.baseRentLabel});
+  const _PrimaryEconomy({
+    required this.priceLabel,
+    required this.baseRentLabel,
+  });
 
   final String priceLabel;
   final String baseRentLabel;
@@ -344,9 +341,8 @@ class _GroupProgress extends StatelessWidget {
         Expanded(
           child: Text(
             'Grupo: $label',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -372,9 +368,8 @@ class _Metric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppPalette.inkSecondary,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: AppPalette.inkSecondary),
         ),
         const SizedBox(height: AppSpacing.x1),
         Text(
@@ -398,7 +393,8 @@ class _DeclineButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPending = state == InteractionFeedbackState.pending;
-    final isActionable = state == InteractionFeedbackState.idle && onPressed != null;
+    final isActionable =
+        state == InteractionFeedbackState.idle && onPressed != null;
     final label = isPending ? 'Abriendo subasta…' : 'No comprar → subasta';
     final semanticLabel = switch (state) {
       InteractionFeedbackState.pending =>
@@ -407,8 +403,7 @@ class _DeclineButton extends StatelessWidget {
         'No comprar y abrir subasta. Confirmando qué pasó antes de continuar.',
       InteractionFeedbackState.offline =>
         'No comprar y abrir subasta. No disponible mientras se reconecta.',
-      InteractionFeedbackState.disabled =>
-        'No comprar y abrir subasta. No disponible mientras se confirma otra acción.',
+      InteractionFeedbackState.disabled => 'No comprar y abrir subasta. No disponible mientras se confirma otra acción.',
       _ => 'No comprar y abrir subasta',
     };
 
