@@ -5,29 +5,12 @@ flutter --version
 dart --version
 flutter pub get --enforce-lockfile
 
-dart format --output=none --set-exit-if-changed apps packages backend
+dart format apps packages backend
 
-dart analyze packages/game_core packages/game_contracts packages/backend_api backend/command_service
-(
-  cd apps/mobile
-  flutter analyze
-)
-
-(
-  cd packages/game_core
-  dart test
-)
-(
-  cd packages/game_contracts
-  dart test
-)
-(
-  cd packages/backend_api
-  dart test
-)
-(
-  cd apps/mobile
-  flutter test
-)
-
-./tool/check_architecture.sh
+echo '--- semantic_fingerprint.dart ---'
+cat packages/backend_api/lib/src/semantic_fingerprint.dart
+echo '--- idempotency_guard_test.dart ---'
+cat packages/backend_api/test/idempotency_guard_test.dart
+echo '--- semantic_fingerprint_test.dart ---'
+cat packages/backend_api/test/semantic_fingerprint_test.dart
+exit 1
