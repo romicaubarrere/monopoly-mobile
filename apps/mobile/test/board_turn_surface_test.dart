@@ -142,7 +142,8 @@ void main() {
                 highlightedPosition: 4,
                 firstDie: 6,
                 secondDie: 6,
-                movementSummary: 'Destino confirmado en estado de presentación.',
+                movementSummary:
+                    'Destino confirmado en estado de presentación.',
                 rollState: InteractionFeedbackState.disabled,
                 rollDisabledReason: 'Esperando la próxima acción válida',
               ),
