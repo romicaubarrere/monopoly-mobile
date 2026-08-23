@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'design_system/app_theme.dart';
+import 'ui/home_screen.dart';
+
 void main() {
   runApp(const BoardGameApp());
 }
@@ -12,11 +15,8 @@ class BoardGameApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Board Game',
-      home: Scaffold(
-        body: Center(
-          child: Semantics(headingLevel: 1, child: const Text('Board Game')),
-        ),
-      ),
+      theme: AppTheme.light,
+      home: const HomeScreen(),
     );
   }
 }
