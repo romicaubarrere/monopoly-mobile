@@ -22,6 +22,10 @@ dart analyze packages/game_core packages/game_contracts packages/backend_api bac
   dart test
 )
 (
+  cd packages/backend_api
+  dart test
+)
+(
   cd apps/mobile
   flutter test
 )
