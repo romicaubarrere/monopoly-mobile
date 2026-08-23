@@ -60,9 +60,8 @@ class LobbyScreen extends StatelessWidget {
                           header: true,
                           child: Text(
                             'La sala está armada',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.x4),
@@ -74,9 +73,8 @@ class LobbyScreen extends StatelessWidget {
                         const SizedBox(height: AppSpacing.x6),
                         Text(
                           'Jugadores',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         const SizedBox(height: AppSpacing.x3),
                         if (seats.isEmpty)
@@ -86,16 +84,17 @@ class LobbyScreen extends StatelessWidget {
                         else
                           ...seats.map(
                             (seat) => Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.x2),
+                              padding: const EdgeInsets.only(
+                                bottom: AppSpacing.x2,
+                              ),
                               child: _LobbySeatRow(seat: seat),
                             ),
                           ),
                         const SizedBox(height: AppSpacing.x6),
                         Text(
                           'Preset',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         const SizedBox(height: AppSpacing.x3),
                         PresetOptionCard(
@@ -133,11 +132,7 @@ class LobbyScreen extends StatelessWidget {
 }
 
 class _RoomCodePanel extends StatelessWidget {
-  const _RoomCodePanel({
-    required this.roomCode,
-    this.onCopy,
-    this.onShare,
-  });
+  const _RoomCodePanel({required this.roomCode, this.onCopy, this.onShare});
 
   final String roomCode;
   final VoidCallback? onCopy;
@@ -214,7 +209,9 @@ class _LobbySeatRow extends StatelessWidget {
     final statusIcon = seat.isReady
         ? Icons.check_circle_rounded
         : Icons.schedule_rounded;
-    final statusColor = seat.isReady ? AppPalette.info : AppPalette.inkSecondary;
+    final statusColor = seat.isReady
+        ? AppPalette.info
+        : AppPalette.inkSecondary;
 
     return Semantics(
       label:
@@ -233,7 +230,9 @@ class _LobbySeatRow extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              seat.isBot ? Icons.smart_toy_outlined : Icons.person_outline_rounded,
+              seat.isBot
+                  ? Icons.smart_toy_outlined
+                  : Icons.person_outline_rounded,
               semanticLabel: null,
             ),
             const SizedBox(width: AppSpacing.x3),
@@ -244,9 +243,8 @@ class _LobbySeatRow extends StatelessWidget {
                 children: [
                   Text(
                     seat.displayName,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   if (seat.isSelf) const _SmallBadge(label: 'VOS'),
                   if (seat.isHost) const _SmallBadge(label: 'HOST'),
@@ -282,9 +280,8 @@ class _SmallBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          fontWeight: FontWeight.w900,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -324,8 +321,8 @@ class _LobbyFooter extends StatelessWidget {
       label = isPending
           ? 'Confirmando…'
           : isSelfReady
-              ? 'Dejar de estar listo'
-              : 'Estoy listo';
+          ? 'Dejar de estar listo'
+          : 'Estoy listo';
     }
 
     return Container(
@@ -350,9 +347,8 @@ class _LobbyFooter extends StatelessWidget {
             Text(
               'La partida se habilita cuando el estado de la sala lo permita.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppPalette.inkSecondary,
-              ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppPalette.inkSecondary),
             ),
           ],
         ],

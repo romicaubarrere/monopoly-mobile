@@ -43,36 +43,42 @@ void main() {
 
     await tester.tap(find.text('Express'));
     expect(selected, 'express');
-    expect(find.textContaining('sin caps finales hardcodeados'), findsOneWidget);
+    expect(
+      find.textContaining('sin caps finales hardcodeados'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('join room keeps code after recoverable error and normalizes it', (
-    tester,
-  ) async {
-    String? submitted;
+  testWidgets(
+    'join room keeps code after recoverable error and normalizes it',
+    (tester) async {
+      String? submitted;
 
-    Widget build({String? errorMessage}) {
-      return MaterialApp(
-        theme: AppTheme.light,
-        home: JoinRoomScreen(
-          onJoinRoom: (code) => submitted = code,
-          errorMessage: errorMessage,
-        ),
+      Widget build({String? errorMessage}) {
+        return MaterialApp(
+          theme: AppTheme.light,
+          home: JoinRoomScreen(
+            onJoinRoom: (code) => submitted = code,
+            errorMessage: errorMessage,
+          ),
+        );
+      }
+
+      await tester.pumpWidget(build());
+      await tester.enterText(find.byType(TextField), 'ab12cd');
+      await tester.pump();
+      await tester.tap(find.text('Unirse a sala'));
+      expect(submitted, 'AB12CD');
+
+      await tester.pumpWidget(
+        build(errorMessage: 'Esa sala no está disponible.'),
       );
-    }
+      await tester.pump();
 
-    await tester.pumpWidget(build());
-    await tester.enterText(find.byType(TextField), 'ab12cd');
-    await tester.pump();
-    await tester.tap(find.text('Unirse a sala'));
-    expect(submitted, 'AB12CD');
-
-    await tester.pumpWidget(build(errorMessage: 'Esa sala no está disponible.'));
-    await tester.pump();
-
-    expect(find.text('ab12cd'), findsOneWidget);
-    expect(find.text('Esa sala no está disponible.'), findsOneWidget);
-  });
+      expect(find.text('ab12cd'), findsOneWidget);
+      expect(find.text('Esa sala no está disponible.'), findsOneWidget);
+    },
+  );
 
   testWidgets('lobby groups six-character code and explains disabled start', (
     tester,

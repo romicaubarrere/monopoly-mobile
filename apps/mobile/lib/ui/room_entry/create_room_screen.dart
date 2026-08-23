@@ -24,7 +24,8 @@ class CreateRoomScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canCreate = selectedPresetId != null && !isPending && onCreateRoom != null;
+    final canCreate =
+        selectedPresetId != null && !isPending && onCreateRoom != null;
 
     return Scaffold(
       body: SafeArea(
@@ -50,18 +51,18 @@ class CreateRoomScreen extends StatelessWidget {
                           header: true,
                           child: Text(
                             'Elegí cómo se juega',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.x2),
                         Text(
                           'La duración es un objetivo, no una promesa. Las reglas efectivas llegan como configuración versionada.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppPalette.inkSecondary,
-                            height: 1.35,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppPalette.inkSecondary,
+                                height: 1.35,
+                              ),
                         ),
                         const SizedBox(height: AppSpacing.x5),
                         if (presets.isEmpty)
@@ -71,7 +72,9 @@ class CreateRoomScreen extends StatelessWidget {
                         else
                           ...presets.map(
                             (preset) => Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.x3),
+                              padding: const EdgeInsets.only(
+                                bottom: AppSpacing.x3,
+                              ),
                               child: PresetOptionCard(
                                 preset: preset,
                                 isSelected: preset.id == selectedPresetId,
@@ -102,7 +105,10 @@ class CreateRoomScreen extends StatelessWidget {
                   decoration: const BoxDecoration(
                     color: AppPalette.canvas,
                     border: Border(
-                      top: BorderSide(color: AppPalette.inkSecondary, width: 0.5),
+                      top: BorderSide(
+                        color: AppPalette.inkSecondary,
+                        width: 0.5,
+                      ),
                     ),
                   ),
                   child: FilledButton(

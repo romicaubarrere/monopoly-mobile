@@ -29,10 +29,8 @@ class InlineStatusMessage extends StatelessWidget {
         ),
         child: Text(
           message,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: color, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -58,7 +56,8 @@ class PresetOptionCard extends StatelessWidget {
     return Semantics(
       button: true,
       selected: isSelected,
-      label: '${preset.title}. ${preset.durationLabel}. ${preset.endConditionLabel}',
+      label:
+          '${preset.title}. ${preset.durationLabel}. ${preset.endConditionLabel}',
       child: InkWell(
         onTap: onSelected,
         borderRadius: BorderRadius.circular(AppRadius.card),
@@ -87,9 +86,8 @@ class PresetOptionCard extends StatelessWidget {
                       children: [
                         Text(
                           preset.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         if (preset.tone == PresetTone.experimental)
                           const _ExperimentalBadge(),

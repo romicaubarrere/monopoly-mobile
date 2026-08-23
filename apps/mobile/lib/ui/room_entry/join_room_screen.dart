@@ -67,9 +67,8 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                     header: true,
                     child: Text(
                       'Entrá con el código de sala',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.x2),
@@ -121,16 +120,17 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                   const SizedBox(height: AppSpacing.x5),
                   FilledButton(
                     onPressed: _canJoin ? _submitIfEligible : null,
-                    child: Text(widget.isPending ? 'Entrando…' : 'Unirse a sala'),
+                    child: Text(
+                      widget.isPending ? 'Entrando…' : 'Unirse a sala',
+                    ),
                   ),
                   if (!_canJoin && !widget.isPending) ...[
                     const SizedBox(height: AppSpacing.x2),
                     Text(
                       'Ingresá los 6 caracteres para continuar.',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppPalette.inkSecondary,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: AppPalette.inkSecondary),
                     ),
                   ],
                 ],
