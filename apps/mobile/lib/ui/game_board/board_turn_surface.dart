@@ -135,9 +135,8 @@ class _TurnHud extends StatelessWidget {
               children: [
                 Text(
                   currentPlayerLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: AppSpacing.x1),
                 Text(
@@ -173,9 +172,8 @@ class _TurnHud extends StatelessWidget {
                       child: Text(
                         connectionLabel,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppPalette.inkSecondary,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: AppPalette.inkSecondary),
                       ),
                     ),
                   ],
