@@ -17,8 +17,7 @@ extension InteractionFeedbackStateX on InteractionFeedbackState {
   bool get blocksConflictingIntent => switch (this) {
     InteractionFeedbackState.pending ||
     InteractionFeedbackState.uncertain ||
-    InteractionFeedbackState.offline =>
-      true,
+    InteractionFeedbackState.offline => true,
     _ => false,
   };
 }
