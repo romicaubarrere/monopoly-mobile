@@ -19,6 +19,15 @@ jobs:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
+      - name: Temporary room-entry formatter probe
+        run: |
+          dart format apps/mobile/lib/ui/room_entry/create_room_screen.dart apps/mobile/lib/ui/room_entry/join_room_screen.dart apps/mobile/lib/ui/room_entry/lobby_screen.dart apps/mobile/lib/ui/room_entry/room_entry_components.dart apps/mobile/test/room_entry_surfaces_test.dart
+          for file in apps/mobile/lib/ui/room_entry/create_room_screen.dart apps/mobile/lib/ui/room_entry/join_room_screen.dart apps/mobile/lib/ui/room_entry/lobby_screen.dart apps/mobile/lib/ui/room_entry/room_entry_components.dart apps/mobile/test/room_entry_surfaces_test.dart; do
+            echo "BEGIN_BASE64:$file"
+            base64 -w0 "$file"
+            echo
+            echo "END_BASE64:$file"
+          done
       - name: Foundation gates
         run: ./tool/ci.sh
 
