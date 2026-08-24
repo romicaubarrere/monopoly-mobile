@@ -209,14 +209,16 @@ class _BoardPreviewSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.x3,
+          runSpacing: AppSpacing.x2,
           children: [
-            Expanded(
-              child: Text(
-                'UNA MESA, EN EL BOLSILLO',
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.8),
-              ),
+            Text(
+              'UNA MESA, EN EL BOLSILLO',
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.8),
             ),
             const StampBadge(
               label: '40 casilleros',
