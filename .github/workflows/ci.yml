@@ -9,6 +9,17 @@ permissions:
   contents: read
 
 jobs:
+  repository-policy:
+    name: security / artifact-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: CI repository policy
+        run: ./tool/check_ci_policy.sh
+      - name: Secret and private-state artifact scan
+        run: ./tool/scan_artifacts.sh
+
   foundation:
     runs-on: ubuntu-latest
     timeout-minutes: 15
