@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design_system/tokens.dart';
+import '../../design_system/visual_components.dart';
 import 'room_entry_models.dart';
 
 class InlineStatusMessage extends StatelessWidget {
@@ -19,18 +20,16 @@ class InlineStatusMessage extends StatelessWidget {
 
     return Semantics(
       liveRegion: true,
-      child: Container(
-        width: double.infinity,
+      child: PaperPanel(
+        background: color.withValues(alpha: 0.08),
+        borderColor: color,
         padding: const EdgeInsets.all(AppSpacing.x3),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          border: Border.all(color: color),
-          borderRadius: BorderRadius.circular(AppRadius.control),
-        ),
         child: Text(
           message,
-          style: Theme.of(context).textTheme.bodyMedium
-              ?.copyWith(color: color, fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
     );
@@ -51,8 +50,6 @@ class PresetOptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Semantics(
       button: onSelected != null,
       selected: isSelected,
@@ -61,69 +58,81 @@ class PresetOptionCard extends StatelessWidget {
       child: InkWell(
         onTap: onSelected,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        child: AnimatedContainer(
-          duration: AppMotion.press,
-          padding: const EdgeInsets.all(AppSpacing.x4),
-          decoration: BoxDecoration(
-            color: AppPalette.surface,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            border: Border.all(
-              color: isSelected ? scheme.primary : AppPalette.inkSecondary,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: AppSpacing.x2,
-                      runSpacing: AppSpacing.x2,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            PaperPanel(
+              background: isSelected
+                  ? const Color(0xFFE7F0E6)
+                  : AppPalette.surface,
+              borderColor: isSelected
+                  ? AppPalette.bottleGreen
+                  : AppPalette.inkSecondary,
+              padding: const EdgeInsets.all(AppSpacing.x4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          preset.title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w900),
+                        Wrap(
+                          spacing: AppSpacing.x2,
+                          runSpacing: AppSpacing.x2,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              preset.title,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w900),
+                            ),
+                            if (preset.tone == PresetTone.experimental)
+                              const _ExperimentalBadge(),
+                          ],
                         ),
-                        if (preset.tone == PresetTone.experimental)
-                          const _ExperimentalBadge(),
+                        const SizedBox(height: AppSpacing.x2),
+                        Text(
+                          preset.durationLabel,
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
+                                color: AppPalette.wornBlue,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const SizedBox(height: AppSpacing.x1),
+                        Text(preset.endConditionLabel),
+                        const SizedBox(height: AppSpacing.x2),
+                        Text(
+                          preset.differenceSummary,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: AppPalette.inkSecondary,
+                                height: 1.35,
+                              ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.x2),
-                    Text(
-                      preset.durationLabel,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppPalette.info,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.x1),
-                    Text(preset.endConditionLabel),
-                    const SizedBox(height: AppSpacing.x2),
-                    Text(
-                      preset.differenceSummary,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppPalette.inkSecondary,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: AppSpacing.x3),
+                  Icon(
+                    isSelected
+                        ? Icons.check_circle_rounded
+                        : Icons.circle_outlined,
+                    color: isSelected
+                        ? AppPalette.bottleGreen
+                        : AppPalette.inkSecondary,
+                    semanticLabel: null,
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.x3),
-              Icon(
-                isSelected
-                    ? Icons.radio_button_checked_rounded
-                    : Icons.radio_button_off_rounded,
-                color: isSelected ? scheme.primary : AppPalette.inkSecondary,
-                semanticLabel: null,
+            ),
+            if (isSelected)
+              const Positioned(
+                right: 22,
+                top: -6,
+                child: TapeMark(width: 54),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -135,23 +144,10 @@ class _ExperimentalBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.x2,
-        vertical: AppSpacing.x1,
-      ),
-      decoration: BoxDecoration(
-        color: AppPalette.ritual.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        'EXPERIMENTAL',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppPalette.ink,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.5,
-        ),
-      ),
+    return const StampBadge(
+      label: 'Experimental',
+      color: AppPalette.wornBlue,
+      angle: -0.02,
     );
   }
 }
