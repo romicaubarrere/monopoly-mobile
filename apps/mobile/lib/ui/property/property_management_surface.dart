@@ -352,8 +352,8 @@ class _ImprovementPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final next = [
-      if (nextImprovementLabel != null) nextImprovementLabel!,
-      if (nextImprovementCostLabel != null) nextImprovementCostLabel!,
+      ?nextImprovementLabel,
+      ?nextImprovementCostLabel,
     ].join(' · ');
 
     return Semantics(
