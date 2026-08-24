@@ -51,22 +51,20 @@ void main() {
 
     expect(find.byType(TextField), findsNothing);
     expect(find.byType(OutlinedButton), findsNWidgets(6));
-    expect(find.text('Elegí una reacción rápida. No hay texto libre.'), findsOneWidget);
+    expect(
+      find.text('Elegí una reacción rápida. No hay texto libre.'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('emote_selection_emits_only_the_caller_owned_id', (
-    tester,
-  ) async {
+  testWidgets('emote_selection_emits_only_the_caller_owned_id', (tester) async {
     String? selected;
 
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(
-          body: EmoteTray(
-            options: _options,
-            onSelected: (id) => selected = id,
-          ),
+          body: EmoteTray(options: _options, onSelected: (id) => selected = id),
         ),
       ),
     );
@@ -97,7 +95,9 @@ void main() {
     );
 
     expect(find.text('Esperá antes de reaccionar de nuevo'), findsOneWidget);
-    final buttons = tester.widgetList<OutlinedButton>(find.byType(OutlinedButton));
+    final buttons = tester.widgetList<OutlinedButton>(
+      find.byType(OutlinedButton),
+    );
     expect(buttons.every((button) => button.onPressed == null), isTrue);
     expect(calls, 0);
   });
