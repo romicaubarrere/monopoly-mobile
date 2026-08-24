@@ -1,5 +1,6 @@
 import 'package:board_mobile/design_system/app_theme.dart';
 import 'package:board_mobile/design_system/tokens.dart';
+import 'package:board_mobile/design_system/visual_components.dart';
 import 'package:board_mobile/ui/property/property_management_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,6 +39,21 @@ void main() {
       semantics.dispose();
     },
   );
+
+  testWidgets('property_management_uses_almazen_ledger_hierarchy', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(state: PropertyManagementViewState.available),
+    );
+
+    expect(find.byType(PaperPanel), findsNWidgets(8));
+    expect(find.byType(StampBadge), findsNWidgets(2));
+    expect(find.byType(TapeMark), findsOneWidget);
+    expect(find.text('EN TU LIBRETA'), findsOneWidget);
+    expect(find.text('TU CUENTA'), findsOneWidget);
+    expect(find.text('ACCIONES DE LA LIBRETA'), findsOneWidget);
+  });
 
   testWidgets('available_actions_emit_intent_and_caller_disabled_reason_wins', (
     tester,
