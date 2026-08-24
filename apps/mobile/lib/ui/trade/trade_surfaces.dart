@@ -79,7 +79,8 @@ class TradeBuilderSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final editable = state == TradeBuilderState.draftEmpty ||
+    final editable =
+        state == TradeBuilderState.draftEmpty ||
         state == TradeBuilderState.draftValid;
     final sendState = _sendFeedbackState;
     final statusState = _statusFeedbackState;
@@ -112,9 +113,8 @@ class TradeBuilderSurface extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x1),
                 Text(
                   rivalLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: AppSpacing.x5),
                 _TradeSideSection(
@@ -282,9 +282,8 @@ class TradeReviewSurface extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x1),
                 Text(
                   proposerLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: AppSpacing.x4),
                 _ReviewExchange(
@@ -366,8 +365,7 @@ class TradeReviewSurface extends StatelessWidget {
   };
 
   String get _defaultStatusMessage => switch (state) {
-    TradeReviewState.pendingAccept =>
-      'Esperando confirmación. Los activos todavía muestran el último estado confirmado.',
+    TradeReviewState.pendingAccept => 'Esperando confirmación. Los activos todavía muestran el último estado confirmado.',
     TradeReviewState.stale =>
       'La propuesta ya no es válida. Reconciliando con el estado actual.',
     TradeReviewState.expired =>
@@ -376,8 +374,7 @@ class TradeReviewSurface extends StatelessWidget {
       'Confirmando qué pasó antes de habilitar otra respuesta.',
     TradeReviewState.offline =>
       'Reconectando antes de habilitar una respuesta.',
-    TradeReviewState.waitingHuman =>
-      'Esperando a que vuelva el jugador. El bot temporal no puede aceptar por él.',
+    TradeReviewState.waitingHuman => 'Esperando a que vuelva el jugador. El bot temporal no puede aceptar por él.',
     _ => '',
   };
 
@@ -444,9 +441,8 @@ class _TradeSideSection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: AppSpacing.x3),
         TextField(
@@ -523,9 +519,8 @@ class _TradeAssetRow extends StatelessWidget {
                         asset.detail!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppPalette.inkSecondary,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: AppPalette.inkSecondary),
                       ),
                   ],
                 ),
@@ -630,7 +625,9 @@ class _ReviewBlock extends StatelessWidget {
         children: [
           Icon(icon, size: 20),
           const SizedBox(width: AppSpacing.x3),
-          Expanded(child: _SummaryLine(title: title, body: body)),
+          Expanded(
+            child: _SummaryLine(title: title, body: body),
+          ),
         ],
       ),
     );
@@ -658,9 +655,8 @@ class _SummaryLine extends StatelessWidget {
         const SizedBox(height: AppSpacing.x1),
         Text(
           body,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -789,9 +785,8 @@ class _TradeOutcome extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: AppSpacing.x1),
                   Text(body),

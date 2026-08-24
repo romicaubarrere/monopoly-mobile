@@ -38,7 +38,7 @@ DEC-065 integrity remains unchanged. All property/card/economy strings in widget
 
 **Alternatives:** let the bot accept balanced deals; auto-reject; preserve proposal state and wait/expire according to authority.
 
-**Decision:** `waitingHuman` disables Accept/Counter/Reject and communicates `Esperando a que vuelva el jugador`. The UI never portrays the temporary bot as consenting.
+**Decision:** `waitingHuman` disables Accept/Counter/Reject; Accept exposes `El bot temporal no puede aceptar` and the secondary-action semantics explain `Esperando al jugador`. The UI never portrays the temporary bot as consenting.
 
 **Rationale:** a continuity mechanism must not gain human consent authority or private decision rights.
 
