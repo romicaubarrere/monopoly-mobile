@@ -141,58 +141,57 @@ void main() {
     expect(find.text('Ya pasaste en esta subasta'), findsOneWidget);
   });
 
-  testWidgets(
-    'compact_offline_auction_remains_renderable_and_non_mutating',
-    (tester) async {
-      final controller = TextEditingController(text: '350');
-      addTearDown(controller.dispose);
+  testWidgets('compact_offline_auction_remains_renderable_and_non_mutating', (
+    tester,
+  ) async {
+    final controller = TextEditingController(text: '350');
+    addTearDown(controller.dispose);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: Center(
-            child: SizedBox(
-              width: 360,
-              height: 720,
-              child: MediaQuery(
-                data: const MediaQueryData(
-                  size: Size(360, 720),
-                  textScaler: TextScaler.linear(1.3),
-                  disableAnimations: true,
-                ),
-                child: AuctionSheet(
-                  propertyLabel:
-                      'Propiedad sintética con nombre deliberadamente largo',
-                  currentBidLabel: r'$ 300',
-                  leaderLabel: 'Rival A',
-                  cashAvailableLabel: r'$ 1.000',
-                  deadlineLabel: '00:08',
-                  deadlineProgress: 0.7,
-                  participants: _participants,
-                  bidController: controller,
-                  state: AuctionSurfaceState.offline,
-                  quickIncrementLabels: const [r'$ 10', r'$ 25', r'$ 50'],
-                  onQuickIncrement: (_) {},
-                  onBid: () {},
-                  onPass: () {},
-                ),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Center(
+          child: SizedBox(
+            width: 360,
+            height: 720,
+            child: MediaQuery(
+              data: const MediaQueryData(
+                size: Size(360, 720),
+                textScaler: TextScaler.linear(1.3),
+                disableAnimations: true,
+              ),
+              child: AuctionSheet(
+                propertyLabel:
+                    'Propiedad sintética con nombre deliberadamente largo',
+                currentBidLabel: r'$ 300',
+                leaderLabel: 'Rival A',
+                cashAvailableLabel: r'$ 1.000',
+                deadlineLabel: '00:08',
+                deadlineProgress: 0.7,
+                participants: _participants,
+                bidController: controller,
+                state: AuctionSurfaceState.offline,
+                quickIncrementLabels: const [r'$ 10', r'$ 25', r'$ 50'],
+                onQuickIncrement: (_) {},
+                onBid: () {},
+                onPass: () {},
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      expect(tester.takeException(), isNull);
-      expect(
-        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
-        isNull,
-      );
-      expect(
-        find.text('Reconectando antes de habilitar controles de subasta.'),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNull,
+    );
+    expect(
+      find.text('Reconectando antes de habilitar controles de subasta.'),
+      findsOneWidget,
+    );
+  });
 }
 
 const _participants = <AuctionParticipantView>[
@@ -201,10 +200,7 @@ const _participants = <AuctionParticipantView>[
     state: AuctionParticipantState.leader,
     bidLabel: r'$ 300',
   ),
-  AuctionParticipantView(
-    label: 'Vos',
-    state: AuctionParticipantState.active,
-  ),
+  AuctionParticipantView(label: 'Vos', state: AuctionParticipantState.active),
   AuctionParticipantView(
     label: 'Rival B',
     state: AuctionParticipantState.passed,
