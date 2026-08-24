@@ -178,9 +178,8 @@ final class ProductAnalyticsEvent {
       parameters: <String, Object>{
         'result': result.wireName,
         'latency_ms': latencyMs,
-        if (confirmedPreset != null) 'preset': confirmedPreset,
-        if (confirmedRulesVersion != null)
-          'rules_version': confirmedRulesVersion,
+        'preset': ?confirmedPreset,
+        'rules_version': ?confirmedRulesVersion,
       },
     );
   }
@@ -277,7 +276,7 @@ final class ProductAnalyticsEvent {
       'result': result.wireName,
       'duration_ms': durationMs,
       'state_gap': stateGap,
-      if (confirmedRulesVersion != null) 'rules_version': confirmedRulesVersion,
+      'rules_version': ?confirmedRulesVersion,
     },
   );
 
