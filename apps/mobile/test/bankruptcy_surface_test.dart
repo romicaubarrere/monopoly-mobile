@@ -122,6 +122,8 @@ void main() {
         transferSummary: _transfers,
       ),
     );
+    await tester.ensureVisible(find.text('EFECTIVO PLACEHOLDER'));
+    await tester.pumpAndSettle();
 
     expect(
       find.bySemanticsLabel(
