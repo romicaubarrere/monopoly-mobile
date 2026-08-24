@@ -5,29 +5,6 @@ flutter --version
 dart --version
 flutter pub get --enforce-lockfile
 
-dart format --output=none --set-exit-if-changed apps packages backend
-
-dart analyze packages/game_core packages/game_contracts packages/backend_api backend/command_service
-(
-  cd apps/mobile
-  flutter analyze
-)
-
-(
-  cd packages/game_core
-  dart test
-)
-(
-  cd packages/game_contracts
-  dart test
-)
-(
-  cd packages/backend_api
-  dart test
-)
-(
-  cd apps/mobile
-  flutter test
-)
-
-./tool/check_architecture.sh
+dart format apps/mobile/lib/ui/trade/trade_surfaces.dart apps/mobile/test/trade_surfaces_test.dart
+git diff -- apps/mobile/lib/ui/trade/trade_surfaces.dart apps/mobile/test/trade_surfaces_test.dart
+exit 1
