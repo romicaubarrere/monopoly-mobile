@@ -1,4 +1,5 @@
 import 'package:board_mobile/design_system/app_theme.dart';
+import 'package:board_mobile/design_system/visual_components.dart';
 import 'package:board_mobile/ui/room_entry/create_room_screen.dart';
 import 'package:board_mobile/ui/room_entry/join_room_screen.dart';
 import 'package:board_mobile/ui/room_entry/lobby_screen.dart';
@@ -121,6 +122,63 @@ void main() {
       find.textContaining('cuando el estado de la sala lo permita'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('room entry surfaces use shared Almacén visual primitives', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: CreateRoomScreen(
+          presets: const [expressPreset],
+          selectedPresetId: 'express',
+          onSelectPreset: (_) {},
+          onCreateRoom: () {},
+        ),
+      ),
+    );
+
+    expect(find.byType(PaperPanel), findsWidgets);
+    expect(find.byType(StampBadge), findsWidgets);
+    expect(find.text('ARMÁ LA PARTIDA'), findsOneWidget);
+    expect(find.byType(TapeMark), findsWidgets);
+  });
+
+  testWidgets('lobby Almacén hierarchy keeps room data functional', (
+    tester,
+  ) async {
+    var copied = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: LobbyScreen(
+          roomCode: 'abc123',
+          seats: const [
+            LobbySeatViewData(
+              id: 'self',
+              displayName: 'Vos',
+              isReady: true,
+              isHost: true,
+              isSelf: true,
+            ),
+          ],
+          preset: classicPreset,
+          isHost: true,
+          isSelfReady: true,
+          canStart: true,
+          onCopyRoomCode: () => copied = true,
+          onStartGame: () {},
+        ),
+      ),
+    );
+
+    expect(find.text('SALA'), findsOneWidget);
+    expect(find.text('CÓDIGO DE SALA'), findsOneWidget);
+    expect(find.byType(PaperPanel), findsWidgets);
+    await tester.tap(find.text('Copiar'));
+    expect(copied, isTrue);
   });
 
   testWidgets('room entry surfaces tolerate 360dp and 130 percent text scale', (
