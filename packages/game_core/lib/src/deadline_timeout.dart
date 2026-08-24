@@ -12,13 +12,7 @@ enum PendingDecisionKind {
   tradeResponse,
 }
 
-enum TimeoutPolicy {
-  pass,
-  reject,
-  botDecide,
-  autoLiquidate,
-  none,
-}
+enum TimeoutPolicy { pass, reject, botDecide, autoLiquidate, none }
 
 final class PendingDecision {
   PendingDecision({
@@ -51,12 +45,7 @@ final class PendingDecision {
   final TimeoutPolicy timeoutPolicy;
 }
 
-enum DeadlineResolutionStatus {
-  staleDecision,
-  noDeadline,
-  notDue,
-  ready,
-}
+enum DeadlineResolutionStatus { staleDecision, noDeadline, notDue, ready }
 
 enum DeadlineAction {
   pass,
@@ -82,8 +71,8 @@ final class DeadlineResolution {
   /// Only pass/reject are complete deterministic timeout outcomes in this
   /// slice. Bot decisions and debt liquidation remain explicit delegations.
   bool get isTerminal =>
-    isDue &&
-    (action == DeadlineAction.pass || action == DeadlineAction.reject);
+      isDue &&
+      (action == DeadlineAction.pass || action == DeadlineAction.reject);
 }
 
 abstract final class DeadlineTimeoutEngine {
