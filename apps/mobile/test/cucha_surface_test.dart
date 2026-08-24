@@ -59,7 +59,7 @@ void main() {
       );
 
       expect(find.text('Pagando…'), findsOneWidget);
-      expect(find.text('Caíste por una carta sintética'), findsOneWidget);
+      expect(find.text('CAÍSTE POR UNA CARTA SINTÉTICA'), findsOneWidget);
       expect(
         find.text(
           'Esperando confirmación. Todavía no se consumió efectivo ni carta en esta presentación.',
