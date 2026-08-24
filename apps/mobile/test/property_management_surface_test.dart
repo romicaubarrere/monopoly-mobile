@@ -20,13 +20,13 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          'Nivel de mejoras: 2 Manís. Próxima mejora: Maní 3 · $ 100.',
+          r'Nivel de mejoras: 2 Manís. Próxima mejora: Maní 3 · $ 100.',
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          'Efectivo confirmado: $ 1.000. Proyectado si agregás un Maní: $ 900.',
+          r'Efectivo confirmado: $ 1.000. Proyectado si agregás un Maní: $ 900.',
         ),
         findsOneWidget,
       );
@@ -79,7 +79,9 @@ void main() {
       expect(buttons.every((button) => button.onPressed == null), isTrue);
       expect(find.text('Hipotecando…'), findsOneWidget);
       expect(
-        find.textContaining('Efectivo y mejoras siguen mostrando el último estado confirmado'),
+        find.textContaining(
+          'Efectivo y mejoras siguen mostrando el último estado confirmado',
+        ),
         findsOneWidget,
       );
       expect(find.text('Efectivo confirmado'), findsOneWidget);
@@ -97,7 +99,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Hipoteca confirmada. Actualizando propiedad.'), findsOneWidget);
+    expect(
+      find.text('Hipoteca confirmada. Actualizando propiedad.'),
+      findsOneWidget,
+    );
     expect(
       tester
           .widgetList<OutlinedButton>(find.byType(OutlinedButton))
@@ -143,7 +148,9 @@ void main() {
       isTrue,
     );
     expect(
-      find.text('Confirmando qué pasó antes de permitir otra acción equivalente.'),
+      find.text(
+        'Confirmando qué pasó antes de permitir otra acción equivalente.',
+      ),
       findsOneWidget,
     );
   });
