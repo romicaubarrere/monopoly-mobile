@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "manifest": "M1 Specification Manifest & Evidence Registry v1.2",
+  "canonicalSources": {
+    "product": "Monopoly — Product Master Plan v0.4",
+    "gameplay": "Game Rules v1.1 — M1-aligned",
+    "rulesCatalog": "M1 RulesCatalog & PresetConfig Specification v0.1",
+    "domain": "M1 Domain Contracts & State Machine v0.7",
+    "persistence": "M1 Persistence & Authority Data Model v0.7",
+    "rng": "M1 Deterministic RNG Contract & Known-Answer Vectors v0.2",
+    "quality": "Quality & Test Strategy — Juego mobile v1.0",
+    "nfr": "NFRs & SLOs — Juego mobile v1.0",
+    "traceability": "MVP Traceability Matrix v1.2",
+    "roadmap": "Roadmap & Milestones — Monopoly v0.9",
+    "risk": "Risk Register — Monopoly v1.0",
+    "decisions": "Decision Log — Juego mobile DEC-001..065"
+  },
+  "idRanges": {
+    "TV": {"min": 1, "max": 41},
+    "NFR": {"min": 1, "max": 46},
+    "R": {"min": 1, "max": 40},
+    "ADR": {"min": 1, "max": 10},
+    "DEC": {"min": 1, "max": 65}
+  },
+  "immutableAssignments": {
+    "DEC-064": "lazy authoritative deadline resolution + member wake-up / ADR-010",
+    "DEC-065": "approved content intent; exact payload recovery remains separate",
+    "TV-35": "canonical semantic fingerprint exact hash",
+    "TV-39": "duplicate command semantics",
+    "TV-40": "room-code logical expiry",
+    "TV-41": "room-code concurrent reclaim"
+  },
+  "operationalClaims": {
+    "repository": "materialized",
+    "githubAppWrite": "available",
+    "m0Exit": "green",
+    "m1Foundation": "in_progress",
+    "branchProtection": "off"
+  },
+  "contentFixture": {
+    "decision": "DEC-065",
+    "status": "partial",
+    "exactPayloadChecksum": null,
+    "missing": [
+      "40 indexed names/values",
+      "4 exact transport strings",
+      "24 De arriba IDs/copy/effects",
+      "24 De garrón IDs/copy/effects"
+    ]
+  }
+}
