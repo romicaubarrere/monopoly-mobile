@@ -4,9 +4,19 @@ import 'package:flutter/material.dart';
 
 import '../design_system/tokens.dart';
 import '../design_system/visual_components.dart';
+import 'resume/classic_resume_card.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({
+    this.savedClassic,
+    this.onContinueClassic,
+    this.onRetryClassic,
+    super.key,
+  });
+
+  final ClassicResumePresentation? savedClassic;
+  final VoidCallback? onContinueClassic;
+  final VoidCallback? onRetryClassic;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +42,14 @@ class HomeScreen extends StatelessWidget {
                   const _HomeHero(),
                   const SizedBox(height: AppSpacing.x6),
                   const _PlayActions(),
+                  if (savedClassic != null) ...[
+                    const SizedBox(height: AppSpacing.x6),
+                    ClassicResumeCard(
+                      presentation: savedClassic!,
+                      onContinue: onContinueClassic,
+                      onRetry: onRetryClassic,
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.x8),
                   const _BoardPreviewSection(),
                 ],
