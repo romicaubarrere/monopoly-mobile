@@ -62,7 +62,7 @@ class SystemEventToast extends StatelessWidget {
     return switch (tone) {
       SystemEventTone.neutral => AppPalette.ink,
       SystemEventTone.positive => AppPalette.bottleGreen,
-      SystemEventTone.warning => AppPalette.mustard,
+      SystemEventTone.warning => AppPalette.burgundy,
       SystemEventTone.info => AppPalette.wornBlue,
     };
   }
@@ -100,18 +100,14 @@ class SystemEventToast extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x4),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    height: 1.05,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
                 ),
                 const SizedBox(height: AppSpacing.x2),
                 Text(
                   detail,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppPalette.inkSecondary,
-                    height: 1.35,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(color: AppPalette.inkSecondary, height: 1.35),
                 ),
                 if (economyDelta != null && economySummary != null) ...[
                   const SizedBox(height: AppSpacing.x4),
