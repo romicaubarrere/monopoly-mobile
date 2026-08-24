@@ -1,5 +1,6 @@
 import 'package:board_mobile/design_system/app_theme.dart';
 import 'package:board_mobile/design_system/tokens.dart';
+import 'package:board_mobile/design_system/visual_components.dart';
 import 'package:board_mobile/ui/property/property_offer_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,23 @@ void main() {
       semantics.dispose();
     },
   );
+
+  testWidgets('property_offer_uses_almazen_material_hierarchy', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        state: PropertyOfferDecisionState.available,
+        onBuy: () {},
+        onDecline: () {},
+      ),
+    );
+
+    expect(find.byType(PaperPanel), findsNWidgets(4));
+    expect(find.byType(StampBadge), findsOneWidget);
+    expect(find.byType(TapeMark), findsOneWidget);
+    expect(find.text('SE VENDE'), findsOneWidget);
+    expect(find.text('TU CUENTA'), findsOneWidget);
+    expect(find.text('Grupo Grupo sintético'), findsOneWidget);
+  });
 
   testWidgets('insufficient_funds_disables_buy_but_keeps_decline_available', (
     tester,
