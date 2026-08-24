@@ -498,7 +498,10 @@ class _TradeSideSection extends StatelessWidget {
                 child: Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.3),
+                      ?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.3,
+                      ),
                 ),
               ),
             ],
