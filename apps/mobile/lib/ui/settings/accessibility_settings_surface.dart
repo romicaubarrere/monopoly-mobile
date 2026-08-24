@@ -216,10 +216,12 @@ class _SettingRow extends StatelessWidget {
     switch (item.kind) {
       case AccessibilitySettingKind.toggle:
         onToggleChanged?.call(item.id, !item.isSelected);
+        return;
       case AccessibilitySettingKind.action:
         onActionRequested?.call(item.id);
+        return;
       case AccessibilitySettingKind.status:
-        break;
+        return;
     }
   }
 
