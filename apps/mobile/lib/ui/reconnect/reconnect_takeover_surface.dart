@@ -90,10 +90,8 @@ class _StatusHeader extends StatelessWidget {
         Expanded(
           child: Text(
             'CONTINUIDAD DE PARTIDA',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.2,
-            ),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 1.2),
           ),
         ),
         const SizedBox(width: AppSpacing.x3),
@@ -131,14 +129,13 @@ class _PhasePanel extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  height: 1.05,
-                ),
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
               ),
               const SizedBox(height: AppSpacing.x3),
               Text(body),
-              if (_showsCountdown(phase) && authorityCountdownLabel != null) ...[
+              if (_showsCountdown(phase) &&
+                  authorityCountdownLabel != null) ...[
                 const SizedBox(height: AppSpacing.x4),
                 Container(
                   width: double.infinity,
@@ -150,9 +147,8 @@ class _PhasePanel extends StatelessWidget {
                   ),
                   child: Text(
                     'GRACIA INFORMADA POR SERVIDOR · $authorityCountdownLabel',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: Theme.of(context).textTheme.labelLarge
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ),
               ],
@@ -210,9 +206,8 @@ class _ConfirmedContext extends StatelessWidget {
             const SizedBox(height: AppSpacing.x2),
             Text(
               label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: AppSpacing.x2),
             Text(
@@ -243,9 +238,8 @@ class _AwaySummary extends StatelessWidget {
         children: [
           Text(
             'MIENTRAS ESTABAS FUERA…',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: AppSpacing.x3),
           for (var index = 0; index < visibleEvents.length; index += 1) ...[
@@ -286,9 +280,8 @@ class _AwayEventRow extends StatelessWidget {
                 children: [
                   Text(
                     event.title,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   if (event.detail != null) ...[
                     const SizedBox(height: AppSpacing.x1),
@@ -319,8 +312,8 @@ String _badgeLabel(ReconnectPhase phase) {
 
 Color _badgeColor(ReconnectPhase phase) {
   return switch (phase) {
-    ReconnectPhase.networkUnstable || ReconnectPhase.reconnecting =>
-      AppPalette.wornBlue,
+    ReconnectPhase.networkUnstable ||
+    ReconnectPhase.reconnecting => AppPalette.wornBlue,
     ReconnectPhase.commandUncertain ||
     ReconnectPhase.graceExpiredNotBlocking ||
     ReconnectPhase.reconnectedWaitingReclaim => AppPalette.mustard,
@@ -346,22 +339,15 @@ String _phaseTitle(ReconnectPhase phase) {
 
 String _phaseBody(ReconnectPhase phase, String playerLabel) {
   return switch (phase) {
-    ReconnectPhase.networkUnstable =>
-      'La partida sigue guardada en el servidor. Conservamos el último estado confirmado.',
-    ReconnectPhase.reconnecting =>
-      'Intentamos volver sin reiniciar decisiones ni deadlines. El contador es informativo.',
-    ReconnectPhase.commandUncertain =>
-      'Todavía no sabemos si la autoridad confirmó la acción. No mostramos éxito ni habilitamos acciones conflictivas.',
-    ReconnectPhase.graceExpiredNotBlocking =>
-      'La gracia terminó, pero la interfaz no afirma takeover hasta recibir un controller confirmado por autoridad.',
+    ReconnectPhase.networkUnstable => 'La partida sigue guardada en el servidor. Conservamos el último estado confirmado.',
+    ReconnectPhase.reconnecting => 'Intentamos volver sin reiniciar decisiones ni deadlines. El contador es informativo.',
+    ReconnectPhase.commandUncertain => 'Todavía no sabemos si la autoridad confirmó la acción. No mostramos éxito ni habilitamos acciones conflictivas.',
+    ReconnectPhase.graceExpiredNotBlocking => 'La gracia terminó, pero la interfaz no afirma takeover hasta recibir un controller confirmado por autoridad.',
     ReconnectPhase.temporaryBotActive =>
       'Un bot está cubriendo el lugar de $playerLabel. Podés volver a conectarte; recuperás el control en un límite estable confirmado.',
-    ReconnectPhase.reconnectedWaitingReclaim =>
-      'El bot termina esta acción y después recuperás el control. No interrumpimos una transición autoritativa en curso.',
-    ReconnectPhase.reclaimConfirmed =>
-      'El control humano fue confirmado otra vez. Las acciones disponibles dependen del nuevo estado autoritativo.',
-    ReconnectPhase.offline =>
-      'No simulamos progreso ni takeover sin autoridad disponible. Conservamos el último estado confirmado.',
+    ReconnectPhase.reconnectedWaitingReclaim => 'El bot termina esta acción y después recuperás el control. No interrumpimos una transición autoritativa en curso.',
+    ReconnectPhase.reclaimConfirmed => 'El control humano fue confirmado otra vez. Las acciones disponibles dependen del nuevo estado autoritativo.',
+    ReconnectPhase.offline => 'No simulamos progreso ni takeover sin autoridad disponible. Conservamos el último estado confirmado.',
   };
 }
 
