@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design_system/tokens.dart';
+import '../../design_system/visual_components.dart';
 import 'room_entry_components.dart';
 import 'room_entry_models.dart';
 
@@ -37,6 +38,7 @@ class LobbyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppPalette.canvas,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -56,13 +58,32 @@ class LobbyScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Semantics(
-                          header: true,
-                          child: Text(
-                            'La sala está armada',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w900),
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const StampBadge(
+                              label: 'Sala',
+                              color: AppPalette.burgundy,
+                              angle: -0.025,
+                            ),
+                            const SizedBox(width: AppSpacing.x3),
+                            Expanded(
+                              child: Semantics(
+                                header: true,
+                                child: Text(
+                                  'La sala está armada',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        height: 1.05,
+                                      ),
+                                ),
+                              ),
+                            ),
+                            const InkDoodle(size: 30),
+                          ],
                         ),
                         const SizedBox(height: AppSpacing.x4),
                         _RoomCodePanel(
@@ -71,10 +92,9 @@ class LobbyScreen extends StatelessWidget {
                           onShare: isPending ? null : onShareRoomCode,
                         ),
                         const SizedBox(height: AppSpacing.x6),
-                        Text(
-                          'Jugadores',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w900),
+                        _SectionHeading(
+                          label: 'Jugadores',
+                          countLabel: seats.isEmpty ? null : '${seats.length}',
                         ),
                         const SizedBox(height: AppSpacing.x3),
                         if (seats.isEmpty)
@@ -91,11 +111,7 @@ class LobbyScreen extends StatelessWidget {
                             ),
                           ),
                         const SizedBox(height: AppSpacing.x6),
-                        Text(
-                          'Preset',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w900),
-                        ),
+                        const _SectionHeading(label: 'Preset'),
                         const SizedBox(height: AppSpacing.x3),
                         PresetOptionCard(
                           preset: preset,
@@ -131,6 +147,37 @@ class LobbyScreen extends StatelessWidget {
   }
 }
 
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.label, this.countLabel});
+
+  final String label;
+  final String? countLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: AppPalette.bottleGreen,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
+        if (countLabel != null) ...[
+          const SizedBox(width: AppSpacing.x2),
+          StampBadge(
+            label: countLabel!,
+            color: AppPalette.wornBlue,
+            angle: 0.02,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _RoomCodePanel extends StatelessWidget {
   const _RoomCodePanel({required this.roomCode, this.onCopy, this.onShare});
 
@@ -146,54 +193,73 @@ class _RoomCodePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.x4),
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppPalette.ink),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Código de sala',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: AppPalette.inkSecondary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.x2),
-          Semantics(
-            label: 'Código de sala ${_displayCode.replaceAll(' ', ', ')}',
-            child: Text(
-              _displayCode,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.w900,
-                letterSpacing: 3,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.x3),
-          Wrap(
-            spacing: AppSpacing.x2,
-            runSpacing: AppSpacing.x2,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        PaperPanel(
+          background: AppPalette.surface,
+          borderColor: AppPalette.burgundy,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              OutlinedButton.icon(
-                onPressed: onCopy,
-                icon: const Icon(Icons.copy_rounded),
-                label: const Text('Copiar'),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'CÓDIGO DE SALA',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppPalette.burgundy,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const StampBadge(
+                    label: 'Compartí',
+                    color: AppPalette.wornBlue,
+                    angle: 0.025,
+                  ),
+                ],
               ),
-              OutlinedButton.icon(
-                onPressed: onShare,
-                icon: const Icon(Icons.ios_share_rounded),
-                label: const Text('Compartir'),
+              const SizedBox(height: AppSpacing.x3),
+              Semantics(
+                label: 'Código de sala ${_displayCode.replaceAll(' ', ', ')}',
+                child: Text(
+                  _displayCode,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 3,
+                    height: 1.05,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.x3),
+              Wrap(
+                spacing: AppSpacing.x2,
+                runSpacing: AppSpacing.x2,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: onCopy,
+                    icon: const Icon(Icons.copy_rounded),
+                    label: const Text('Copiar'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onShare,
+                    icon: const Icon(Icons.ios_share_rounded),
+                    label: const Text('Compartir'),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        const Positioned(
+          right: 32,
+          top: -7,
+          child: TapeMark(width: 58, angle: 0.06),
+        ),
+      ],
     );
   }
 }
@@ -210,22 +276,20 @@ class _LobbySeatRow extends StatelessWidget {
         ? Icons.check_circle_rounded
         : Icons.schedule_rounded;
     final statusColor = seat.isReady
-        ? AppPalette.info
+        ? AppPalette.bottleGreen
         : AppPalette.inkSecondary;
 
     return Semantics(
       label:
           '${seat.displayName}${seat.isSelf ? ', vos' : ''}${seat.isHost ? ', host' : ''}${seat.isBot ? ', bot' : ''}. $statusText.',
-      child: Container(
-        constraints: const BoxConstraints(minHeight: AppSizes.minTouchTarget),
+      child: PaperPanel(
+        background: AppPalette.surface,
+        borderColor: seat.isReady
+            ? AppPalette.bottleGreen
+            : AppPalette.inkSecondary,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.x3,
           vertical: AppSpacing.x3,
-        ),
-        decoration: BoxDecoration(
-          color: AppPalette.surface,
-          borderRadius: BorderRadius.circular(AppRadius.control),
-          border: Border.all(color: AppPalette.inkSecondary),
         ),
         child: Row(
           children: [
@@ -234,12 +298,14 @@ class _LobbySeatRow extends StatelessWidget {
                   ? Icons.smart_toy_outlined
                   : Icons.person_outline_rounded,
               semanticLabel: null,
+              color: AppPalette.wornBlue,
             ),
             const SizedBox(width: AppSpacing.x3),
             Expanded(
               child: Wrap(
                 spacing: AppSpacing.x2,
                 runSpacing: AppSpacing.x1,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     seat.displayName,
@@ -274,14 +340,14 @@ class _SmallBadge extends StatelessWidget {
         vertical: AppSpacing.x1,
       ),
       decoration: BoxDecoration(
-        color: AppPalette.canvas,
-        borderRadius: BorderRadius.circular(999),
+        color: AppPalette.kraft,
+        borderRadius: BorderRadius.circular(AppRadius.sign),
         border: Border.all(color: AppPalette.inkSecondary),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall
-            ?.copyWith(fontWeight: FontWeight.w900),
+            ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.6),
       ),
     );
   }
@@ -338,20 +404,25 @@ class _LobbyFooter extends StatelessWidget {
           top: BorderSide(color: AppPalette.inkSecondary, width: 0.5),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FilledButton(onPressed: action, child: Text(label)),
-          if (isHost && !canStart && !isPending) ...[
-            const SizedBox(height: AppSpacing.x2),
-            Text(
-              'La partida se habilita cuando el estado de la sala lo permita.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: AppPalette.inkSecondary),
-            ),
+      child: PaperPanel(
+        background: AppPalette.surface,
+        borderColor: AppPalette.bottleGreen,
+        padding: const EdgeInsets.all(AppSpacing.x2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(onPressed: action, child: Text(label)),
+            if (isHost && !canStart && !isPending) ...[
+              const SizedBox(height: AppSpacing.x2),
+              Text(
+                'La partida se habilita cuando el estado de la sala lo permita.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: AppPalette.inkSecondary),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
