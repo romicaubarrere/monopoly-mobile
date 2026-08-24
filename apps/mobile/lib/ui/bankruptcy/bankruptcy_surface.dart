@@ -426,9 +426,7 @@ class _TransferRow extends StatelessWidget {
       if (transfer.valueLabel != null && transfer.valueLabel!.trim().isNotEmpty)
         transfer.valueLabel!.trim(),
       if (detail != null && detail.isNotEmpty)
-        detail.endsWith('.')
-            ? detail.substring(0, detail.length - 1)
-            : detail,
+        detail.endsWith('.') ? detail.substring(0, detail.length - 1) : detail,
       'Confirmado',
     ].join('. ');
 
