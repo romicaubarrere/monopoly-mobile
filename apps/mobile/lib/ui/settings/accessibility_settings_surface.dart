@@ -239,56 +239,61 @@ class _SettingRow extends StatelessWidget {
       hint: _semanticHint,
       onTap: _isInteractive ? _activate : null,
       child: ExcludeSemantics(
-        child: PaperPanel(
-          background: item.isEnabled ? AppPalette.surface : AppPalette.kraft,
-          borderColor: item.isEnabled
-              ? AppPalette.ink
-              : AppPalette.inkSecondary,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.x4,
-            vertical: AppSpacing.x3,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: AppSizes.minTouchTarget,
+        child: InkWell(
+          onTap: _isInteractive ? _activate : null,
+          borderRadius: BorderRadius.circular(AppRadius.sign),
+          child: PaperPanel(
+            background: item.isEnabled ? AppPalette.surface : AppPalette.kraft,
+            borderColor: item.isEnabled
+                ? AppPalette.ink
+                : AppPalette.inkSecondary,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.x4,
+              vertical: AppSpacing.x3,
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.x1),
-                      Text(
-                        item.description,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppPalette.inkSecondary,
-                        ),
-                      ),
-                      if (!item.isEnabled && item.disabledReason != null) ...[
-                        const SizedBox(height: AppSpacing.x2),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: AppSizes.minTouchTarget,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          item.disabledReason!,
-                          key: ValueKey('disabled-reason-${item.id}'),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppPalette.danger,
-                            fontWeight: FontWeight.w700,
+                          item.title,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
+                        const SizedBox(height: AppSpacing.x1),
+                        Text(
+                          item.description,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppPalette.inkSecondary,
+                          ),
+                        ),
+                        if (!item.isEnabled &&
+                            item.disabledReason != null) ...[
+                          const SizedBox(height: AppSpacing.x2),
+                          Text(
+                            item.disabledReason!,
+                            key: ValueKey('disabled-reason-${item.id}'),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppPalette.danger,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.x3),
-                _SettingControl(item: item, isInteractive: _isInteractive),
-              ],
+                  const SizedBox(width: AppSpacing.x3),
+                  _SettingControl(item: item, isInteractive: _isInteractive),
+                ],
+              ),
             ),
           ),
         ),
@@ -307,7 +312,10 @@ class _SettingControl extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (item.kind) {
       AccessibilitySettingKind.toggle => IgnorePointer(
-        child: Switch(value: item.isSelected, onChanged: isInteractive ? (_) {} : null),
+        child: Switch(
+          value: item.isSelected,
+          onChanged: isInteractive ? (_) {} : null,
+        ),
       ),
       AccessibilitySettingKind.action => ConstrainedBox(
         constraints: const BoxConstraints(
