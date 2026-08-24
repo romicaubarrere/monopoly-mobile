@@ -131,8 +131,7 @@ class ResultsSurface extends StatelessWidget {
   };
 
   String get _defaultStatusMessage => switch (state) {
-    ResultsSurfaceState.pending =>
-      'Esperando el cierre confirmado de la partida antes de mostrar posiciones.',
+    ResultsSurfaceState.pending => 'Esperando el cierre confirmado de la partida antes de mostrar posiciones.',
     ResultsSurfaceState.stale =>
       'El estado cambió mientras mirabas. Actualizando el cierre confirmado.',
     ResultsSurfaceState.uncertain =>
@@ -257,7 +256,9 @@ class _RankingSection extends StatelessWidget {
     if (ranking.isEmpty) {
       return const PaperPanel(
         borderColor: AppPalette.wornBlue,
-        child: Text('La partida confirmó el cierre sin un ranking para mostrar.'),
+        child: Text(
+          'La partida confirmó el cierre sin un ranking para mostrar.',
+        ),
       );
     }
 
@@ -338,20 +339,22 @@ class _ResultRankingRow extends StatelessWidget {
                     children: [
                       Text(
                         participant.playerLabel,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppPalette.ink,
-                          fontWeight: FontWeight.w900,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppPalette.ink,
+                              fontWeight: FontWeight.w900,
+                            ),
                       ),
                       if (participant.isSharedPlace) ...[
                         const SizedBox(height: AppSpacing.x1),
                         Text(
                           'POSICIÓN COMPARTIDA',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppPalette.burgundy,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.6,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: AppPalette.burgundy,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.6,
+                              ),
                         ),
                       ],
                     ],
@@ -424,10 +427,8 @@ class _BreakdownItem extends StatelessWidget {
           const SizedBox(height: AppSpacing.x1),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppPalette.ink,
-              fontWeight: FontWeight.w900,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: AppPalette.ink, fontWeight: FontWeight.w900),
           ),
         ],
       ),
