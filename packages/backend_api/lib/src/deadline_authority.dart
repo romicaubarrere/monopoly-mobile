@@ -9,10 +9,11 @@ final class PersistedDecisionDeadline {
   final String decisionId;
   final int deadlineAtMs;
 
-  DeadlineEligibility classifyHumanCommand({required int requestReceivedAtMs}) =>
-      requestReceivedAtMs < deadlineAtMs
-          ? DeadlineEligibility.eligible
-          : DeadlineEligibility.decisionClosed;
+  DeadlineEligibility classifyHumanCommand({
+    required int requestReceivedAtMs,
+  }) => requestReceivedAtMs < deadlineAtMs
+      ? DeadlineEligibility.eligible
+      : DeadlineEligibility.decisionClosed;
 
   String get operationId => 'deadline:v1:$decisionId';
 }
