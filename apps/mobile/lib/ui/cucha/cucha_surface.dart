@@ -136,10 +136,8 @@ class CuchaSurface extends StatelessWidget {
   };
 
   String get _defaultStatusMessage => switch (state) {
-    CuchaSurfaceState.pending =>
-      'Esperando confirmación. Todavía no se consumió efectivo ni carta en esta presentación.',
-    CuchaSurfaceState.rejected =>
-      'La partida no confirmó esa opción. Conservamos el último estado confirmado.',
+    CuchaSurfaceState.pending => 'Esperando confirmación. Todavía no se consumió efectivo ni carta en esta presentación.',
+    CuchaSurfaceState.rejected => 'La partida no confirmó esa opción. Conservamos el último estado confirmado.',
     CuchaSurfaceState.stale =>
       'Las opciones cambiaron. Esperando el estado actualizado de la partida.',
     CuchaSurfaceState.uncertain =>
@@ -250,7 +248,8 @@ class _CharacterSlot extends StatelessWidget {
         ),
         child: SizedBox(
           height: 64,
-          child: artwork ??
+          child:
+              artwork ??
               Row(
                 children: [
                   const Icon(
@@ -318,9 +317,8 @@ class _StatusTicket extends StatelessWidget {
             Expanded(
               child: Text(
                 statusLabel,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
           ],
@@ -369,9 +367,7 @@ class _CuchaActionButton extends StatelessWidget {
         ),
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
-            backgroundColor: isPending
-                ? AppPalette.kraft
-                : AppPalette.surface,
+            backgroundColor: isPending ? AppPalette.kraft : AppPalette.surface,
             foregroundColor: AppPalette.ink,
             side: BorderSide(
               color: isPending ? AppPalette.mustard : AppPalette.ink,
@@ -463,9 +459,8 @@ class _ConfirmedTicket extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ],
