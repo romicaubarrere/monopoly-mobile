@@ -156,9 +156,7 @@ class DebtResolutionSurface extends StatelessWidget {
                   child: _OutcomeBanner(
                     icon: Icons.warning_amber_rounded,
                     borderColor: AppPalette.burgundy,
-                    message:
-                        insolvencyMessage ??
-                        'La partida confirmó que no hay una solución manual disponible en este estado.',
+                    message: insolvencyMessage ?? 'La partida confirmó que no hay una solución manual disponible en este estado.',
                   ),
                 ),
               ],
@@ -175,14 +173,17 @@ class DebtResolutionSurface extends StatelessWidget {
                     children: [
                       _SectionLabel(
                         title: 'ACTIVOS Y ACCIONES',
-                        subtitle:
-                            'La partida decide qué opciones son válidas y cuánto aportan.',
+                        subtitle: 'La partida decide qué opciones son válidas y cuánto aportan.',
                       ),
                       const SizedBox(height: AppSpacing.x3),
                       if (actions.isEmpty)
                         const _EmptyActions()
                       else
-                        for (var index = 0; index < actions.length; index++) ...[
+                        for (
+                          var index = 0;
+                          index < actions.length;
+                          index++
+                        ) ...[
                           _DebtActionCard(
                             action: actions[index],
                             state: state,
@@ -235,8 +236,7 @@ class DebtResolutionSurface extends StatelessWidget {
       'Esperando confirmación. El efectivo confirmado todavía no cambia.',
     DebtResolutionSurfaceState.rejected =>
       'La partida rechazó esa acción. Conservamos el último saldo confirmado.',
-    DebtResolutionSurfaceState.stale =>
-      'La deuda cambió mientras mirabas. Reconstruyendo desde el estado más reciente.',
+    DebtResolutionSurfaceState.stale => 'La deuda cambió mientras mirabas. Reconstruyendo desde el estado más reciente.',
     DebtResolutionSurfaceState.uncertain =>
       'Confirmando qué pasó antes de permitir otra acción equivalente.',
     DebtResolutionSurfaceState.offline =>
@@ -327,7 +327,8 @@ class _DebtHeader extends StatelessWidget {
               const SizedBox(height: AppSpacing.x3),
               Semantics(
                 container: true,
-                label: 'Efectivo proyectado: $projectedCashLabel. No confirmado.',
+                label:
+                    'Efectivo proyectado: $projectedCashLabel. No confirmado.',
                 excludeSemantics: true,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -336,10 +337,7 @@ class _DebtHeader extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: AppPalette.kraft,
-                    border: Border.all(
-                      color: AppPalette.mustard,
-                      width: 1.2,
-                    ),
+                    border: Border.all(color: AppPalette.mustard, width: 1.2),
                     borderRadius: BorderRadius.circular(AppRadius.control),
                   ),
                   child: Row(
@@ -404,10 +402,8 @@ class _MoneyRow extends StatelessWidget {
         const SizedBox(width: AppSpacing.x3),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: valueColor,
-            fontWeight: FontWeight.w900,
-          ),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(color: valueColor, fontWeight: FontWeight.w900),
         ),
       ],
     );
@@ -495,9 +491,8 @@ class _DebtActionCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     action.assetLabel,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: Theme.of(context).textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.x3),
@@ -516,9 +511,8 @@ class _DebtActionCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.x2),
               Text(
                 action.detail!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppPalette.inkSecondary,
-                ),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: AppPalette.inkSecondary),
               ),
             ],
             const SizedBox(height: AppSpacing.x3),
@@ -556,7 +550,9 @@ class _DebtActionCard extends StatelessWidget {
                     ],
                     Flexible(
                       child: Text(
-                        isPending ? 'ESPERANDO CONFIRMACIÓN' : action.actionLabel,
+                        isPending
+                            ? 'ESPERANDO CONFIRMACIÓN'
+                            : action.actionLabel,
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
@@ -831,9 +827,8 @@ class _OutcomeBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
           ],
