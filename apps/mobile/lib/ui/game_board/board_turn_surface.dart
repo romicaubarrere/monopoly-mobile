@@ -98,10 +98,11 @@ class BoardTurnSurface extends StatelessWidget {
                         child: Text(
                           movementSummary!,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppPalette.inkSecondary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppPalette.inkSecondary,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ),
                     ),
@@ -170,10 +171,8 @@ class _TurnHud extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x1),
                 Text(
                   currentPlayerLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    height: 1.05,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
                 ),
                 const SizedBox(height: AppSpacing.x3),
                 Wrap(
@@ -315,10 +314,7 @@ class _BoardFrame extends StatelessWidget {
                           final reduceMotion = MediaQuery.disableAnimationsOf(
                             context,
                           );
-                          final tileColor = switch ((
-                            isHighlighted,
-                            isCorner,
-                          )) {
+                          final tileColor = switch ((isHighlighted, isCorner)) {
                             (true, _) => AppPalette.mustard,
                             (false, true) => AppPalette.kraft,
                             _ => AppPalette.surface,
@@ -344,9 +340,7 @@ class _BoardFrame extends StatelessWidget {
                                 ),
                               ),
                               child: isCurrent
-                                  ? const Center(
-                                      child: _CurrentTokenMarker(),
-                                    )
+                                  ? const Center(child: _CurrentTokenMarker())
                                   : null,
                             ),
                           );
