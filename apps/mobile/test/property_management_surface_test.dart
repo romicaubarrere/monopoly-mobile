@@ -43,9 +43,7 @@ void main() {
   testWidgets('property_management_uses_almazen_ledger_hierarchy', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      _app(state: PropertyManagementViewState.available),
-    );
+    await tester.pumpWidget(_app(state: PropertyManagementViewState.available));
 
     expect(find.byType(PaperPanel), findsNWidgets(8));
     expect(find.byType(StampBadge), findsNWidgets(2));
