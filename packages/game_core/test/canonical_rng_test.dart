@@ -8,16 +8,11 @@ void main() {
     test('TV-22 matches all counter-zero HMAC blocks byte-for-byte', () {
       final rng = CanonicalRng(seed: seed);
       const expected = <RngStream, String>{
-        RngStream.dice:
-            'cd0bff743cb69b414fbdf1b1bf835198965b3857095662ba3e7f79083fb0e5f8',
-        RngStream.seatOrder:
-            'fb0e8f4baf59fba7a4a3c6646b609007bdf17a883bfbbae6641dc107f163faa0',
-        RngStream.startingProperties:
-            'bcaa66fcd28ef7a7f441b965298be8ae4cfad37a57844f3bfd789a60bef13288',
-        RngStream.cardsAShuffle:
-            '769ee472be5b61a744a526291af3e980f96a284faa66666f762e12121f37a83b',
-        RngStream.cardsBShuffle:
-            'e0c0e188e689fc5ba20e3fdad38b43aac3991ffd1ea1b7917a3769c430fe892e',
+        RngStream.dice: 'cd0bff743cb69b414fbdf1b1bf835198965b3857095662ba3e7f79083fb0e5f8', // pragma: allowlist secret
+        RngStream.seatOrder: 'fb0e8f4baf59fba7a4a3c6646b609007bdf17a883bfbbae6641dc107f163faa0', // pragma: allowlist secret
+        RngStream.startingProperties: 'bcaa66fcd28ef7a7f441b965298be8ae4cfad37a57844f3bfd789a60bef13288', // pragma: allowlist secret
+        RngStream.cardsAShuffle: '769ee472be5b61a744a526291af3e980f96a284faa66666f762e12121f37a83b', // pragma: allowlist secret
+        RngStream.cardsBShuffle: 'e0c0e188e689fc5ba20e3fdad38b43aac3991ffd1ea1b7917a3769c430fe892e', // pragma: allowlist secret
       };
 
       for (final entry in expected.entries) {
@@ -25,7 +20,7 @@ void main() {
       }
       expect(
         rng.commitmentHex,
-        '677a0eaf9f0b68fa0c0fa5f102af287a4133203d07ea6c35317bfa56c65d9802',
+        '677a0eaf9f0b68fa0c0fa5f102af287a4133203d07ea6c35317bfa56c65d9802', // pragma: allowlist secret
       );
     });
 
