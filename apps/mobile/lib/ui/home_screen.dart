@@ -120,11 +120,14 @@ class _HomeHero extends StatelessWidget {
                     ?.copyWith(color: AppPalette.inkSecondary, height: 1.35),
               ),
               const SizedBox(height: AppSpacing.x5),
-              Row(
+              const Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSpacing.x2,
+                runSpacing: AppSpacing.x2,
                 children: [
-                  const StampBadge(label: 'hecho para picarse'),
-                  const Spacer(),
-                  const InkDoodle(),
+                  StampBadge(label: 'hecho para picarse'),
+                  InkDoodle(),
                 ],
               ),
             ],
@@ -251,18 +254,19 @@ class _GameShellPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.x2,
+            runSpacing: AppSpacing.x2,
             children: [
-              const Flexible(child: _TurnBadge()),
-              const SizedBox(width: AppSpacing.x2),
-              Flexible(
-                child: Text(
-                  'Saldo · \$ —',
-                  textAlign: TextAlign.end,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    fontWeight: FontWeight.w900,
-                  ),
+              const _TurnBadge(),
+              Text(
+                'Saldo · \$ —',
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
