@@ -322,54 +322,42 @@ class _ResultRankingRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                StampBadge(
-                  label: participant.placementLabel,
-                  color: participant.isWinner
-                      ? AppPalette.bottleGreen
-                      : AppPalette.wornBlue,
-                  angle: participant.isWinner ? -0.02 : 0.01,
+            Align(
+              alignment: Alignment.centerLeft,
+              child: StampBadge(
+                label: participant.placementLabel,
+                color: participant.isWinner
+                    ? AppPalette.bottleGreen
+                    : AppPalette.wornBlue,
+                angle: participant.isWinner ? -0.02 : 0.01,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.x3),
+            Text(
+              participant.playerLabel,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppPalette.ink,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            if (participant.isSharedPlace) ...[
+              const SizedBox(height: AppSpacing.x1),
+              Text(
+                'POSICIÓN COMPARTIDA',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppPalette.burgundy,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.6,
                 ),
-                const SizedBox(width: AppSpacing.x3),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        participant.playerLabel,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: AppPalette.ink,
-                              fontWeight: FontWeight.w900,
-                            ),
-                      ),
-                      if (participant.isSharedPlace) ...[
-                        const SizedBox(height: AppSpacing.x1),
-                        Text(
-                          'POSICIÓN COMPARTIDA',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: AppPalette.burgundy,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.6,
-                              ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.x2),
-                Text(
-                  participant.netWorthLabel,
-                  textAlign: TextAlign.end,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppPalette.burgundy,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+              ),
+            ],
+            const SizedBox(height: AppSpacing.x2),
+            Text(
+              participant.netWorthLabel,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: AppPalette.burgundy,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: AppSpacing.x4),
             _BreakdownGrid(breakdown: participant.breakdown),
