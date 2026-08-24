@@ -24,7 +24,7 @@ final class PendingDecision {
   PendingDecision({
     required this.decisionId,
     required this.kind,
-    required this.allowedPlayerIds,
+    required List<String> allowedPlayerIds,
     required this.stateVersionCreated,
     required this.createdAt,
     required this.timeoutPolicy,
