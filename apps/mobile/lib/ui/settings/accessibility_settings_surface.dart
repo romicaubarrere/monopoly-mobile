@@ -39,8 +39,10 @@ class AccessibilitySettingsSection {
   final List<AccessibilitySettingItem> items;
 }
 
-typedef AccessibilityToggleChanged =
-    void Function(String settingId, bool isSelected);
+typedef AccessibilityToggleChanged = void Function(
+  String settingId,
+  bool isSelected,
+);
 typedef AccessibilityActionRequested = void Function(String settingId);
 
 class AccessibilitySettingsSurface extends StatelessWidget {
@@ -48,8 +50,7 @@ class AccessibilitySettingsSurface extends StatelessWidget {
     required this.sections,
     super.key,
     this.title = 'Ajustes y accesibilidad',
-    this.subtitle =
-        'Preferencias de presentación provistas por la aplicación o el sistema.',
+    this.subtitle = 'Preferencias de presentación provistas por la aplicación o el sistema.',
     this.onToggleChanged,
     this.onActionRequested,
   });
@@ -92,10 +93,8 @@ class AccessibilitySettingsSurface extends StatelessWidget {
                 header: true,
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    height: 1,
-                  ),
+                  style: Theme.of(context).textTheme.headlineMedium
+                      ?.copyWith(fontWeight: FontWeight.w900, height: 1),
                 ),
               ),
               const SizedBox(height: AppSpacing.x2),
@@ -155,9 +154,8 @@ class _SettingsSection extends StatelessWidget {
           const SizedBox(height: AppSpacing.x1),
           Text(
             description,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppPalette.inkSecondary,
-            ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: AppPalette.inkSecondary),
           ),
         ],
         const SizedBox(height: AppSpacing.x3),
@@ -266,27 +264,25 @@ class _SettingRow extends StatelessWidget {
                       children: [
                         Text(
                           item.title,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         const SizedBox(height: AppSpacing.x1),
                         Text(
                           item.description,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppPalette.inkSecondary,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppPalette.inkSecondary),
                         ),
-                        if (!item.isEnabled &&
-                            item.disabledReason != null) ...[
+                        if (!item.isEnabled && item.disabledReason != null) ...[
                           const SizedBox(height: AppSpacing.x2),
                           Text(
                             item.disabledReason!,
                             key: ValueKey('disabled-reason-${item.id}'),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppPalette.danger,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: AppPalette.danger,
+                                  fontWeight: FontWeight.w700,
+                                ),
                           ),
                         ],
                       ],
