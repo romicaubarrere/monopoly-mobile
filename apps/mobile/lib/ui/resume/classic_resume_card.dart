@@ -155,7 +155,7 @@ class ClassicResumeCard extends StatelessWidget {
       presentation.progressLabel,
       presentation.savedAtLabel,
       stateCopy,
-      if (message != null) message,
+      ?message,
     ].join(' ');
   }
 }
