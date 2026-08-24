@@ -31,9 +31,7 @@ void main() {
 
     expect(find.text('RECONECTANDO…'), findsOneWidget);
     expect(
-      find.text(
-        'GRACIA INFORMADA POR SERVIDOR · 00:18 PLACEHOLDER',
-      ),
+      find.text('GRACIA INFORMADA POR SERVIDOR · 00:18 PLACEHOLDER'),
       findsOneWidget,
     );
     expect(find.byType(FilledButton), findsNothing);
@@ -53,18 +51,13 @@ void main() {
       _surface(phase: ReconnectPhase.graceExpiredNotBlocking),
     );
 
-    expect(
-      find.text('TODAVÍA NO HAY BOT TEMPORAL CONFIRMADO'),
-      findsOneWidget,
-    );
+    expect(find.text('TODAVÍA NO HAY BOT TEMPORAL CONFIRMADO'), findsOneWidget);
     expect(find.textContaining('no afirma takeover'), findsOneWidget);
     expect(find.text('BOT TEMPORAL'), findsNothing);
   });
 
   testWidgets('temporary_bot_preserves_human_seat_identity', (tester) async {
-    await tester.pumpWidget(
-      _surface(phase: ReconnectPhase.temporaryBotActive),
-    );
+    await tester.pumpWidget(_surface(phase: ReconnectPhase.temporaryBotActive));
 
     expect(find.text('UN BOT ESTÁ CUBRIENDO TU LUGAR'), findsOneWidget);
     expect(find.text('ROMINA PLACEHOLDER'), findsOneWidget);
@@ -87,9 +80,7 @@ void main() {
   });
 
   testWidgets('reclaim_confirmed_exposes_control_restored', (tester) async {
-    await tester.pumpWidget(
-      _surface(phase: ReconnectPhase.reclaimConfirmed),
-    );
+    await tester.pumpWidget(_surface(phase: ReconnectPhase.reclaimConfirmed));
 
     expect(find.text('VOLVISTE A CONTROLAR TU FICHA'), findsOneWidget);
     expect(find.textContaining('nuevo estado autoritativo'), findsOneWidget);
