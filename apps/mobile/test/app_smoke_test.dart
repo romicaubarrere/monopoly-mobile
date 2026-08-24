@@ -7,9 +7,9 @@ void main() {
   ) async {
     await tester.pumpWidget(const BoardGameApp());
 
-    expect(find.text('Una partida que entra en una mano.'), findsOneWidget);
+    expect(find.text('Mesa chica.\nRivalidad grande.'), findsOneWidget);
     expect(find.text('Crear partida'), findsOneWidget);
     expect(find.text('Unirse con código'), findsOneWidget);
-    expect(find.text('Shell de partida'), findsOneWidget);
+    expect(find.text('UNA MESA, EN EL BOLSILLO'), findsOneWidget);
   });
 }
