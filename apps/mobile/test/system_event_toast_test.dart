@@ -111,8 +111,7 @@ void main() {
     await tester.pumpWidget(
       _toast(
         title: 'EVENTO CONFIRMADO PLACEHOLDER CON TÍTULO LARGO',
-        detail:
-            'Resumen factual PLACEHOLDER suficientemente largo para probar el reflow mobile sin esconder información crítica.',
+        detail: 'Resumen factual PLACEHOLDER suficientemente largo para probar el reflow mobile sin esconder información crítica.',
         economyDelta: -240,
         economySummary:
             'Movimiento económico confirmado PLACEHOLDER con explicación larga',
@@ -129,7 +128,10 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('EVENTO CONFIRMADO PLACEHOLDER CON TÍTULO LARGO'), findsOneWidget);
+    expect(
+      find.text('EVENTO CONFIRMADO PLACEHOLDER CON TÍTULO LARGO'),
+      findsOneWidget,
+    );
     expect(find.text(r'-$240'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Entendido'), findsOneWidget);
   });
