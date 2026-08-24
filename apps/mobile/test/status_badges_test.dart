@@ -33,6 +33,9 @@ void main() {
   });
 
   testWidgets('temporary bot identity is explicit', (tester) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -69,6 +72,9 @@ void main() {
   testWidgets('player and turn state remain explicit without color', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
