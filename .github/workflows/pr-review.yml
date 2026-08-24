@@ -1,0 +1,74 @@
+name: PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  static-review:
+    name: review / static-analysis
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Setup reviewdog
+        uses: reviewdog/action-setup@d8edfce3dd5e1ec6978745e801f9c50b5ef80252 # v1.4.0
+        with:
+          reviewdog_version: v0.21.0
+
+      - name: Review Dart domain and backend changes
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dart analyze \
+            packages/game_core \
+            packages/game_contracts \
+            packages/backend_api \
+            backend/command_service \
+            --format=machine 2>&1 | \
+          reviewdog \
+            -efm='%t%*[^|]|%*[^|]|%*[^|]|%f|%l|%c|%*[^|]|%m' \
+            -name='dart-analyze' \
+            -reporter=github-pr-review \
+            -filter-mode=added \
+            -fail-level=error
+
+      - name: Review Flutter app changes
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          flutter analyze apps/mobile --machine 2>&1 | \
+          reviewdog \
+            -efm='%t%*[^|]|%*[^|]|%*[^|]|%f|%l|%c|%*[^|]|%m' \
+            -name='flutter-analyze' \
+            -reporter=github-pr-review \
+            -filter-mode=added \
+            -fail-level=error
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed apps packages backend
