@@ -77,7 +77,9 @@ void main() {
     );
 
     expect(
-      find.text('Confirmando qué pasó antes de permitir otra acción equivalente.'),
+      find.text(
+        'Confirmando qué pasó antes de permitir otra acción equivalente.',
+      ),
       findsOneWidget,
     );
     expect(
@@ -86,7 +88,10 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNull,
+    );
     expect(emitted, 0);
 
     semantics.dispose();
@@ -108,9 +113,7 @@ void main() {
     expect(find.text('ACCIÓN PLACEHOLDER'), findsNothing);
   });
 
-  testWidgets('confirmed_transfer_row_has_confirmed_semantics', (
-    tester,
-  ) async {
+  testWidgets('confirmed_transfer_row_has_confirmed_semantics', (tester) async {
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(
@@ -150,11 +153,11 @@ void main() {
                   child: BankruptcySurface(
                     playerLabel: 'JUGADOR PLACEHOLDER CON NOMBRE LARGO',
                     state: BankruptcySurfaceState.confirmed,
-                    reasonLabel: 'Razón factual PLACEHOLDER provista por la partida.',
+                    reasonLabel:
+                        'Razón factual PLACEHOLDER provista por la partida.',
                     creditorLabel: 'ACREEDOR PLACEHOLDER CON NOMBRE LARGO',
                     transferSummary: _transfers,
-                    continuationMessage:
-                        'La partida continúa según el estado confirmado PLACEHOLDER.',
+                    continuationMessage: 'La partida continúa según el estado confirmado PLACEHOLDER.',
                   ),
                 ),
               ),
