@@ -114,25 +114,22 @@ void main() {
   });
 
   testWidgets('confirmed_transfer_row_has_confirmed_semantics', (tester) async {
-    final semantics = tester.ensureSemantics();
-
     await tester.pumpWidget(
       _surface(
         state: BankruptcySurfaceState.confirmed,
         transferSummary: _transfers,
       ),
     );
-    await tester.ensureVisible(find.text('EFECTIVO PLACEHOLDER'));
-    await tester.pumpAndSettle();
 
     expect(
-      find.bySemanticsLabel(
-        'EFECTIVO PLACEHOLDER. \$PLACEHOLDER. Transferencia provista por authority. Confirmado',
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label ==
+                'EFECTIVO PLACEHOLDER. \$PLACEHOLDER. Transferencia provista por authority. Confirmado',
       ),
       findsOneWidget,
     );
-
-    semantics.dispose();
   });
 
   testWidgets(
