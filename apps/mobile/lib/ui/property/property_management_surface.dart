@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design_system/tokens.dart';
+import '../../design_system/visual_components.dart';
 import '../feedback/interaction_feedback_state.dart';
 import '../feedback/interaction_status_layer.dart';
 
@@ -90,7 +91,7 @@ class PropertyManagementSurface extends StatelessWidget {
     final statusState = _statusFeedbackState;
 
     return Material(
-      color: AppPalette.surface,
+      color: AppPalette.canvas,
       borderRadius: const BorderRadius.vertical(
         top: Radius.circular(AppRadius.sheet),
       ),
@@ -153,14 +154,7 @@ class PropertyManagementSurface extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: AppSpacing.x5),
-                Text(
-                  'ACCIONES',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppPalette.primary,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.4,
-                  ),
-                ),
+                _ActionLedgerHeader(count: actions.length),
                 const SizedBox(height: AppSpacing.x2),
                 if (actions.isEmpty)
                   const _NoActionsMessage()
@@ -196,7 +190,8 @@ class PropertyManagementSurface extends StatelessWidget {
   };
 
   String get _defaultStatusMessage => switch (state) {
-    PropertyManagementViewState.pending => 'Esperando confirmación. Efectivo y mejoras siguen mostrando el último estado confirmado.',
+    PropertyManagementViewState.pending =>
+      'Esperando confirmación. Efectivo y mejoras siguen mostrando el último estado confirmado.',
     PropertyManagementViewState.stale =>
       'Esto cambió mientras mirabas. Actualizando acciones disponibles.',
     PropertyManagementViewState.rejected =>
@@ -287,27 +282,56 @@ class _PropertyIdentity extends StatelessWidget {
       label:
           '$propertyLabel. Propietario: $ownerLabel. Grupo $groupLabel. $groupStatusLabel.',
       excludeSemantics: true,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Container(
-            width: 10,
-            height: 58,
-            decoration: BoxDecoration(
-              color: groupSignalColor,
-              border: Border.all(color: AppPalette.ink, width: 1.2),
-              borderRadius: BorderRadius.circular(AppRadius.control),
+          PaperPanel(
+            background: AppPalette.surface,
+            borderColor: AppPalette.bottleGreen,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.x4,
+              AppSpacing.x5,
+              AppSpacing.x4,
+              AppSpacing.x4,
             ),
-          ),
-          const SizedBox(width: AppSpacing.x3),
-          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Wrap(
+                  spacing: AppSpacing.x2,
+                  runSpacing: AppSpacing.x2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const StampBadge(
+                      label: 'En tu libreta',
+                      color: AppPalette.bottleGreen,
+                      angle: -0.02,
+                    ),
+                    Text(
+                      'Propietario: $ownerLabel',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppPalette.inkSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.x3),
+                Container(
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: groupSignalColor,
+                    border: Border.all(color: AppPalette.ink, width: 1.2),
+                    borderRadius: BorderRadius.circular(AppRadius.sign),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.x3),
                 Text(
                   propertyLabel,
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.x1),
                 Text(
@@ -317,14 +341,10 @@ class _PropertyIdentity extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                Text(
-                  'Propietario: $ownerLabel',
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: AppPalette.inkSecondary),
-                ),
               ],
             ),
           ),
+          const Positioned(right: 18, top: -6, child: TapeMark(width: 58)),
         ],
       ),
     );
@@ -358,13 +378,9 @@ class _ImprovementPanel extends StatelessWidget {
       label:
           'Nivel de mejoras: $_levelLabel.${next.isEmpty ? '' : ' Próxima mejora: $next.'}',
       excludeSemantics: true,
-      child: Container(
+      child: PaperPanel(
+        background: AppPalette.kraft,
         padding: const EdgeInsets.all(AppSpacing.x3),
-        decoration: BoxDecoration(
-          color: AppPalette.canvas,
-          border: Border.all(color: AppPalette.ink.withValues(alpha: 0.16)),
-          borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -372,15 +388,19 @@ class _ImprovementPanel extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Mejoras',
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                    'MEJORAS',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: AppPalette.burgundy,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ),
                 Text(
                   _levelLabel,
-                  style: Theme.of(context).textTheme.labelLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
@@ -414,29 +434,28 @@ class _ManiMarkers extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ExcludeSemantics(
-      child: Row(
+      child: Wrap(
+        spacing: AppSpacing.x2,
+        runSpacing: AppSpacing.x2,
         children: List.generate(4, (index) {
           final active = index < level;
-          return Padding(
-            padding: EdgeInsets.only(right: index == 3 ? 0 : AppSpacing.x2),
-            child: Container(
-              width: 30,
-              height: 30,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: active ? AppPalette.ritual : Colors.transparent,
-                border: Border.all(
-                  color: active ? AppPalette.ink : AppPalette.inkSecondary,
-                  width: 1.4,
-                ),
-                shape: BoxShape.circle,
+          return Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? AppPalette.mustard : Colors.transparent,
+              border: Border.all(
+                color: active ? AppPalette.ink : AppPalette.inkSecondary,
+                width: 1.4,
               ),
-              child: Text(
-                'M',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppPalette.ink,
-                  fontWeight: FontWeight.w900,
-                ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'M',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppPalette.ink,
+                fontWeight: FontWeight.w900,
               ),
             ),
           );
@@ -452,29 +471,10 @@ class _PoponMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ExcludeSemantics(
-      child: Container(
-        constraints: const BoxConstraints(minHeight: AppSizes.minTouchTarget),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.x3,
-          vertical: AppSpacing.x2,
-        ),
-        decoration: BoxDecoration(
-          color: AppPalette.ritual.withValues(alpha: 0.2),
-          border: Border.all(color: AppPalette.ink, width: 1.4),
-          borderRadius: BorderRadius.circular(AppRadius.control),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.pets_rounded, size: 20),
-            const SizedBox(width: AppSpacing.x2),
-            Text(
-              'POPÓN',
-              style: Theme.of(context).textTheme.labelLarge
-                  ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.8),
-            ),
-          ],
-        ),
+      child: StampBadge(
+        label: 'Popón',
+        color: AppPalette.burgundy,
+        angle: 0.018,
       ),
     );
   }
@@ -498,12 +498,9 @@ class _EconomyPanel extends StatelessWidget {
       label:
           'Alquiler actual: $rentLabel. Hipoteca: $mortgageStatusLabel. $mortgageValueLabel.',
       excludeSemantics: true,
-      child: Container(
+      child: PaperPanel(
+        background: AppPalette.surface,
         padding: const EdgeInsets.all(AppSpacing.x3),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppPalette.ink.withValues(alpha: 0.16)),
-          borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
         child: Column(
           children: [
             _EconomyRow(
@@ -511,7 +508,7 @@ class _EconomyPanel extends StatelessWidget {
               label: 'Alquiler actual',
               value: rentLabel,
             ),
-            const SizedBox(height: AppSpacing.x3),
+            const Divider(height: AppSpacing.x5),
             _EconomyRow(
               icon: Icons.lock_outline_rounded,
               label: mortgageStatusLabel,
@@ -540,7 +537,7 @@ class _EconomyRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppPalette.inkSecondary),
+        Icon(icon, size: 20, color: AppPalette.wornBlue),
         const SizedBox(width: AppSpacing.x3),
         Expanded(
           child: Text(
@@ -589,42 +586,37 @@ class _CashPanel extends StatelessWidget {
       container: true,
       label: semanticsLabel,
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.x3),
-            decoration: BoxDecoration(
-              color: AppPalette.info.withValues(alpha: 0.06),
-              border: Border.all(
-                color: AppPalette.info.withValues(alpha: 0.35),
+      child: PaperPanel(
+        background: const Color(0xFFE7F0E6),
+        borderColor: AppPalette.bottleGreen,
+        padding: const EdgeInsets.all(AppSpacing.x3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'TU CUENTA',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppPalette.bottleGreen,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
               ),
-              borderRadius: BorderRadius.circular(AppRadius.control),
             ),
-            child: _CashLine(
+            const SizedBox(height: AppSpacing.x2),
+            _CashLine(
               label: 'Efectivo confirmado',
               value: confirmedCashLabel,
               emphasized: true,
             ),
-          ),
-          if (projectedCashLabel != null) ...[
-            const SizedBox(height: AppSpacing.x2),
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.x3),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: AppPalette.inkSecondary.withValues(alpha: 0.3),
-                ),
-                borderRadius: BorderRadius.circular(AppRadius.control),
-              ),
-              child: _CashLine(
+            if (projectedCashLabel != null) ...[
+              const Divider(height: AppSpacing.x5),
+              _CashLine(
                 label: 'Proyectado $projectedContext',
                 value: projectedCashLabel!,
                 emphasized: false,
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -661,6 +653,39 @@ class _CashLine extends StatelessWidget {
             fontWeight: FontWeight.w900,
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionLedgerHeader extends StatelessWidget {
+  const _ActionLedgerHeader({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'ACCIONES DE LA LIBRETA',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: AppPalette.burgundy,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        ExcludeSemantics(
+          child: count == 0
+              ? const InkDoodle(size: 28)
+              : StampBadge(
+                  label: '$count',
+                  color: AppPalette.wornBlue,
+                  angle: 0.015,
+                ),
         ),
       ],
     );
@@ -708,54 +733,58 @@ class _PropertyActionTile extends StatelessWidget {
       enabled: actionable,
       label: semanticLabel,
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(
-              minHeight: AppSizes.primaryControlHeight,
-            ),
-            child: OutlinedButton.icon(
-              onPressed: actionable ? onPressed : null,
-              icon: pending
-                  ? SizedBox.square(
-                      dimension: 18,
-                      child: reduceMotion
-                          ? const Icon(Icons.more_horiz_rounded, size: 18)
-                          : const CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(_iconFor(action.kind), size: 20),
-              label: Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(pending ? action.pendingLabel : action.label),
-                    Text(
-                      action.consequenceLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+      child: PaperPanel(
+        background: AppPalette.surface,
+        padding: const EdgeInsets.all(AppSpacing.x2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: AppSizes.primaryControlHeight,
+              ),
+              child: OutlinedButton.icon(
+                onPressed: actionable ? onPressed : null,
+                icon: pending
+                    ? SizedBox.square(
+                        dimension: 18,
+                        child: reduceMotion
+                            ? const Icon(Icons.more_horiz_rounded, size: 18)
+                            : const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(_iconFor(action.kind), size: 20),
+                label: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(pending ? action.pendingLabel : action.label),
+                      Text(
+                        action.consequenceLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          if (feedbackState == InteractionFeedbackState.disabled &&
-              disabledReason != null) ...[
-            const SizedBox(height: AppSpacing.x2),
-            Text(
-              disabledReason!,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppPalette.inkSecondary,
-                fontWeight: FontWeight.w600,
+            if (feedbackState == InteractionFeedbackState.disabled &&
+                disabledReason != null) ...[
+              const SizedBox(height: AppSpacing.x2),
+              Text(
+                disabledReason!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppPalette.inkSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -781,26 +810,23 @@ class _ConfirmationNotice extends StatelessWidget {
       liveRegion: true,
       label: message,
       excludeSemantics: true,
-      child: Container(
+      child: PaperPanel(
+        background: const Color(0xFFE7F0E6),
+        borderColor: AppPalette.bottleGreen,
         padding: const EdgeInsets.all(AppSpacing.x3),
-        decoration: BoxDecoration(
-          color: AppPalette.info.withValues(alpha: 0.08),
-          border: Border.all(color: AppPalette.info),
-          borderRadius: BorderRadius.circular(AppRadius.control),
-        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Icon(
               Icons.check_circle_outline_rounded,
-              color: AppPalette.info,
+              color: AppPalette.bottleGreen,
             ),
             const SizedBox(width: AppSpacing.x3),
             Expanded(
               child: Text(
                 message,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppPalette.info,
+                  color: AppPalette.bottleGreen,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -817,13 +843,10 @@ class _NoActionsMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.x3),
-      decoration: BoxDecoration(
-        color: AppPalette.canvas,
-        borderRadius: BorderRadius.circular(AppRadius.control),
-      ),
-      child: const Text('No hay acciones disponibles en este estado.'),
+    return const PaperPanel(
+      background: AppPalette.kraft,
+      padding: EdgeInsets.all(AppSpacing.x3),
+      child: Text('No hay acciones disponibles en este estado.'),
     );
   }
 }
