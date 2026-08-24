@@ -1,4 +1,5 @@
 import 'package:board_mobile/design_system/app_theme.dart';
+import 'package:board_mobile/design_system/visual_components.dart';
 import 'package:board_mobile/ui/trade/trade_surfaces.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,6 +38,40 @@ void main() {
 
     semantics.dispose();
   });
+
+  testWidgets(
+    'trade_visual_pass_uses_almacen_ledger_hierarchy_without_changing_semantics',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final offeredCash = TextEditingController(text: '100');
+      final requestedCash = TextEditingController(text: '0');
+      addTearDown(offeredCash.dispose);
+      addTearDown(requestedCash.dispose);
+
+      await tester.pumpWidget(
+        _builder(
+          offeredCash: offeredCash,
+          requestedCash: requestedCash,
+          state: TradeBuilderState.draftValid,
+          onSend: () {},
+        ),
+      );
+
+      expect(find.byType(StampBadge), findsOneWidget);
+      expect(find.byType(PaperPanel), findsAtLeastNWidgets(4));
+      expect(find.text('CUENTA DE ALMACÉN'), findsOneWidget);
+      expect(find.text('NEGOCIAR'), findsOneWidget);
+      expect(find.text('Balance de la propuesta'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          r'Vos entregás: $ 100 + Propiedad sintética A. Vos recibís: Propiedad sintética B.',
+        ),
+        findsOneWidget,
+      );
+
+      semantics.dispose();
+    },
+  );
 
   testWidgets('draft_empty_disables_send_with_reason', (tester) async {
     final offeredCash = TextEditingController();
