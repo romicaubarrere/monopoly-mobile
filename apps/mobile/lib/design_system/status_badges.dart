@@ -96,11 +96,7 @@ class PlayerChip extends StatelessWidget {
 }
 
 class TurnBadge extends StatelessWidget {
-  const TurnBadge({
-    required this.label,
-    super.key,
-    this.isCurrent = false,
-  });
+  const TurnBadge({required this.label, super.key, this.isCurrent = false});
 
   final String label;
   final bool isCurrent;
@@ -118,11 +114,7 @@ class TurnBadge extends StatelessWidget {
 }
 
 class ConnectionBadge extends StatelessWidget {
-  const ConnectionBadge({
-    required this.state,
-    super.key,
-    this.label,
-  });
+  const ConnectionBadge({required this.state, super.key, this.label});
 
   final ConnectionBadgeState state;
   final String? label;
@@ -164,19 +156,14 @@ class ConnectionBadge extends StatelessWidget {
 }
 
 class BotBadge extends StatelessWidget {
-  const BotBadge({
-    super.key,
-    this.temporary = false,
-    this.label,
-  });
+  const BotBadge({super.key, this.temporary = false, this.label});
 
   final bool temporary;
   final String? label;
 
   @override
   Widget build(BuildContext context) {
-    final effectiveLabel =
-        label ?? (temporary ? 'Bot temporal' : 'Bot');
+    final effectiveLabel = label ?? (temporary ? 'Bot temporal' : 'Bot');
 
     return _StatusBadge(
       icon: Icons.smart_toy_outlined,
@@ -226,10 +213,8 @@ class _StatusBadge extends StatelessWidget {
               child: Text(
                 label,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: foreground,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(context).textTheme.labelMedium
+                    ?.copyWith(color: foreground, fontWeight: FontWeight.w800),
               ),
             ),
           ],
