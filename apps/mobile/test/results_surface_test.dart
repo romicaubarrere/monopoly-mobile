@@ -4,12 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('unconfirmed_result_hides_ranking_and_exit_actions', (tester) async {
+  testWidgets('unconfirmed_result_hides_ranking_and_exit_actions', (
+    tester,
+  ) async {
     await tester.pumpWidget(
-      _surface(
-        state: ResultsSurfaceState.pending,
-        ranking: _ranking,
-      ),
+      _surface(state: ResultsSurfaceState.pending, ranking: _ranking),
     );
 
     expect(find.text('CIERRE EN CURSO'), findsOneWidget);
@@ -24,10 +23,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      _surface(
-        state: ResultsSurfaceState.confirmed,
-        ranking: _ranking,
-      ),
+      _surface(state: ResultsSurfaceState.confirmed, ranking: _ranking),
     );
 
     expect(find.text('RESULTADO CONFIRMADO'), findsOneWidget);
@@ -49,10 +45,7 @@ void main() {
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(
-      _surface(
-        state: ResultsSurfaceState.confirmed,
-        ranking: _ranking,
-      ),
+      _surface(state: ResultsSurfaceState.confirmed, ranking: _ranking),
     );
 
     expect(
@@ -97,14 +90,13 @@ void main() {
 
   testWidgets('offline_result_keeps_confirmed_ranking_hidden', (tester) async {
     await tester.pumpWidget(
-      _surface(
-        state: ResultsSurfaceState.offline,
-        ranking: _ranking,
-      ),
+      _surface(state: ResultsSurfaceState.offline, ranking: _ranking),
     );
 
     expect(
-      find.text('Reconectando. No mostramos un ranking nuevo sin confirmación.'),
+      find.text(
+        'Reconectando. No mostramos un ranking nuevo sin confirmación.',
+      ),
       findsOneWidget,
     );
     expect(find.text('ROMINA PLACEHOLDER'), findsNothing);
@@ -113,10 +105,7 @@ void main() {
 
   testWidgets('confirmed_empty_ranking_has_factual_fallback', (tester) async {
     await tester.pumpWidget(
-      _surface(
-        state: ResultsSurfaceState.confirmed,
-        ranking: const [],
-      ),
+      _surface(state: ResultsSurfaceState.confirmed, ranking: const []),
     );
 
     expect(
