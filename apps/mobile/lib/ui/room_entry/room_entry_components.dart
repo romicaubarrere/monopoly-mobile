@@ -26,10 +26,8 @@ class InlineStatusMessage extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.x3),
         child: Text(
           message,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: color, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -127,11 +125,7 @@ class PresetOptionCard extends StatelessWidget {
               ),
             ),
             if (isSelected)
-              const Positioned(
-                right: 22,
-                top: -6,
-                child: TapeMark(width: 54),
-              ),
+              const Positioned(right: 22, top: -6, child: TapeMark(width: 54)),
           ],
         ),
       ),
