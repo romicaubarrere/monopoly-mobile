@@ -1,0 +1,35 @@
+name: UX format probe
+
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/lib/design_system/state_primitives.dart'
+      - 'apps/mobile/test/state_primitives_test.dart'
+
+permissions:
+  contents: read
+
+jobs:
+  format-probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Setup Flutter
+        uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+      - name: Emit exact Dart 3.13 formatting
+        shell: bash
+        run: |
+          dart format apps/mobile/lib/design_system/state_primitives.dart apps/mobile/test/state_primitives_test.dart
+          echo 'STATE_PRIMITIVES_BASE64_BEGIN'
+          base64 -w0 apps/mobile/lib/design_system/state_primitives.dart
+          echo
+          echo 'STATE_PRIMITIVES_BASE64_END'
+          echo 'STATE_PRIMITIVES_TEST_BASE64_BEGIN'
+          base64 -w0 apps/mobile/test/state_primitives_test.dart
+          echo
+          echo 'STATE_PRIMITIVES_TEST_BASE64_END'
