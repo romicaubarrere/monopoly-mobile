@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design_system/tokens.dart';
+import '../../design_system/visual_components.dart';
 import '../feedback/async_action_button.dart';
 import '../feedback/interaction_feedback_state.dart';
 import '../feedback/interaction_status_layer.dart';
@@ -76,7 +77,7 @@ class AuctionSheet extends StatelessWidget {
     final statusState = _statusFeedbackState;
 
     return Material(
-      color: AppPalette.surface,
+      color: AppPalette.canvas,
       borderRadius: const BorderRadius.vertical(
         top: Radius.circular(AppRadius.sheet),
       ),
@@ -98,20 +99,7 @@ class AuctionSheet extends StatelessWidget {
               children: [
                 const _MandatoryHandle(),
                 const SizedBox(height: AppSpacing.x4),
-                Text(
-                  'SUBASTA',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppPalette.primary,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.6,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.x1),
-                Text(
-                  propertyLabel,
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
-                ),
+                _AuctionAlmacenHeader(propertyLabel: propertyLabel),
                 const SizedBox(height: AppSpacing.x4),
                 _AuctionHeadline(
                   currentBidLabel: currentBidLabel,
@@ -143,11 +131,21 @@ class AuctionSheet extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.done,
                   decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppPalette.surface,
                     labelText: 'Tu puja',
                     hintText: 'Monto',
                     helperText: canEditBid
                         ? 'La partida valida el monto al confirmar.'
                         : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.control),
+                      borderSide: const BorderSide(color: AppPalette.ink),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.control),
+                      borderSide: const BorderSide(color: AppPalette.ink),
+                    ),
                   ),
                 ),
                 if (statusState != null) ...[
@@ -272,6 +270,60 @@ class _MandatoryHandle extends StatelessWidget {
   }
 }
 
+class _AuctionAlmacenHeader extends StatelessWidget {
+  const _AuctionAlmacenHeader({required this.propertyLabel});
+
+  final String propertyLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        PaperPanel(
+          background: AppPalette.surface,
+          borderColor: AppPalette.burgundy,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.x4,
+            AppSpacing.x5,
+            AppSpacing.x4,
+            AppSpacing.x4,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: StampBadge(
+                  label: 'Remate de barrio',
+                  color: AppPalette.wornBlue,
+                  angle: -0.025,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.x3),
+              Text(
+                'SUBASTA',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppPalette.primary,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.8,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.x1),
+              Text(
+                propertyLabel,
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
+              ),
+            ],
+          ),
+        ),
+        const Positioned(right: 18, top: -6, child: TapeMark(width: 58)),
+      ],
+    );
+  }
+}
+
 class _AuctionHeadline extends StatelessWidget {
   const _AuctionHeadline({
     required this.currentBidLabel,
@@ -289,20 +341,15 @@ class _AuctionHeadline extends StatelessWidget {
       container: true,
       label: 'Oferta actual: $currentBidLabel. Lidera: $leaderLabel.',
       excludeSemantics: true,
-      child: Container(
+      child: PaperPanel(
+        background: isLeading ? const Color(0xFFE7F0E6) : AppPalette.kraft,
+        borderColor: isLeading ? AppPalette.bottleGreen : AppPalette.ink,
         padding: const EdgeInsets.all(AppSpacing.x4),
-        decoration: BoxDecoration(
-          color: AppPalette.canvas,
-          border: Border.all(
-            color: isLeading ? AppPalette.info : AppPalette.inkSecondary,
-            width: isLeading ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
+              flex: 6,
               child: _Metric(
                 label: 'Oferta actual',
                 value: currentBidLabel,
@@ -311,6 +358,7 @@ class _AuctionHeadline extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.x3),
             Expanded(
+              flex: 5,
               child: _Metric(
                 label: isLeading ? 'Vas ganando' : 'Lidera',
                 value: leaderLabel,
@@ -340,34 +388,47 @@ class _DeadlineIndicator extends StatelessWidget {
       container: true,
       label: 'Tiempo para actuar: $label. El cierre lo confirma la partida.',
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18),
-              const SizedBox(width: AppSpacing.x2),
-              Expanded(
-                child: Text(
-                  'Tiempo para actuar',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppPalette.inkSecondary,
-                    fontWeight: FontWeight.w700,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.x3),
+        decoration: BoxDecoration(
+          color: AppPalette.surface,
+          border: Border.all(color: AppPalette.ink, width: 1.2),
+          borderRadius: BorderRadius.circular(AppRadius.control),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18),
+                const SizedBox(width: AppSpacing.x2),
+                Expanded(
+                  child: Text(
+                    'Tiempo para actuar',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppPalette.inkSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.x2),
-          LinearProgressIndicator(value: clamped),
-        ],
+              ],
+            ),
+            const SizedBox(height: AppSpacing.x2),
+            LinearProgressIndicator(
+              value: clamped,
+              color: clamped >= 0.75 ? AppPalette.primary : AppPalette.wornBlue,
+              backgroundColor: AppPalette.paperEdge,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -386,7 +447,7 @@ class _ParticipantList extends StatelessWidget {
         Text(
           'Participantes',
           style: Theme.of(context).textTheme.titleSmall
-              ?.copyWith(fontWeight: FontWeight.w900),
+              ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.4),
         ),
         const SizedBox(height: AppSpacing.x2),
         for (final participant in participants)
@@ -421,6 +482,7 @@ class _ParticipantRow extends StatelessWidget {
     final bidSuffix = participant.bidLabel == null
         ? ''
         : '. Última oferta: ${participant.bidLabel}';
+    final isLeader = participant.state == AuctionParticipantState.leader;
 
     return Semantics(
       container: true,
@@ -433,12 +495,27 @@ class _ParticipantRow extends StatelessWidget {
           vertical: AppSpacing.x2,
         ),
         decoration: BoxDecoration(
-          border: Border.all(color: AppPalette.inkSecondary),
+          color: isLeader ? const Color(0xFFF5E7B9) : AppPalette.surface,
+          border: Border.all(
+            color: isLeader ? AppPalette.mustard : AppPalette.inkSecondary,
+            width: isLeader ? 1.6 : 1,
+          ),
           borderRadius: BorderRadius.circular(AppRadius.control),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x16000000),
+              offset: Offset(2, 2),
+              blurRadius: 0,
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18),
+            Icon(
+              icon,
+              size: 18,
+              color: isLeader ? AppPalette.burgundy : AppPalette.ink,
+            ),
             const SizedBox(width: AppSpacing.x2),
             Expanded(
               child: Text(
@@ -472,25 +549,37 @@ class _CashAvailable extends StatelessWidget {
       container: true,
       label: 'Tu efectivo disponible: $label.',
       excludeSemantics: true,
-      child: Row(
-        children: [
-          const Icon(Icons.account_balance_wallet_outlined, size: 18),
-          const SizedBox(width: AppSpacing.x2),
-          Expanded(
-            child: Text(
-              'Tu efectivo disponible',
-              style: Theme.of(context).textTheme.bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+      child: PaperPanel(
+        background: AppPalette.surface,
+        borderColor: AppPalette.bottleGreen,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.x3,
+          vertical: AppSpacing.x3,
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.account_balance_wallet_outlined,
+              size: 18,
+              color: AppPalette.bottleGreen,
             ),
-          ),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              fontFeatures: const [FontFeature.tabularFigures()],
+            const SizedBox(width: AppSpacing.x2),
+            Expanded(
+              child: Text(
+                'Tu efectivo disponible',
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
             ),
-          ),
-        ],
+            Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -509,20 +598,41 @@ class _QuickIncrements extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppSpacing.x2,
-      runSpacing: AppSpacing.x2,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final label in labels)
-          SizedBox(
-            height: AppSizes.minTouchTarget,
-            child: OutlinedButton(
-              onPressed: enabled && onSelected != null
-                  ? () => onSelected!(label)
-                  : null,
-              child: Text('+$label'),
-            ),
+        Text(
+          'Subir rápido',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppPalette.inkSecondary,
+            fontWeight: FontWeight.w800,
           ),
+        ),
+        const SizedBox(height: AppSpacing.x2),
+        Wrap(
+          spacing: AppSpacing.x2,
+          runSpacing: AppSpacing.x2,
+          children: [
+            for (final label in labels)
+              SizedBox(
+                height: AppSizes.minTouchTarget,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: enabled ? AppPalette.kraft : null,
+                    foregroundColor: AppPalette.ink,
+                    side: const BorderSide(color: AppPalette.ink),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.sign),
+                    ),
+                  ),
+                  onPressed: enabled && onSelected != null
+                      ? () => onSelected!(label)
+                      : null,
+                  child: Text('+$label'),
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -561,6 +671,11 @@ class _PassButton extends StatelessWidget {
       child: SizedBox(
         height: AppSizes.primaryControlHeight,
         child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            backgroundColor: AppPalette.surface,
+            foregroundColor: AppPalette.ink,
+            side: const BorderSide(color: AppPalette.ink, width: 1.2),
+          ),
           onPressed: isActionable ? onPressed : null,
           icon: const Icon(Icons.flag_outlined),
           label: const Text('Pasar'),
@@ -588,16 +703,24 @@ class _Metric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: AppPalette.inkSecondary),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppPalette.inkSecondary,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: AppSpacing.x1),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: emphasized ? FontWeight.w900 : FontWeight.w700,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style:
+              (emphasized
+                      ? Theme.of(context).textTheme.headlineSmall
+                      : Theme.of(context).textTheme.titleMedium)
+                  ?.copyWith(
+                    color: emphasized ? AppPalette.burgundy : AppPalette.ink,
+                    fontWeight: emphasized ? FontWeight.w900 : FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    height: 1,
+                  ),
         ),
       ],
     );
