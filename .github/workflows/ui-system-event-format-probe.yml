@@ -1,9 +1,9 @@
 name: UI system event format probe
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/ui-system-event-toast-almacen
+      - main
 
 permissions:
   contents: read
