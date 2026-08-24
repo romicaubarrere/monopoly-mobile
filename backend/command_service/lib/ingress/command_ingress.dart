@@ -87,7 +87,11 @@ final class CommandIngress {
     required AuthorityExecutor<T> execute,
   }) async {
     if (command.commandId.isEmpty) {
-      throw ArgumentError.value(command.commandId, 'commandId', 'must not be empty');
+      throw ArgumentError.value(
+        command.commandId,
+        'commandId',
+        'must not be empty',
+      );
     }
     if (command.inputHashVersion != 1) {
       throw ArgumentError.value(
