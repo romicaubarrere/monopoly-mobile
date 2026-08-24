@@ -122,17 +122,24 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
     expect(
-      tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Contraofertar'),
-      ).onPressed,
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
       isNotNull,
     );
     expect(
-      tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Rechazar'),
-      ).onPressed,
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Contraofertar'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Rechazar'),
+          )
+          .onPressed,
       isNotNull,
     );
 
@@ -142,6 +149,8 @@ void main() {
   testWidgets('temporary_bot_waiting_human_never_exposes_trade_consent', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
+
     await tester.pumpWidget(
       _review(
         state: TradeReviewState.waitingHuman,
@@ -156,23 +165,30 @@ void main() {
       isNull,
     );
     expect(
-      tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Contraofertar'),
-      ).onPressed,
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Contraofertar'),
+          )
+          .onPressed,
       isNull,
     );
     expect(
-      tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, 'Rechazar'),
-      ).onPressed,
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Rechazar'),
+          )
+          .onPressed,
       isNull,
     );
+    expect(find.text('El bot temporal no puede aceptar'), findsOneWidget);
     expect(
-      find.text(
-        'Esperando a que vuelva el jugador. El bot temporal no puede aceptar por él.',
+      find.bySemanticsLabel(
+        'Contraofertar. No disponible: Esperando al jugador',
       ),
       findsOneWidget,
     );
+
+    semantics.dispose();
   });
 
   testWidgets('pending_accept_freezes_conflicting_trade_responses', (
