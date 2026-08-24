@@ -1,0 +1,54 @@
+[
+  {
+    "id": "auction-pass",
+    "decisionId": "auction-decision-1",
+    "kind": "auctionTurn",
+    "policy": "pass",
+    "stateVersionCreated": 7,
+    "createdAtMs": 1000,
+    "deadlineAtMs": 5000,
+    "authorityNowMs": 5000,
+    "expectedDisposition": "terminal",
+    "expectedAction": "pass",
+    "expectedOperationId": "deadline:v1:auction-decision-1"
+  },
+  {
+    "id": "trade-reject",
+    "decisionId": "trade-decision-1",
+    "kind": "tradeResponse",
+    "policy": "reject",
+    "stateVersionCreated": 11,
+    "createdAtMs": 2000,
+    "deadlineAtMs": 8000,
+    "authorityNowMs": 8001,
+    "expectedDisposition": "terminal",
+    "expectedAction": "reject",
+    "expectedOperationId": "deadline:v1:trade-decision-1"
+  },
+  {
+    "id": "property-bot-delegate",
+    "decisionId": "property-decision-1",
+    "kind": "propertyOffer",
+    "policy": "botDecide",
+    "stateVersionCreated": 17,
+    "createdAtMs": 3000,
+    "deadlineAtMs": 9000,
+    "authorityNowMs": 9000,
+    "expectedDisposition": "delegate",
+    "expectedAction": "delegateBotDecision",
+    "expectedOperationId": "deadline:v1:property-decision-1"
+  },
+  {
+    "id": "debt-auto-liquidate-delegate",
+    "decisionId": "debt-decision-1",
+    "kind": "debtResolution",
+    "policy": "autoLiquidate",
+    "stateVersionCreated": 23,
+    "createdAtMs": 4000,
+    "deadlineAtMs": 10000,
+    "authorityNowMs": 10000,
+    "expectedDisposition": "delegate",
+    "expectedAction": "delegateAutoLiquidation",
+    "expectedOperationId": "deadline:v1:debt-decision-1"
+  }
+]
