@@ -40,24 +40,24 @@ enum FinishReason { completed, roundCap, bankruptcy, abandoned }
 
 extension on Enum {
   String get wireName => name.replaceAllMapped(
-        RegExp(r'([A-Z])'),
-        (match) => '_${match.group(1)!.toLowerCase()}',
-      );
+    RegExp(r'([A-Z])'),
+    (match) => '_${match.group(1)!.toLowerCase()}',
+  );
 }
 
 extension ProductEventNameWire on ProductEventName {
   String get wireName => switch (this) {
-        ProductEventName.roomCreateResult => 'room_create_result',
-        ProductEventName.roomJoinResult => 'room_join_result',
-        ProductEventName.gameStartResult => 'game_start_result',
-        ProductEventName.turnCompleted => 'turn_completed',
-        ProductEventName.gameAction => 'game_action',
-        ProductEventName.pendingDecisionShown => 'pending_decision_shown',
-        ProductEventName.reconnectResult => 'reconnect_result',
-        ProductEventName.gameFinished => 'game_finished',
-        ProductEventName.balanceOutcome => 'balance_outcome',
-        ProductEventName.playtestRating => 'playtest_rating',
-      };
+    ProductEventName.roomCreateResult => 'room_create_result',
+    ProductEventName.roomJoinResult => 'room_join_result',
+    ProductEventName.gameStartResult => 'game_start_result',
+    ProductEventName.turnCompleted => 'turn_completed',
+    ProductEventName.gameAction => 'game_action',
+    ProductEventName.pendingDecisionShown => 'pending_decision_shown',
+    ProductEventName.reconnectResult => 'reconnect_result',
+    ProductEventName.gameFinished => 'game_finished',
+    ProductEventName.balanceOutcome => 'balance_outcome',
+    ProductEventName.playtestRating => 'playtest_rating',
+  };
 }
 
 abstract interface class AnalyticsSink {
@@ -100,12 +100,12 @@ final class ProductAnalyticsEvent {
     required this.platform,
     required Map<String, Object> parameters,
   }) : parameters = Map.unmodifiable(<String, Object>{
-          'event_id': eventId,
-          'occurred_at_ms': occurredAtMs,
-          'app_version': appVersion,
-          'platform': platform.wireName,
-          ...parameters,
-        });
+         'event_id': eventId,
+         'occurred_at_ms': occurredAtMs,
+         'app_version': appVersion,
+         'platform': platform.wireName,
+         ...parameters,
+       });
 
   final ProductEventName name;
   final String eventId;
@@ -126,16 +126,15 @@ final class ProductAnalyticsEvent {
     required AnalyticsPlatform platform,
     required OperationResult result,
     required int latencyMs,
-  }) =>
-      _resultEvent(
-        name: ProductEventName.roomCreateResult,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        result: result,
-        latencyMs: latencyMs,
-      );
+  }) => _resultEvent(
+    name: ProductEventName.roomCreateResult,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    result: result,
+    latencyMs: latencyMs,
+  );
 
   static ProductAnalyticsEvent roomJoinResult({
     required String eventId,
@@ -144,16 +143,15 @@ final class ProductAnalyticsEvent {
     required AnalyticsPlatform platform,
     required OperationResult result,
     required int latencyMs,
-  }) =>
-      _resultEvent(
-        name: ProductEventName.roomJoinResult,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        result: result,
-        latencyMs: latencyMs,
-      );
+  }) => _resultEvent(
+    name: ProductEventName.roomJoinResult,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    result: result,
+    latencyMs: latencyMs,
+  );
 
   static ProductAnalyticsEvent gameStartResult({
     required String eventId,
@@ -198,22 +196,21 @@ final class ProductAnalyticsEvent {
     required int turnIndex,
     required int durationMs,
     required int decisionCount,
-  }) =>
-      ProductAnalyticsEvent._(
-        name: ProductEventName.turnCompleted,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        parameters: <String, Object>{
-          'preset': confirmedPreset,
-          'rules_version': confirmedRulesVersion,
-          'round': round,
-          'turn_index': turnIndex,
-          'duration_ms': durationMs,
-          'decision_count': decisionCount,
-        },
-      );
+  }) => ProductAnalyticsEvent._(
+    name: ProductEventName.turnCompleted,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    parameters: <String, Object>{
+      'preset': confirmedPreset,
+      'rules_version': confirmedRulesVersion,
+      'round': round,
+      'turn_index': turnIndex,
+      'duration_ms': durationMs,
+      'decision_count': decisionCount,
+    },
+  );
 
   static ProductAnalyticsEvent gameAction({
     required String eventId,
@@ -225,21 +222,20 @@ final class ProductAnalyticsEvent {
     required GameActionType actionType,
     required OperationResult result,
     required int durationMs,
-  }) =>
-      ProductAnalyticsEvent._(
-        name: ProductEventName.gameAction,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        parameters: <String, Object>{
-          'action_type': actionType.wireName,
-          'result': result.wireName,
-          'duration_ms': durationMs,
-          'preset': confirmedPreset,
-          'rules_version': confirmedRulesVersion,
-        },
-      );
+  }) => ProductAnalyticsEvent._(
+    name: ProductEventName.gameAction,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    parameters: <String, Object>{
+      'action_type': actionType.wireName,
+      'result': result.wireName,
+      'duration_ms': durationMs,
+      'preset': confirmedPreset,
+      'rules_version': confirmedRulesVersion,
+    },
+  );
 
   static ProductAnalyticsEvent pendingDecisionShown({
     required String eventId,
@@ -249,19 +245,18 @@ final class ProductAnalyticsEvent {
     required String confirmedPreset,
     required String confirmedRulesVersion,
     required DecisionType decisionType,
-  }) =>
-      ProductAnalyticsEvent._(
-        name: ProductEventName.pendingDecisionShown,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        parameters: <String, Object>{
-          'decision_type': decisionType.wireName,
-          'preset': confirmedPreset,
-          'rules_version': confirmedRulesVersion,
-        },
-      );
+  }) => ProductAnalyticsEvent._(
+    name: ProductEventName.pendingDecisionShown,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    parameters: <String, Object>{
+      'decision_type': decisionType.wireName,
+      'preset': confirmedPreset,
+      'rules_version': confirmedRulesVersion,
+    },
+  );
 
   static ProductAnalyticsEvent reconnectResult({
     required String eventId,
@@ -272,21 +267,19 @@ final class ProductAnalyticsEvent {
     required int durationMs,
     required int stateGap,
     String? confirmedRulesVersion,
-  }) =>
-      ProductAnalyticsEvent._(
-        name: ProductEventName.reconnectResult,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        parameters: <String, Object>{
-          'result': result.wireName,
-          'duration_ms': durationMs,
-          'state_gap': stateGap,
-          if (confirmedRulesVersion != null)
-            'rules_version': confirmedRulesVersion,
-        },
-      );
+  }) => ProductAnalyticsEvent._(
+    name: ProductEventName.reconnectResult,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    parameters: <String, Object>{
+      'result': result.wireName,
+      'duration_ms': durationMs,
+      'state_gap': stateGap,
+      if (confirmedRulesVersion != null) 'rules_version': confirmedRulesVersion,
+    },
+  );
 
   static ProductAnalyticsEvent gameFinished({
     required String eventId,
@@ -299,22 +292,21 @@ final class ProductAnalyticsEvent {
     required int durationMs,
     required FinishReason finishReason,
     required int playerCount,
-  }) =>
-      ProductAnalyticsEvent._(
-        name: ProductEventName.gameFinished,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        parameters: <String, Object>{
-          'preset': confirmedPreset,
-          'rules_version': confirmedRulesVersion,
-          'rounds': rounds,
-          'duration_ms': durationMs,
-          'finish_reason': finishReason.wireName,
-          'player_count': playerCount,
-        },
-      );
+  }) => ProductAnalyticsEvent._(
+    name: ProductEventName.gameFinished,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    parameters: <String, Object>{
+      'preset': confirmedPreset,
+      'rules_version': confirmedRulesVersion,
+      'rounds': rounds,
+      'duration_ms': durationMs,
+      'finish_reason': finishReason.wireName,
+      'player_count': playerCount,
+    },
+  );
 
   static ProductAnalyticsEvent balanceOutcome({
     required String eventId,
@@ -327,22 +319,21 @@ final class ProductAnalyticsEvent {
     required int buildsTotal,
     required int bankruptcies,
     required String netWorthGapBucket,
-  }) =>
-      ProductAnalyticsEvent._(
-        name: ProductEventName.balanceOutcome,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        parameters: <String, Object>{
-          'groups_total': groupsTotal,
-          'builds_total': buildsTotal,
-          'bankruptcies': bankruptcies,
-          'net_worth_gap_bucket': netWorthGapBucket,
-          'preset': confirmedPreset,
-          'rules_version': confirmedRulesVersion,
-        },
-      );
+  }) => ProductAnalyticsEvent._(
+    name: ProductEventName.balanceOutcome,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    parameters: <String, Object>{
+      'groups_total': groupsTotal,
+      'builds_total': buildsTotal,
+      'bankruptcies': bankruptcies,
+      'net_worth_gap_bucket': netWorthGapBucket,
+      'preset': confirmedPreset,
+      'rules_version': confirmedRulesVersion,
+    },
+  );
 
   static ProductAnalyticsEvent playtestRating({
     required String eventId,
@@ -384,18 +375,17 @@ final class ProductAnalyticsEvent {
     required AnalyticsPlatform platform,
     required OperationResult result,
     required int latencyMs,
-  }) =>
-      ProductAnalyticsEvent._(
-        name: name,
-        eventId: eventId,
-        occurredAtMs: occurredAtMs,
-        appVersion: appVersion,
-        platform: platform,
-        parameters: <String, Object>{
-          'result': result.wireName,
-          'latency_ms': latencyMs,
-        },
-      );
+  }) => ProductAnalyticsEvent._(
+    name: name,
+    eventId: eventId,
+    occurredAtMs: occurredAtMs,
+    appVersion: appVersion,
+    platform: platform,
+    parameters: <String, Object>{
+      'result': result.wireName,
+      'latency_ms': latencyMs,
+    },
+  );
 }
 
 final class ProductAnalytics {
