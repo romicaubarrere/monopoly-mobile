@@ -48,6 +48,7 @@ It follows the required `Design System → Screen → Component → Asset → St
 - Character illustration is intentionally absent from this implementation. The v0.2 character system requires source photos as anatomical source of truth; generic mascot art would violate that guardrail.
 - Decorative density is lower around functional controls than in concept art so CTA, money, connection and board state remain dominant.
 - Generated copy/numbers from visual references are not promoted to product data.
+- The concept-art working brand is not hardcoded into the rebrandable Flutter boundary. The executable sign uses neutral product copy while preserving the approved signage treatment; final branding stays an application/configuration concern.
 
 ## Acceptance evidence target
 
