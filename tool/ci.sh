@@ -27,6 +27,7 @@ dart analyze packages/game_core packages/game_contracts packages/backend_api bac
   dart test
 )
 dart run backend/command_service/tool/observability_smoke.dart
+dart run backend/command_service/tool/ingress_observability_smoke.dart
 (
   cd apps/mobile
   flutter test
