@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../design_system/tokens.dart';
+import '../../design_system/visual_components.dart';
 import 'room_entry_components.dart';
 
 class JoinRoomScreen extends StatefulWidget {
@@ -47,6 +48,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppPalette.canvas,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -63,51 +65,119 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      'Entrá con el código de sala',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.x2),
-                  Text(
-                    'Son seis caracteres. Si algo falla, el código queda escrito para que puedas corregirlo o reintentar.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppPalette.inkSecondary,
-                      height: 1.35,
-                    ),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      PaperPanel(
+                        background: AppPalette.surface,
+                        borderColor: AppPalette.wornBlue,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const StampBadge(
+                              label: 'Entrá a la sala',
+                              color: AppPalette.wornBlue,
+                              angle: 0.02,
+                            ),
+                            const SizedBox(height: AppSpacing.x3),
+                            Semantics(
+                              header: true,
+                              child: Text(
+                                'Entrá con el código de sala',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      height: 1.05,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.x2),
+                            Text(
+                              'Son seis caracteres. Si algo falla, el código queda escrito para que puedas corregirlo o reintentar.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: AppPalette.inkSecondary,
+                                    height: 1.35,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Positioned(
+                        right: 26,
+                        top: -7,
+                        child: TapeMark(width: 62, angle: 0.07),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: AppSpacing.x6),
-                  TextField(
-                    controller: _controller,
-                    enabled: !widget.isPending,
-                    maxLength: 6,
-                    textCapitalization: TextCapitalization.characters,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(6),
-                      FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
-                    ],
-                    textInputAction: TextInputAction.done,
-                    onChanged: (_) => setState(() {}),
-                    onSubmitted: (_) => _submitIfEligible(),
-                    decoration: InputDecoration(
-                      labelText: 'Código de sala',
-                      hintText: 'ABC123',
-                      helperText: 'Podés pegarlo directamente.',
-                      errorText: widget.errorMessage == null
-                          ? null
-                          : 'Revisá el mensaje debajo.',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.control),
-                      ),
-                    ),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 4,
+                  PaperPanel(
+                    background: AppPalette.surface,
+                    borderColor: AppPalette.bottleGreen,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'CÓDIGO DE SALA',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelLarge
+                                    ?.copyWith(
+                                      color: AppPalette.bottleGreen,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.2,
+                                    ),
+                              ),
+                            ),
+                            const InkDoodle(size: 28),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.x3),
+                        TextField(
+                          controller: _controller,
+                          enabled: !widget.isPending,
+                          maxLength: 6,
+                          textCapitalization: TextCapitalization.characters,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          inputFormatters: [
+                            LengthLimitingTextInputFormatter(6),
+                            FilteringTextInputFormatter.allow(
+                              RegExp('[A-Za-z0-9]'),
+                            ),
+                          ],
+                          textInputAction: TextInputAction.done,
+                          onChanged: (_) => setState(() {}),
+                          onSubmitted: (_) => _submitIfEligible(),
+                          decoration: InputDecoration(
+                            labelText: 'Código de sala',
+                            hintText: 'ABC123',
+                            helperText: 'Podés pegarlo directamente.',
+                            errorText: widget.errorMessage == null
+                                ? null
+                                : 'Revisá el mensaje debajo.',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.control,
+                              ),
+                            ),
+                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 4,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
                   if (widget.errorMessage != null) ...[
@@ -129,8 +199,9 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                     Text(
                       'Ingresá los 6 caracteres para continuar.',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: AppPalette.inkSecondary),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppPalette.inkSecondary,
+                      ),
                     ),
                   ],
                 ],
