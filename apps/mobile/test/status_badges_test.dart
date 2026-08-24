@@ -34,7 +34,6 @@ void main() {
 
   testWidgets('temporary bot identity is explicit', (tester) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -46,6 +45,7 @@ void main() {
     expect(find.text('Bot temporal'), findsOneWidget);
     expect(find.byIcon(Icons.smart_toy_outlined), findsOneWidget);
     expect(find.bySemanticsLabel('Bot temporal'), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('interactive player chip meets target and emits tap', (
@@ -73,7 +73,6 @@ void main() {
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -93,6 +92,7 @@ void main() {
     expect(find.bySemanticsLabel('Turno actual, Romina'), findsOneWidget);
     expect(find.byIcon(Icons.person), findsOneWidget);
     expect(find.byIcon(Icons.casino), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('compact 360 width and 130 percent text reflow safely', (
