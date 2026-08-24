@@ -1,4 +1,6 @@
 library;
 
-/// Marker exposed by Foundation until the Engine owner materializes domain logic.
+export 'src/deadline_timeout.dart';
+
+/// Marker exposed by Foundation while the Engine is materialized incrementally.
 const String gameCoreFoundation = 'pure-dart';
