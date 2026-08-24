@@ -61,7 +61,6 @@ void main() {
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
 
     await tester.pumpWidget(
       MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
@@ -76,6 +75,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.bySemanticsLabel('Casillero sintético 1'), findsNothing);
+
+    semantics.dispose();
   });
 
   testWidgets('disabled roll keeps an explicit visible reason', (tester) async {
