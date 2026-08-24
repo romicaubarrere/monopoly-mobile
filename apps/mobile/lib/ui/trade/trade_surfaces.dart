@@ -145,8 +145,7 @@ class TradeBuilderSurface extends StatelessWidget {
                   const _TradeOutcome(
                     icon: Icons.schedule_send_outlined,
                     title: 'Propuesta enviada',
-                    body:
-                        'Volvé al tablero. La propuesta queda pendiente según el estado confirmado.',
+                    body: 'Volvé al tablero. La propuesta queda pendiente según el estado confirmado.',
                   ),
                 ],
                 const SizedBox(height: AppSpacing.x5),
@@ -351,8 +350,7 @@ class TradeReviewSurface extends StatelessWidget {
   };
 
   String get _defaultStatusMessage => switch (state) {
-    TradeReviewState.pendingAccept =>
-      'Esperando confirmación. Los activos todavía muestran el último estado confirmado.',
+    TradeReviewState.pendingAccept => 'Esperando confirmación. Los activos todavía muestran el último estado confirmado.',
     TradeReviewState.stale =>
       'La propuesta ya no es válida. Reconciliando con el estado actual.',
     TradeReviewState.expired =>
@@ -361,8 +359,7 @@ class TradeReviewSurface extends StatelessWidget {
       'Confirmando qué pasó antes de habilitar otra respuesta.',
     TradeReviewState.offline =>
       'Reconectando antes de habilitar una respuesta.',
-    TradeReviewState.waitingHuman =>
-      'Esperando a que vuelva el jugador. El bot temporal no puede aceptar por él.',
+    TradeReviewState.waitingHuman => 'Esperando a que vuelva el jugador. El bot temporal no puede aceptar por él.',
     _ => '',
   };
 
@@ -389,8 +386,7 @@ class TradeReviewSurface extends StatelessWidget {
     TradeReviewState.accepted => const _TradeOutcome(
       icon: Icons.check_circle_outline_rounded,
       title: 'Intercambio confirmado',
-      body:
-          'Los cambios de efectivo y activos se muestran juntos desde el estado confirmado.',
+      body: 'Los cambios de efectivo y activos se muestran juntos desde el estado confirmado.',
     ),
     TradeReviewState.rejected => const _TradeOutcome(
       icon: Icons.cancel_outlined,
@@ -400,8 +396,7 @@ class TradeReviewSurface extends StatelessWidget {
     TradeReviewState.counter => const _TradeOutcome(
       icon: Icons.swap_horiz_rounded,
       title: 'Contraoferta',
-      body:
-          'El builder puede abrirse prellenado; enviarla será una propuesta nueva.',
+      body: 'El builder puede abrirse prellenado; enviarla será una propuesta nueva.',
     ),
     _ => null,
   };
@@ -503,10 +498,7 @@ class _TradeSideSection extends StatelessWidget {
                 child: Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.3,
-                      ),
+                      ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.3),
                 ),
               ),
             ],
@@ -722,7 +714,9 @@ class _ReviewBlock extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: accent),
           const SizedBox(width: AppSpacing.x3),
-          Expanded(child: _SummaryLine(title: title, body: body)),
+          Expanded(
+            child: _SummaryLine(title: title, body: body),
+          ),
         ],
       ),
     );
