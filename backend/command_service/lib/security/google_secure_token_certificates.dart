@@ -16,8 +16,8 @@ final class CertificateFetchResponse {
   final String body;
 }
 
-typedef SecureTokenCertificateFetcher = Future<CertificateFetchResponse>
-    Function();
+typedef SecureTokenCertificateFetcher =
+    Future<CertificateFetchResponse> Function();
 
 final class SecureTokenCertificateException implements Exception {
   const SecureTokenCertificateException(this.code);
@@ -119,7 +119,9 @@ final class GoogleSecureTokenCertificateCache {
       final certificates = <String, String>{};
       for (final entry in decoded.entries) {
         final certificate = entry.value;
-        if (entry.key.isEmpty || certificate is! String || certificate.isEmpty) {
+        if (entry.key.isEmpty ||
+            certificate is! String ||
+            certificate.isEmpty) {
           throw const SecureTokenCertificateException(
             'invalid_certificate_response',
           );
