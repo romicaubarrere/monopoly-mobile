@@ -123,10 +123,7 @@ void main() {
 
     expect(
       find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label ==
-                'EFECTIVO PLACEHOLDER. \$PLACEHOLDER. Transferencia provista por authority. Confirmado',
+        (widget) => widget is Semantics && widget.properties.label == 'EFECTIVO PLACEHOLDER. \$PLACEHOLDER. Transferencia provista por authority. Confirmado',
       ),
       findsOneWidget,
     );
