@@ -52,10 +52,7 @@ void main() {
           createSize.height,
           greaterThanOrEqualTo(AppSizes.minTouchTarget),
         );
-        expect(
-          joinSize.height,
-          greaterThanOrEqualTo(AppSizes.minTouchTarget),
-        );
+        expect(joinSize.height, greaterThanOrEqualTo(AppSizes.minTouchTarget));
       },
     );
   }
