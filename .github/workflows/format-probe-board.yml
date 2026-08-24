@@ -1,9 +1,9 @@
 name: Board formatter probe
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/ui-board-almacen-visual
+      - main
 
 permissions:
   contents: read
