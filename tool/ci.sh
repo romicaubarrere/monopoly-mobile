@@ -5,7 +5,8 @@ flutter --version
 dart --version
 flutter pub get --enforce-lockfile
 
-dart format --output=none --set-exit-if-changed apps packages backend
+dart format --output=none --set-exit-if-changed apps packages backend tool/check_spec_registry.dart
+dart run tool/check_spec_registry.dart
 
 dart analyze packages/game_core packages/game_contracts packages/backend_api backend/command_service
 (
