@@ -36,7 +36,9 @@ final class RoomCodeClaim {
 /// transaction that reads and replaces the locator document. This model keeps
 /// correctness independent from TTL/physical deletion.
 final class RoomCodeClaimTransaction {
-  RoomCodeClaimTransaction({RoomCodeLocator? current}) : _current = current;
+  RoomCodeClaimTransaction({RoomCodeLocator? current}) : this._(current);
+
+  RoomCodeClaimTransaction._(this._current);
 
   RoomCodeLocator? _current;
 
