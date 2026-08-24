@@ -53,7 +53,7 @@ void _checkRanges(Object? value) {
   if (value is! Map<String, dynamic>) _fail('idRanges missing');
   const expected = <String, List<int>>{
     'TV': [1, 41],
-    'NFR': [1, 46],
+    'NFR': [1, 48],
     'R': [1, 40],
     'ADR': [1, 10],
     'DEC': [1, 65],
