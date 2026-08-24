@@ -76,7 +76,7 @@ class PlayerChip extends StatelessWidget {
     final semanticsLabel = [
       name,
       if (isSelf) 'vos',
-      if (statusLabel case final label?) label,
+      ?statusLabel,
     ].join(', ');
 
     if (onTap == null) {
