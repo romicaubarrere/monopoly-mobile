@@ -12,7 +12,7 @@ void main() {
       MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
     );
 
-    expect(find.text('MONOPOLY'), findsOneWidget);
+    expect(find.text('EL TABLERO'), findsOneWidget);
     expect(find.text('DE ROMINA'), findsOneWidget);
     expect(find.text('Mesa chica.\nRivalidad grande.'), findsOneWidget);
     expect(find.text('Crear partida'), findsOneWidget);
@@ -21,7 +21,7 @@ void main() {
       find.byWidgetPredicate(
         (widget) =>
             widget is Semantics &&
-            widget.properties.label == 'Monopoly de Romina',
+            widget.properties.label == 'Cartel principal del juego',
       ),
       findsOneWidget,
     );
