@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design_system/tokens.dart';
+import '../../design_system/visual_components.dart';
 import '../feedback/async_action_button.dart';
 import '../feedback/interaction_feedback_state.dart';
 import '../feedback/interaction_status_layer.dart';
@@ -55,7 +56,7 @@ class PropertyOfferSheet extends StatelessWidget {
     final statusState = _statusFeedbackState;
 
     return Material(
-      color: AppPalette.surface,
+      color: AppPalette.canvas,
       borderRadius: const BorderRadius.vertical(
         top: Radius.circular(AppRadius.sheet),
       ),
@@ -77,7 +78,7 @@ class PropertyOfferSheet extends StatelessWidget {
               children: [
                 const _MandatoryHandle(),
                 const SizedBox(height: AppSpacing.x4),
-                _PropertyIdentity(
+                _PropertyAlmacenHeader(
                   propertyLabel: propertyLabel,
                   groupLabel: groupLabel,
                   groupSignalColor: groupSignalColor,
@@ -200,8 +201,8 @@ class _MandatoryHandle extends StatelessWidget {
   }
 }
 
-class _PropertyIdentity extends StatelessWidget {
-  const _PropertyIdentity({
+class _PropertyAlmacenHeader extends StatelessWidget {
+  const _PropertyAlmacenHeader({
     required this.propertyLabel,
     required this.groupLabel,
     required this.groupSignalColor,
@@ -217,31 +218,49 @@ class _PropertyIdentity extends StatelessWidget {
       container: true,
       label: '$propertyLabel. Grupo $groupLabel.',
       excludeSemantics: true,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Container(
-            width: 10,
-            height: 46,
-            decoration: BoxDecoration(
-              color: groupSignalColor,
-              border: Border.all(color: AppPalette.ink, width: 1.2),
-              borderRadius: BorderRadius.circular(AppRadius.control),
+          PaperPanel(
+            background: AppPalette.surface,
+            borderColor: AppPalette.bottleGreen,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.x4,
+              AppSpacing.x5,
+              AppSpacing.x4,
+              AppSpacing.x4,
             ),
-          ),
-          const SizedBox(width: AppSpacing.x3),
-          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: StampBadge(
+                    label: 'Se vende',
+                    color: AppPalette.bottleGreen,
+                    angle: -0.025,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.x3),
+                Container(
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: groupSignalColor,
+                    border: Border.all(color: AppPalette.ink, width: 1.2),
+                    borderRadius: BorderRadius.circular(AppRadius.sign),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.x3),
                 Text(
                   propertyLabel,
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.x1),
                 Text(
-                  groupLabel,
+                  'Grupo $groupLabel',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppPalette.inkSecondary,
                     fontWeight: FontWeight.w700,
@@ -250,6 +269,7 @@ class _PropertyIdentity extends StatelessWidget {
               ],
             ),
           ),
+          const Positioned(right: 18, top: -6, child: TapeMark(width: 58)),
         ],
       ),
     );
@@ -267,16 +287,21 @@ class _PrimaryEconomy extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _Metric(label: 'Precio', value: priceLabel, emphasized: true),
-        ),
-        const SizedBox(width: AppSpacing.x3),
-        Expanded(
-          child: _Metric(label: 'Alquiler base', value: baseRentLabel),
-        ),
-      ],
+    return PaperPanel(
+      background: AppPalette.kraft,
+      padding: const EdgeInsets.all(AppSpacing.x4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _Metric(label: 'Precio', value: priceLabel, emphasized: true),
+          ),
+          const SizedBox(width: AppSpacing.x3),
+          Expanded(
+            child: _Metric(label: 'Alquiler base', value: baseRentLabel),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -297,28 +322,39 @@ class _CashConsequence extends StatelessWidget {
       label:
           'Efectivo confirmado: $cashNowLabel. Proyectado si comprás: $cashAfterLabel.',
       excludeSemantics: true,
-      child: Container(
+      child: PaperPanel(
+        background: const Color(0xFFE7F0E6),
+        borderColor: AppPalette.bottleGreen,
         padding: const EdgeInsets.all(AppSpacing.x3),
-        decoration: BoxDecoration(
-          color: AppPalette.canvas,
-          border: Border.all(color: AppPalette.inkSecondary),
-          borderRadius: BorderRadius.circular(AppRadius.control),
-        ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: _Metric(label: 'Confirmado', value: cashNowLabel),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.x2),
-              child: Icon(Icons.arrow_forward_rounded, size: 18),
-            ),
-            Expanded(
-              child: _Metric(
-                label: 'Proyectado',
-                value: cashAfterLabel,
-                emphasized: true,
+            Text(
+              'TU CUENTA',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppPalette.bottleGreen,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
               ),
+            ),
+            const SizedBox(height: AppSpacing.x2),
+            Row(
+              children: [
+                Expanded(
+                  child: _Metric(label: 'Confirmado', value: cashNowLabel),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.x2),
+                  child: Icon(Icons.arrow_forward_rounded, size: 18),
+                ),
+                Expanded(
+                  child: _Metric(
+                    label: 'Si comprás',
+                    value: cashAfterLabel,
+                    emphasized: true,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -334,18 +370,27 @@ class _GroupProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.grid_view_rounded, size: 18),
-        const SizedBox(width: AppSpacing.x2),
-        Expanded(
-          child: Text(
-            'Grupo: $label',
-            style: Theme.of(context).textTheme.bodyMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
+    return PaperPanel(
+      background: AppPalette.surface,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.x3,
+        vertical: AppSpacing.x2,
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.grid_view_rounded, size: 18),
+          const SizedBox(width: AppSpacing.x2),
+          Expanded(
+            child: Text(
+              'Grupo: $label',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ),
-        ),
-      ],
+          const ExcludeSemantics(child: InkDoodle(size: 28)),
+        ],
+      ),
     );
   }
 }
@@ -368,8 +413,10 @@ class _Metric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: AppPalette.inkSecondary),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppPalette.inkSecondary,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: AppSpacing.x1),
         Text(
@@ -403,7 +450,8 @@ class _DeclineButton extends StatelessWidget {
         'No comprar y abrir subasta. Confirmando qué pasó antes de continuar.',
       InteractionFeedbackState.offline =>
         'No comprar y abrir subasta. No disponible mientras se reconecta.',
-      InteractionFeedbackState.disabled => 'No comprar y abrir subasta. No disponible mientras se confirma otra acción.',
+      InteractionFeedbackState.disabled =>
+        'No comprar y abrir subasta. No disponible mientras se confirma otra acción.',
       _ => 'No comprar y abrir subasta',
     };
 
