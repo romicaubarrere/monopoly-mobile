@@ -114,6 +114,8 @@ void main() {
   });
 
   testWidgets('confirmed_transfer_row_has_confirmed_semantics', (tester) async {
+    final semantics = tester.ensureSemantics();
+
     await tester.pumpWidget(
       _surface(
         state: BankruptcySurfaceState.confirmed,
@@ -122,11 +124,13 @@ void main() {
     );
 
     expect(
-      find.byWidgetPredicate(
-        (widget) => widget is Semantics && widget.properties.label == 'EFECTIVO PLACEHOLDER. \$PLACEHOLDER. Transferencia provista por authority. Confirmado',
+      find.bySemanticsLabel(
+        'EFECTIVO PLACEHOLDER. $PLACEHOLDER. Transferencia provista por authority. Confirmado',
       ),
       findsOneWidget,
     );
+
+    semantics.dispose();
   });
 
   testWidgets(
@@ -153,7 +157,8 @@ void main() {
                         'Razón factual PLACEHOLDER provista por la partida.',
                     creditorLabel: 'ACREEDOR PLACEHOLDER CON NOMBRE LARGO',
                     transferSummary: _transfers,
-                    continuationMessage: 'La partida continúa según el estado confirmado PLACEHOLDER.',
+                    continuationMessage:
+                        'La partida continúa según el estado confirmado PLACEHOLDER.',
                   ),
                 ),
               ),
