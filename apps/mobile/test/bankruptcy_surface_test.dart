@@ -113,7 +113,9 @@ void main() {
     expect(find.text('ACCIÓN PLACEHOLDER'), findsNothing);
   });
 
-  testWidgets('confirmed_transfer_row_has_confirmed_semantics', (tester) async {
+  testWidgets('confirmed_transfer_row_has_confirmed_semantics', (
+    tester,
+  ) async {
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(
