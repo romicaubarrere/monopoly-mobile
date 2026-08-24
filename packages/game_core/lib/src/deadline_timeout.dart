@@ -67,38 +67,11 @@ enum DeadlineAction {
 }
 
 final class DeadlineResolution {
-  const DeadlineResolution._({
+  const DeadlineResolution({
     required this.status,
     required this.action,
     this.operationId,
   });
-
-  const DeadlineResolution.stale()
-    : this._(
-        status: DeadlineResolutionStatus.staleDecision,
-        action: DeadlineAction.none,
-      );
-
-  const DeadlineResolution.noDeadline()
-    : this._(
-        status: DeadlineResolutionStatus.noDeadline,
-        action: DeadlineAction.none,
-      );
-
-  const DeadlineResolution.notDue()
-    : this._(
-        status: DeadlineResolutionStatus.notDue,
-        action: DeadlineAction.none,
-      );
-
-  const DeadlineResolution.ready({
-    required String operationId,
-    required DeadlineAction action,
-  }) : this._(
-         status: DeadlineResolutionStatus.ready,
-         action: action,
-         operationId: operationId,
-       );
 
   final DeadlineResolutionStatus status;
   final DeadlineAction action;
@@ -127,20 +100,30 @@ abstract final class DeadlineTimeoutEngine {
     required DateTime authorityNow,
   }) {
     if (currentDecision == null || currentDecision.decisionId != decisionId) {
-      return const DeadlineResolution.stale();
+      return const DeadlineResolution(
+        status: DeadlineResolutionStatus.staleDecision,
+        action: DeadlineAction.none,
+      );
     }
 
     final deadlineAt = currentDecision.deadlineAt;
     if (deadlineAt == null) {
-      return const DeadlineResolution.noDeadline();
+      return const DeadlineResolution(
+        status: DeadlineResolutionStatus.noDeadline,
+        action: DeadlineAction.none,
+      );
     }
     if (authorityNow.isBefore(deadlineAt)) {
-      return const DeadlineResolution.notDue();
+      return const DeadlineResolution(
+        status: DeadlineResolutionStatus.notDue,
+        action: DeadlineAction.none,
+      );
     }
 
-    return DeadlineResolution.ready(
-      operationId: operationIdFor(currentDecision.decisionId),
+    return DeadlineResolution(
+      status: DeadlineResolutionStatus.ready,
       action: _actionFor(currentDecision.timeoutPolicy),
+      operationId: operationIdFor(currentDecision.decisionId),
     );
   }
 
