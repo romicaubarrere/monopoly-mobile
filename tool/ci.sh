@@ -5,6 +5,9 @@ flutter --version
 dart --version
 flutter pub get --enforce-lockfile
 
+dart format --output=show packages/game_core/lib/src/deadline_timeout.dart
+exit 1
+
 dart format --output=none --set-exit-if-changed apps packages backend
 dart run tool/check_spec_registry.dart
 
