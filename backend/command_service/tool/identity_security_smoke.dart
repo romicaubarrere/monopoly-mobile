@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import '../lib/security/firebase_identity_verifier.dart';
-import '../lib/security/membership_authorizer.dart';
+import 'package:board_command_service/security/firebase_identity_verifier.dart';
+import 'package:board_command_service/security/membership_authorizer.dart';
 
 Future<void> main() async {
   final now = DateTime.utc(2026, 8, 24, 2, 10);
@@ -14,7 +14,10 @@ Future<void> main() async {
   );
 
   final token = _token(
-    header: <String, Object?>{'alg': 'RS256', 'kid': 'synthetic-key-id'},
+    header: <String, Object?>{
+      'alg': 'RS256',
+      'kid': 'synthetic-key-id',
+    },
     payload: <String, Object?>{
       'aud': 'demo-board-game-local',
       'iss': 'https://securetoken.google.com/demo-board-game-local',
@@ -36,7 +39,10 @@ Future<void> main() async {
       now: () => now,
     ),
     _token(
-      header: <String, Object?>{'alg': 'HS256', 'kid': 'synthetic-key-id'},
+      header: <String, Object?>{
+        'alg': 'HS256',
+        'kid': 'synthetic-key-id',
+      },
       payload: _validPayload(now),
     ),
     'unsupported_algorithm',
@@ -44,7 +50,10 @@ Future<void> main() async {
   await _expectIdentityFailure(
     verifier,
     _token(
-      header: <String, Object?>{'alg': 'RS256', 'kid': 'synthetic-key-id'},
+      header: <String, Object?>{
+        'alg': 'RS256',
+        'kid': 'synthetic-key-id',
+      },
       payload: <String, Object?>{
         ..._validPayload(now),
         'aud': 'wrong-project',
@@ -89,22 +98,27 @@ Future<void> main() async {
   );
 }
 
-Map<String, Object?> _validPayload(DateTime now) => <String, Object?>{
-  'aud': 'demo-board-game-local',
-  'iss': 'https://securetoken.google.com/demo-board-game-local',
-  'exp': now.millisecondsSinceEpoch ~/ 1000 + 300,
-  'iat': now.millisecondsSinceEpoch ~/ 1000 - 10,
-  'auth_time': now.millisecondsSinceEpoch ~/ 1000 - 20,
-  'sub': 'synthetic-uid',
-};
+Map<String, Object?> _validPayload(DateTime now) {
+  return <String, Object?>{
+    'aud': 'demo-board-game-local',
+    'iss': 'https://securetoken.google.com/demo-board-game-local',
+    'exp': now.millisecondsSinceEpoch ~/ 1000 + 300,
+    'iat': now.millisecondsSinceEpoch ~/ 1000 - 10,
+    'auth_time': now.millisecondsSinceEpoch ~/ 1000 - 20,
+    'sub': 'synthetic-uid',
+  };
+}
 
 String _token({
   required Map<String, Object?> header,
   required Map<String, Object?> payload,
 }) {
-  String encode(Object value) => base64Url
-      .encode(utf8.encode(jsonEncode(value)))
-      .replaceAll('=', '');
+  String encode(Object value) {
+    return base64Url
+        .encode(utf8.encode(jsonEncode(value)))
+        .replaceAll('=', '');
+  }
+
   final signature = base64Url.encode(<int>[1, 2, 3]).replaceAll('=', '');
   return '${encode(header)}.${encode(payload)}.$signature';
 }
