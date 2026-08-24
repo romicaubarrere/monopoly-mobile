@@ -44,31 +44,37 @@ void main() {
     expect(transaction.current?.roomId, 'room-new');
   });
 
-  test('deadline eligibility uses ingress requestReceivedAt, not retry time', () {
-    const deadline = PersistedDecisionDeadline(
-      decisionId: 'decision-1',
-      deadlineAtMs: 5000,
-    );
+  test(
+    'deadline eligibility uses ingress requestReceivedAt, not retry time',
+    () {
+      const deadline = PersistedDecisionDeadline(
+        decisionId: 'decision-1',
+        deadlineAtMs: 5000,
+      );
 
-    expect(
-      deadline.classifyHumanCommand(requestReceivedAtMs: 4999),
-      DeadlineEligibility.eligible,
-    );
-    expect(
-      deadline.classifyHumanCommand(requestReceivedAtMs: 5000),
-      DeadlineEligibility.decisionClosed,
-    );
-  });
+      expect(
+        deadline.classifyHumanCommand(requestReceivedAtMs: 4999),
+        DeadlineEligibility.eligible,
+      );
+      expect(
+        deadline.classifyHumanCommand(requestReceivedAtMs: 5000),
+        DeadlineEligibility.decisionClosed,
+      );
+    },
+  );
 
-  test('deadline operation id is deterministic and effects are at-most-once', () {
-    const deadline = PersistedDecisionDeadline(
-      decisionId: 'decision-1',
-      deadlineAtMs: 5000,
-    );
-    final guard = DeadlineOperationGuard();
+  test(
+    'deadline operation id is deterministic and effects are at-most-once',
+    () {
+      const deadline = PersistedDecisionDeadline(
+        decisionId: 'decision-1',
+        deadlineAtMs: 5000,
+      );
+      final guard = DeadlineOperationGuard();
 
-    expect(deadline.operationId, 'deadline:v1:decision-1');
-    expect(guard.begin(deadline), isTrue);
-    expect(guard.begin(deadline), isFalse);
-  });
+      expect(deadline.operationId, 'deadline:v1:decision-1');
+      expect(guard.begin(deadline), isTrue);
+      expect(guard.begin(deadline), isFalse);
+    },
+  );
 }
