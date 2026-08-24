@@ -1,0 +1,26 @@
+name: UX Reconnect formatter probe
+
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/lib/ui/reconnect/reconnect_takeover_surface.dart'
+      - 'apps/mobile/test/reconnect_takeover_surface_test.dart'
+      - '.github/workflows/ux-reconnect-format-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+      - name: Print canonical formatter diff
+        run: |
+          dart format apps/mobile/lib/ui/reconnect/reconnect_takeover_surface.dart apps/mobile/test/reconnect_takeover_surface_test.dart
+          git diff -- apps/mobile/lib/ui/reconnect/reconnect_takeover_surface.dart apps/mobile/test/reconnect_takeover_surface_test.dart
