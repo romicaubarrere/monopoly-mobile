@@ -190,8 +190,7 @@ class PropertyManagementSurface extends StatelessWidget {
   };
 
   String get _defaultStatusMessage => switch (state) {
-    PropertyManagementViewState.pending =>
-      'Esperando confirmación. Efectivo y mejoras siguen mostrando el último estado confirmado.',
+    PropertyManagementViewState.pending => 'Esperando confirmación. Efectivo y mejoras siguen mostrando el último estado confirmado.',
     PropertyManagementViewState.stale =>
       'Esto cambió mientras mirabas. Actualizando acciones disponibles.',
     PropertyManagementViewState.rejected =>
@@ -328,10 +327,8 @@ class _PropertyIdentity extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x3),
                 Text(
                   propertyLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    height: 1.05,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
                 ),
                 const SizedBox(height: AppSpacing.x1),
                 Text(
@@ -398,9 +395,8 @@ class _ImprovementPanel extends StatelessWidget {
                 ),
                 Text(
                   _levelLabel,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
               ],
             ),
