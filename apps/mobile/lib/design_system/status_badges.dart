@@ -23,6 +23,7 @@ class PlayerChip extends StatelessWidget {
     final content = Container(
       constraints: BoxConstraints(
         minHeight: onTap == null ? 0 : AppSizes.minTouchTarget,
+        maxWidth: 320,
       ),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.x3,
@@ -40,29 +41,38 @@ class PlayerChip extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isSelf ? Icons.person : Icons.person_outline,
-            size: 18,
-            color: AppPalette.ink,
-          ),
-          const SizedBox(width: AppSpacing.x2),
-          Flexible(
-            child: Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelf ? Icons.person : Icons.person_outline,
+                size: 18,
                 color: AppPalette.ink,
               ),
-            ),
+              const SizedBox(width: AppSpacing.x2),
+              Flexible(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppPalette.ink,
+                  ),
+                ),
+              ),
+            ],
           ),
           if (statusLabel case final label?) ...[
-            const SizedBox(width: AppSpacing.x2),
+            const SizedBox(height: AppSpacing.x1),
             Text(
               label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: AppPalette.inkSecondary,
                 fontWeight: FontWeight.w700,
