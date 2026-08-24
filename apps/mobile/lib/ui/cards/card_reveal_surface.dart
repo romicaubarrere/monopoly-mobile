@@ -115,7 +115,8 @@ class CardRevealSurface extends StatelessWidget {
                     characterArtwork: characterArtwork,
                   ),
                 ),
-                if (impactSummary != null && impactSummary!.trim().isNotEmpty) ...[
+                if (impactSummary != null &&
+                    impactSummary!.trim().isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.x3),
                   _ImpactTicket(summary: impactSummary!),
                 ],
@@ -163,8 +164,7 @@ class CardRevealSurface extends StatelessWidget {
   String get _defaultStatusMessage => switch (state) {
     CardRevealState.pending =>
       'Esperando confirmación. La carta visible no ejecuta el efecto otra vez.',
-    CardRevealState.rejected =>
-      'La partida no confirmó esa elección. Conservamos el último estado confirmado.',
+    CardRevealState.rejected => 'La partida no confirmó esa elección. Conservamos el último estado confirmado.',
     CardRevealState.stale =>
       'La decisión cambió. Esperando el estado actualizado de la partida.',
     CardRevealState.uncertain =>
@@ -308,11 +308,7 @@ class _CardBody extends StatelessWidget {
                   spacing: AppSpacing.x2,
                   runSpacing: AppSpacing.x2,
                   children: [
-                    StampBadge(
-                      label: cardId,
-                      color: accent,
-                      angle: -0.015,
-                    ),
+                    StampBadge(label: cardId, color: accent, angle: -0.015),
                     StampBadge(
                       label: _categoryLabel(category),
                       color: AppPalette.bottleGreen,
@@ -451,7 +447,8 @@ class _CardActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPending = surfaceState == CardRevealState.pending;
     final isThisPending = isPending && pendingActionId == action.id;
-    final enabled = surfaceState == CardRevealState.available && onPressed != null;
+    final enabled =
+        surfaceState == CardRevealState.available && onPressed != null;
     final label = isThisPending ? action.pendingLabel : action.label;
 
     return Semantics(
