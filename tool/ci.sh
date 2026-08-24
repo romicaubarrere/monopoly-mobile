@@ -5,6 +5,9 @@ flutter --version
 dart --version
 flutter pub get --enforce-lockfile
 
+dart format --output=show backend/command_service/lib/security/google_secure_token_certificates.dart
+exit 1
+
 dart format --output=none --set-exit-if-changed apps packages backend
 dart run tool/check_spec_registry.dart
 
