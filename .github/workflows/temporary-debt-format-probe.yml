@@ -17,8 +17,13 @@ jobs:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
-      - name: Print exact Dart formatter diff
+      - name: Print exact formatted Dart sources
         run: |
           dart format apps/mobile/lib/ui/debt/debt_resolution_surface.dart apps/mobile/test/debt_resolution_surface_test.dart
-          git diff -- apps/mobile/lib/ui/debt/debt_resolution_surface.dart apps/mobile/test/debt_resolution_surface_test.dart
+          echo '===== SOURCE_BEGIN ====='
+          cat apps/mobile/lib/ui/debt/debt_resolution_surface.dart
+          echo '===== SOURCE_END ====='
+          echo '===== TEST_BEGIN ====='
+          cat apps/mobile/test/debt_resolution_surface_test.dart
+          echo '===== TEST_END ====='
           exit 1
