@@ -72,3 +72,78 @@ jobs:
 
       - name: Check formatting
         run: dart format --output=none --set-exit-if-changed apps packages backend
+
+  workflow-review:
+    name: review / github-actions
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Install verified actionlint
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='1.7.12'
+          archive="actionlint_${version}_linux_amd64.tar.gz"
+          curl --fail --location --silent --show-error \
+            "https://github.com/rhysd/actionlint/releases/download/v${version}/${archive}" \
+            --output "${archive}"
+          echo '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  actionlint_1.7.12_linux_amd64.tar.gz' | sha256sum --check
+          tar -xzf "${archive}" actionlint
+          sudo install -m 0755 actionlint /usr/local/bin/actionlint
+
+      - name: Lint GitHub Actions workflows
+        run: actionlint
+
+  secret-review:
+    name: security / changed-secrets
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Install detect-secrets
+        run: python -m pip install --disable-pip-version-check 'detect-secrets==1.5.0'
+
+      - name: Scan added and modified files for secrets
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' files < <(git diff --diff-filter=ACM --name-only -z "${BASE_SHA}...${HEAD_SHA}")
+          if (( ${#files[@]} == 0 )); then
+            echo 'No added or modified files to scan.'
+            exit 0
+          fi
+          detect-secrets-hook "${files[@]}"
+
+  dependency-review:
+    name: security / dependency-vulnerabilities
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Scan Dart and npm lockfiles with OSV
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "${PWD}:/src" \
+            -w /src \
+            ghcr.io/google/osv-scanner:v2.5.1 \
+            scan --recursive .
