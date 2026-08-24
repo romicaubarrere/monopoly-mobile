@@ -84,9 +84,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                               header: true,
                               child: Text(
                                 'Entrá con el código de sala',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
+                                style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.w900,
                                       height: 1.05,
@@ -96,9 +94,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                             const SizedBox(height: AppSpacing.x2),
                             Text(
                               'Son seis caracteres. Si algo falla, el código queda escrito para que puedas corregirlo o reintentar.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
                                     color: AppPalette.inkSecondary,
                                     height: 1.35,
@@ -126,9 +122,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                             Expanded(
                               child: Text(
                                 'CÓDIGO DE SALA',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelLarge
+                                style: Theme.of(context).textTheme.labelLarge
                                     ?.copyWith(
                                       color: AppPalette.bottleGreen,
                                       fontWeight: FontWeight.w900,
@@ -169,9 +163,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                               ),
                             ),
                           ),
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 4,
@@ -199,9 +191,8 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                     Text(
                       'Ingresá los 6 caracteres para continuar.',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppPalette.inkSecondary,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: AppPalette.inkSecondary),
                     ),
                   ],
                 ],
