@@ -86,12 +86,17 @@ class PlayerChip extends StatelessWidget {
     final semanticsLabel = [name, if (isSelf) 'vos', ?statusLabel].join(', ');
 
     if (onTap == null) {
-      return Semantics(label: semanticsLabel, child: content);
+      return Semantics(
+        label: semanticsLabel,
+        excludeSemantics: true,
+        child: content,
+      );
     }
 
     return Semantics(
       label: semanticsLabel,
       button: true,
+      excludeSemantics: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.control),
         onTap: onTap,
@@ -200,6 +205,7 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: semanticLabel,
+      excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.x3,
