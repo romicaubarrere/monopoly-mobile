@@ -66,7 +66,10 @@ void main() {
     expect(find.byIcon(Icons.arrow_downward_rounded), findsOneWidget);
     expect(find.byIcon(Icons.remove_rounded), findsOneWidget);
     expect(find.bySemanticsLabel('Cambio confirmado: más 50'), findsOneWidget);
-    expect(find.bySemanticsLabel('Cambio confirmado: menos 25'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Cambio confirmado: menos 25'),
+      findsOneWidget,
+    );
     semantics.dispose();
   });
 
