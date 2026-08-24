@@ -32,6 +32,17 @@ before(async () => {
       stateVersion: 1,
       rulesVersion: 'synthetic-foundation',
     });
+    await setDoc(doc(db, 'rooms/other-room'), {
+      memberUids: ['other-uid'],
+      roomVersion: 1,
+      status: 'open',
+    });
+    await setDoc(doc(db, 'games/other-game'), {
+      memberUids: ['other-uid'],
+      schemaVersion: 1,
+      stateVersion: 1,
+      rulesVersion: 'synthetic-foundation',
+    });
     await setDoc(doc(db, 'gameSecrets/game-fixture'), {
       seedBase64: 'test-only-secret-never-mobile',
       streamCounters: { dice: 0 },
@@ -58,6 +69,30 @@ test('member can read room and confirmed public game', async () => {
   const db = testEnv.authenticatedContext('member-uid').firestore();
   await assertSucceeds(getDoc(doc(db, 'rooms/room-fixture')));
   await assertSucceeds(getDoc(doc(db, 'games/game-fixture')));
+});
+
+test('membership is scoped per room and game', async () => {
+  const db = testEnv.authenticatedContext('member-uid').firestore();
+  await assertFails(getDoc(doc(db, 'rooms/other-room')));
+  await assertFails(getDoc(doc(db, 'games/other-game')));
+});
+
+test('client cannot grant itself membership by mutating authority state', async () => {
+  const db = testEnv.authenticatedContext('member-uid').firestore();
+  await assertFails(
+    setDoc(
+      doc(db, 'rooms/other-room'),
+      { memberUids: ['other-uid', 'member-uid'] },
+      { merge: true },
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(db, 'games/other-game'),
+      { memberUids: ['other-uid', 'member-uid'] },
+      { merge: true },
+    ),
+  );
 });
 
 test('non-member cannot read private room or game', async () => {
