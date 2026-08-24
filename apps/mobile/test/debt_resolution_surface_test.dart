@@ -16,9 +16,7 @@ void main() {
     expect(find.text('Proyectado'), findsOneWidget);
     expect(find.text(r'$260'), findsOneWidget);
     expect(
-      find.bySemanticsLabel(
-        r'Efectivo proyectado: $260. No confirmado.',
-      ),
+      find.bySemanticsLabel(r'Efectivo proyectado: $260. No confirmado.'),
       findsOneWidget,
     );
 
@@ -28,9 +26,7 @@ void main() {
   testWidgets('debt_liquidation_emits_only_caller_action_id', (tester) async {
     String? selectedAction;
 
-    await tester.pumpWidget(
-      _surface(onAction: (id) => selectedAction = id),
-    );
+    await tester.pumpWidget(_surface(onAction: (id) => selectedAction = id));
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'HIPOTECAR'));
     await tester.pump();
@@ -125,16 +121,12 @@ void main() {
       );
 
       expect(
-        find.text(
-          'Resolviendo automáticamente para que la partida continúe.',
-        ),
+        find.text('Resolviendo automáticamente para que la partida continúe.'),
         findsOneWidget,
       );
       expect(find.text('HIPOTECA PLACEHOLDER 01'), findsOneWidget);
       expect(
-        find.bySemanticsLabel(
-          r'HIPOTECA PLACEHOLDER 01. +$140. Confirmado.',
-        ),
+        find.bySemanticsLabel(r'HIPOTECA PLACEHOLDER 01. +$140. Confirmado.'),
         findsOneWidget,
       );
 
@@ -148,9 +140,7 @@ void main() {
     },
   );
 
-  testWidgets('debt_pay_cta_is_caller_gated_and_emits_pay_id', (
-    tester,
-  ) async {
+  testWidgets('debt_pay_cta_is_caller_gated_and_emits_pay_id', (tester) async {
     String? selectedAction;
 
     await tester.pumpWidget(
@@ -188,10 +178,7 @@ void main() {
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(
-      _surface(
-        state: DebtResolutionSurfaceState.uncertain,
-        onAction: (_) {},
-      ),
+      _surface(state: DebtResolutionSurfaceState.uncertain, onAction: (_) {}),
     );
 
     expect(
