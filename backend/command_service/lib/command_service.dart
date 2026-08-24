@@ -1,5 +1,7 @@
 library;
 
+export 'deadline_resolution_planner.dart';
+
 /// Authority-side composition root placeholder.
 ///
 /// requestReceivedAt, authentication, idempotency, persistence and RNG wiring are

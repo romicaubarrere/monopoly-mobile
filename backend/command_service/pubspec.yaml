@@ -9,5 +9,8 @@ dependencies:
     path: ../../packages/backend_api
   board_game_contracts:
     path: ../../packages/game_contracts
+  board_game_core:
+    path: ../../packages/game_core
 dev_dependencies:
   lints: ^6.0.0
+  test: ^1.26.0

@@ -26,6 +26,10 @@ dart analyze packages/game_core packages/game_contracts packages/backend_api bac
   cd packages/backend_api
   dart test
 )
+(
+  cd backend/command_service
+  dart test
+)
 dart run backend/command_service/tool/observability_smoke.dart
 dart run backend/command_service/tool/ingress_observability_smoke.dart
 dart run backend/command_service/tool/identity_security_smoke.dart
