@@ -167,9 +167,8 @@ class EmptyState extends StatelessWidget {
             header: true,
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
           ),
           const SizedBox(height: AppSpacing.x2),
