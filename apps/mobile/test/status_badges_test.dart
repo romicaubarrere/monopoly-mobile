@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('connection states expose explicit icon and text', (tester) async {
+  testWidgets('connection states expose explicit icon and text', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -114,13 +116,8 @@ void main() {
                         isSelf: true,
                         statusLabel: 'Esperando confirmación',
                       ),
-                      TurnBadge(
-                        label: 'JUGADOR PLACEHOLDER',
-                        isCurrent: true,
-                      ),
-                      ConnectionBadge(
-                        state: ConnectionBadgeState.unstable,
-                      ),
+                      TurnBadge(label: 'JUGADOR PLACEHOLDER', isCurrent: true),
+                      ConnectionBadge(state: ConnectionBadgeState.unstable),
                       BotBadge(temporary: true),
                     ],
                   ),
