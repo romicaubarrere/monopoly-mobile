@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('confirmed_event_shows_authoritative_pot_receipt', (tester) async {
+  testWidgets('confirmed_event_shows_authoritative_pot_receipt', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _surface(
         confirmedAmount: 240,
@@ -18,10 +20,7 @@ void main() {
     expect(find.text('COBRO DEL POZO'), findsOneWidget);
     expect(find.text(r'+$240'), findsOneWidget);
     expect(find.text(r'Te llevaste $240 del pozo'), findsOneWidget);
-    expect(
-      find.text(r'Saldo confirmado $1.490 PLACEHOLDER'),
-      findsOneWidget,
-    );
+    expect(find.text(r'Saldo confirmado $1.490 PLACEHOLDER'), findsOneWidget);
     expect(find.text('Sin acción pendiente'), findsOneWidget);
   });
 
@@ -72,7 +71,9 @@ void main() {
     expect(find.text(r'$80 PLACEHOLDER'), findsOneWidget);
   });
 
-  testWidgets('confirmed_event_exposes_one_factual_live_region', (tester) async {
+  testWidgets('confirmed_event_exposes_one_factual_live_region', (
+    tester,
+  ) async {
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(
