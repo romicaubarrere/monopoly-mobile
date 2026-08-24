@@ -195,6 +195,7 @@ class _BoardContextPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
+      excludeSemantics: true,
       label: 'Tablero estructural de demostración, 40 casilleros sintéticos',
       child: AspectRatio(
         aspectRatio: 0.78,
