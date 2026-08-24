@@ -420,12 +420,13 @@ class _TransferRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final detail = transfer.detail?.trim();
     final semantics = <String>[
-      transfer.label,
+      transfer.label.trim(),
       if (transfer.valueLabel != null && transfer.valueLabel!.trim().isNotEmpty)
-        transfer.valueLabel!,
-      if (transfer.detail != null && transfer.detail!.trim().isNotEmpty)
-        transfer.detail!,
+        transfer.valueLabel!.trim(),
+      if (detail != null && detail.isNotEmpty)
+        detail.endsWith('.') ? detail.substring(0, detail.length - 1) : detail,
       'Confirmado',
     ].join('. ');
 
