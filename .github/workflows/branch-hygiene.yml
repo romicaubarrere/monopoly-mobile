@@ -1,0 +1,73 @@
+name: Branch Hygiene
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/branch-hygiene.yml'
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: branch-hygiene
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete merged same-repository branches
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const defaultBranch = context.payload.repository?.default_branch || 'main';
+            const protectedNames = new Set([defaultBranch]);
+
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'closed',
+              per_page: 100,
+              sort: 'updated',
+              direction: 'desc'
+            });
+
+            const mergedHeads = new Set(
+              pulls
+                .filter(pr => pr.merged_at && pr.head.repo?.full_name === `${owner}/${repo}`)
+                .map(pr => pr.head.ref)
+                .filter(ref => ref && !protectedNames.has(ref))
+            );
+
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner,
+              repo,
+              per_page: 100
+            });
+            const existing = new Set(branches.map(branch => branch.name));
+
+            for (const ref of [...mergedHeads].sort()) {
+              if (!existing.has(ref)) continue;
+              try {
+                await github.rest.git.deleteRef({
+                  owner,
+                  repo,
+                  ref: `heads/${ref}`
+                });
+                core.info(`Deleted merged branch: ${ref}`);
+              } catch (error) {
+                if (error.status === 422 || error.status === 403) {
+                  core.warning(`Skipped protected/non-deletable branch ${ref}: ${error.message}`);
+                  continue;
+                }
+                throw error;
+              }
+            }
