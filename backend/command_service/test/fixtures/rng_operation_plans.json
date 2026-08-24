@@ -1,0 +1,42 @@
+[
+  {
+    "id": "tv-27-durable-dice-draw",
+    "rngVersion": "hmac_sha256_counter_v1",
+    "privateInput": {
+      "seedBytes": [
+        0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31
+      ],
+      "streamCounters": {
+        "dice": 0,
+        "seat_order": 0,
+        "starting_properties": 0,
+        "cards_a_shuffle": 0,
+        "cards_b_shuffle": 0
+      }
+    },
+    "operation": {
+      "commandId": "cmd-rng-tv27",
+      "actorUid": "uid-tv27-member",
+      "actorPlayerId": "p1",
+      "gameId": "game-rng-tv27",
+      "expectedStateVersion": 12,
+      "inputHashVersion": 1,
+      "stream": "dice",
+      "upperBounds": [6, 6]
+    },
+    "expectedPlan": {
+      "values": [5, 1],
+      "candidatesConsumed": 2,
+      "successorCounters": {
+        "dice": 2,
+        "seat_order": 0,
+        "starting_properties": 0,
+        "cards_a_shuffle": 0,
+        "cards_b_shuffle": 0
+      }
+    }
+  }
+]
