@@ -33,13 +33,12 @@ final class IdentityVerificationException implements Exception {
 final class FirebaseIdentityVerifier {
   const FirebaseIdentityVerifier({
     required this.projectId,
-    required IdTokenSignatureVerifier signatureVerifier,
+    required this.signatureVerifier,
     DateTime Function()? now,
-  }) : _signatureVerifier = signatureVerifier,
-       _now = now ?? DateTime.now;
+  }) : _now = now ?? DateTime.now;
 
   final String projectId;
-  final IdTokenSignatureVerifier _signatureVerifier;
+  final IdTokenSignatureVerifier signatureVerifier;
   final DateTime Function() _now;
 
   Future<VerifiedIdentity> verify(String token) async {
@@ -91,7 +90,7 @@ final class FirebaseIdentityVerifier {
       utf8.encode('${parts[0]}.${parts[1]}'),
     );
     final signature = _decodeBase64Url(parts[2], 'invalid_signature');
-    final signatureValid = await _signatureVerifier.verify(
+    final signatureValid = await signatureVerifier.verify(
       kid: kid,
       signingInput: signingInput,
       signature: signature,
