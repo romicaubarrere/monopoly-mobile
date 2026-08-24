@@ -31,11 +31,7 @@ class MoneyText extends StatelessWidget {
     return Semantics(
       label: semanticLabel,
       excludeSemantics: true,
-      child: Text(
-        value,
-        textAlign: textAlign,
-        style: baseStyle?.merge(style),
-      ),
+      child: Text(value, textAlign: textAlign, style: baseStyle?.merge(style)),
     );
   }
 }
