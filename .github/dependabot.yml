@@ -1,0 +1,42 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Montevideo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "ci(deps)"
+
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:15"
+      timezone: America/Montevideo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: npm
+    directory: /tool/firebase
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:30"
+      timezone: America/Montevideo
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - firebase
+    commit-message:
+      prefix: "deps(firebase)"
