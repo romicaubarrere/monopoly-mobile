@@ -54,7 +54,7 @@ class AlmacenSign extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       header: true,
-      label: 'Monopoly de Romina',
+      label: 'Cartel principal del juego',
       child: Transform.rotate(
         angle: -0.018,
         child: Container(
@@ -80,7 +80,7 @@ class AlmacenSign extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'MONOPOLY',
+                'EL TABLERO',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppPalette.surface,
                   fontWeight: FontWeight.w900,
