@@ -455,10 +455,8 @@ class _TradeAlmacenHeader extends StatelessWidget {
               const SizedBox(height: AppSpacing.x1),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  height: 1.05,
-                ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
               ),
             ],
           ),
@@ -504,10 +502,11 @@ class _TradeSideSection extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.3,
-                  ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.3,
+                      ),
                 ),
               ),
             ],
@@ -608,9 +607,8 @@ class _TradeAssetRow extends StatelessWidget {
                     if (asset.detail != null)
                       Text(
                         asset.detail!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppPalette.inkSecondary,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: AppPalette.inkSecondary),
                       ),
                   ],
                 ),
@@ -752,9 +750,8 @@ class _SummaryLine extends StatelessWidget {
         const SizedBox(height: AppSpacing.x1),
         Text(
           body,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -899,9 +896,8 @@ class _TradeOutcome extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: AppSpacing.x1),
                   Text(body),
