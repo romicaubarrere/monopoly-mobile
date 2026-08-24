@@ -191,14 +191,12 @@ class PropertyManagementSurface extends StatelessWidget {
     PropertyManagementViewState.pending => InteractionFeedbackState.pending,
     PropertyManagementViewState.stale => InteractionFeedbackState.stale,
     PropertyManagementViewState.rejected => InteractionFeedbackState.rejected,
-    PropertyManagementViewState.uncertain =>
-      InteractionFeedbackState.uncertain,
+    PropertyManagementViewState.uncertain => InteractionFeedbackState.uncertain,
     PropertyManagementViewState.offline => InteractionFeedbackState.offline,
   };
 
   String get _defaultStatusMessage => switch (state) {
-    PropertyManagementViewState.pending =>
-      'Esperando confirmación. Efectivo y mejoras siguen mostrando el último estado confirmado.',
+    PropertyManagementViewState.pending => 'Esperando confirmación. Efectivo y mejoras siguen mostrando el último estado confirmado.',
     PropertyManagementViewState.stale =>
       'Esto cambió mientras mirabas. Actualizando acciones disponibles.',
     PropertyManagementViewState.rejected =>
@@ -214,9 +212,10 @@ class PropertyManagementSurface extends StatelessWidget {
     PropertyManagementActionView action,
   ) {
     return switch (state) {
-      PropertyManagementViewState.available => action.enabled
-          ? InteractionFeedbackState.idle
-          : InteractionFeedbackState.disabled,
+      PropertyManagementViewState.available =>
+        action.enabled
+            ? InteractionFeedbackState.idle
+            : InteractionFeedbackState.disabled,
       PropertyManagementViewState.pending when pendingAction == action.kind =>
         InteractionFeedbackState.pending,
       PropertyManagementViewState.pending => InteractionFeedbackState.disabled,
@@ -307,9 +306,8 @@ class _PropertyIdentity extends StatelessWidget {
               children: [
                 Text(
                   propertyLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: AppSpacing.x1),
                 Text(
@@ -321,9 +319,8 @@ class _PropertyIdentity extends StatelessWidget {
                 ),
                 Text(
                   'Propietario: $ownerLabel',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppPalette.inkSecondary,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: AppPalette.inkSecondary),
                 ),
               ],
             ),
@@ -379,16 +376,14 @@ class _ImprovementPanel extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Mejoras',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ),
                 Text(
                   _levelLabel,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
               ],
             ),
@@ -478,10 +473,8 @@ class _PoponMarker extends StatelessWidget {
             const SizedBox(width: AppSpacing.x2),
             Text(
               'POPÓN',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-              ),
+              style: Theme.of(context).textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.8),
             ),
           ],
         ),
@@ -606,7 +599,9 @@ class _CashPanel extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.x3),
             decoration: BoxDecoration(
               color: AppPalette.info.withValues(alpha: 0.06),
-              border: Border.all(color: AppPalette.info.withValues(alpha: 0.35)),
+              border: Border.all(
+                color: AppPalette.info.withValues(alpha: 0.35),
+              ),
               borderRadius: BorderRadius.circular(AppRadius.control),
             ),
             child: _CashLine(
@@ -797,7 +792,10 @@ class _ConfirmationNotice extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.check_circle_outline_rounded, color: AppPalette.info),
+            const Icon(
+              Icons.check_circle_outline_rounded,
+              color: AppPalette.info,
+            ),
             const SizedBox(width: AppSpacing.x3),
             Expanded(
               child: Text(
