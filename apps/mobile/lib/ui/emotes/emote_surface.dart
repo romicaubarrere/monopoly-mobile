@@ -75,7 +75,8 @@ class EmoteTray extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if (cooldownLabel != null || (!enabled && disabledReason != null)) ...[
+                  if (cooldownLabel != null ||
+                      (!enabled && disabledReason != null)) ...[
                     const SizedBox(height: AppSpacing.x3),
                     _StatusNote(
                       label: cooldownLabel ?? disabledReason!,
@@ -150,23 +151,26 @@ class BoardEmoteAccess extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: enabled
             ? () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: AppPalette.canvas,
-                  builder: (context) => EmoteTray(
-                    options: options,
-                    onSelected: (id) {
-                      Navigator.of(context).pop();
-                      onSelected(id);
-                    },
-                    cooldownLabel: cooldownLabel,
-                  ),
-                )
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: AppPalette.canvas,
+                builder: (context) => EmoteTray(
+                  options: options,
+                  onSelected: (id) {
+                    Navigator.of(context).pop();
+                    onSelected(id);
+                  },
+                  cooldownLabel: cooldownLabel,
+                ),
+              )
             : null,
         icon: const Icon(Icons.chat_bubble_outline_rounded),
         label: const Text('Reacciones'),
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(AppSizes.minTouchTarget, AppSizes.minTouchTarget),
+          minimumSize: const Size(
+            AppSizes.minTouchTarget,
+            AppSizes.minTouchTarget,
+          ),
           foregroundColor: AppPalette.ink,
           side: const BorderSide(color: AppPalette.ink),
         ),
@@ -189,7 +193,8 @@ class EmoteBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reducedMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reducedMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return IgnorePointer(
       child: AnimatedOpacity(
@@ -289,9 +294,8 @@ class _EmoteChoice extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+              style: Theme.of(context).textTheme.labelMedium
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
           ],
         ),
