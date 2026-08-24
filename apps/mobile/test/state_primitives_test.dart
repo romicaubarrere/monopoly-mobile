@@ -62,12 +62,13 @@ void main() {
     );
 
     expect(
-      find.bySemanticsLabel(
-        'Error: PLACEHOLDER: no se pudo validar el dato.',
-      ),
+      find.bySemanticsLabel('Error: PLACEHOLDER: no se pudo validar el dato.'),
       findsOneWidget,
     );
-    expect(find.text('PLACEHOLDER: no se pudo validar el dato.'), findsOneWidget);
+    expect(
+      find.text('PLACEHOLDER: no se pudo validar el dato.'),
+      findsOneWidget,
+    );
     expect(
       tester.getSize(find.widgetWithText(OutlinedButton, 'Reintentar')).height,
       greaterThanOrEqualTo(44),
@@ -136,8 +137,7 @@ void main() {
               padding: const EdgeInsets.all(16),
               child: EmptyState(
                 title: 'No hay elementos disponibles por ahora',
-                body:
-                    'PLACEHOLDER largo para validar reflow sin reducir tipografía.',
+                body: 'PLACEHOLDER largo para validar reflow sin reducir tipografía.',
                 leading: const Icon(Icons.inventory_2_outlined, size: 52),
                 primaryLabel: 'Acción caller-owned',
                 onPrimary: () {},
