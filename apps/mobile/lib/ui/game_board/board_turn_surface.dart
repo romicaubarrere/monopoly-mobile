@@ -315,6 +315,14 @@ class _BoardFrame extends StatelessWidget {
                           final reduceMotion = MediaQuery.disableAnimationsOf(
                             context,
                           );
+                          final tileColor = switch ((
+                            isHighlighted,
+                            isCorner,
+                          )) {
+                            (true, _) => AppPalette.mustard,
+                            (false, true) => AppPalette.kraft,
+                            _ => AppPalette.surface,
+                          };
 
                           return Positioned(
                             left: position.left,
@@ -327,11 +335,7 @@ class _BoardFrame extends StatelessWidget {
                                   ? Duration.zero
                                   : const Duration(milliseconds: 180),
                               decoration: BoxDecoration(
-                                color: isHighlighted
-                                    ? AppPalette.mustard
-                                    : isCorner
-                                    ? AppPalette.kraft
-                                    : AppPalette.surface,
+                                color: tileColor,
                                 border: Border.all(
                                   color: isCurrent
                                       ? AppPalette.burgundy
