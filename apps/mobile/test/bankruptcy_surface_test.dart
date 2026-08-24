@@ -125,7 +125,7 @@ void main() {
 
     expect(
       find.bySemanticsLabel(
-        'EFECTIVO PLACEHOLDER. $PLACEHOLDER. Transferencia provista por authority. Confirmado',
+        r'EFECTIVO PLACEHOLDER. $PLACEHOLDER. Transferencia provista por authority. Confirmado',
       ),
       findsOneWidget,
     );
