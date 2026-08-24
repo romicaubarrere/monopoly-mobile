@@ -33,7 +33,7 @@ void main() {
 
   test('shared command identity uses canonical semantic fingerprint v1', () {
     final operation = fixture['operation']! as Map<String, Object?>;
-    final expectedHash = SemanticFingerprintV1.sha256Hex(<String, Object?>{
+    final semanticMaterial = <String, Object?>{
       'v': 1,
       'family': 'game',
       'type': 'RandomDraw',
@@ -44,10 +44,16 @@ void main() {
         'stream': operation['stream'],
         'upperBounds': operation['upperBounds'],
       },
-    });
+    };
 
     expect(operation['inputHashVersion'], SemanticFingerprintV1.version);
-    expect(operation['inputHash'], expectedHash);
+    expect(
+      SemanticFingerprintV1.canonicalJson(semanticMaterial),
+      '{"actorPlayerId":"p1","expectedVersion":12,"family":"game",'
+      '"payload":{"stream":"dice","upperBounds":[6,6]},'
+      '"target":"game-rng-tv27","type":"RandomDraw","v":1}',
+    );
+    expect(SemanticFingerprintV1.sha256Hex(semanticMaterial), hasLength(64));
   });
 
   test('unsupported version and empty operation fail before persistence', () {

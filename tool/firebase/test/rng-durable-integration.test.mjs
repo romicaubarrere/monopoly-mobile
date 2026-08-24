@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { after, before, test } from 'node:test';
 
@@ -32,6 +32,37 @@ function fixture(id) {
   const found = fixtures.find((candidate) => candidate.id === id);
   assert.ok(found, `missing shared Dart RNG plan fixture ${id}`);
   return structuredClone(found);
+}
+
+function canonicalize(value) {
+  if (Array.isArray(value)) {
+    return value.map(canonicalize);
+  }
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalize(value[key])]),
+    );
+  }
+  return value;
+}
+
+function inputHashForFixture(testFixture) {
+  const { operation } = testFixture;
+  const material = canonicalize({
+    v: 1,
+    family: 'game',
+    type: 'RandomDraw',
+    target: operation.gameId,
+    expectedVersion: operation.expectedStateVersion,
+    actorPlayerId: operation.actorPlayerId,
+    payload: {
+      stream: operation.stream,
+      upperBounds: operation.upperBounds,
+    },
+  });
+  return createHash('sha256').update(JSON.stringify(material)).digest('hex');
 }
 
 // Independent test oracle only. Product authority invokes the pure-Dart
@@ -102,7 +133,7 @@ async function seedRandomOperation(testFixture, suffix) {
 async function applyRandomOperation({
   testFixture,
   gameId,
-  inputHash = testFixture.operation.inputHash,
+  inputHash = inputHashForFixture(testFixture),
   forceCallbackRetry = false,
 }) {
   const { operation, rngVersion, expectedPlan } = testFixture;

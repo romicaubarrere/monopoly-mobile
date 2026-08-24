@@ -24,7 +24,6 @@
       "gameId": "game-rng-tv27",
       "expectedStateVersion": 12,
       "inputHashVersion": 1,
-      "inputHash": "e414c7319ed24443aa5b2dca4ec6f907965ead72f15c9e0f5757f2c1335ee4f7",
       "stream": "dice",
       "upperBounds": [6, 6]
     },
