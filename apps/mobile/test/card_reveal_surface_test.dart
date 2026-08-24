@@ -22,10 +22,7 @@ void main() {
     String? selectedAction;
 
     await tester.pumpWidget(
-      _surface(
-        actions: _actions,
-        onAction: (id) => selectedAction = id,
-      ),
+      _surface(actions: _actions, onAction: (id) => selectedAction = id),
     );
 
     await tester.tap(find.widgetWithText(FilledButton, 'Opción sintética A'));
@@ -121,12 +118,10 @@ void main() {
                 child: CardRevealSurface(
                   deck: CardDeckKind.deGarron,
                   cardId: 'CARD-PLACEHOLDER-02',
-                  copy:
-                      '[COPY SINTÉTICA LARGA PARA VALIDAR REFLOW SIN CONVERTIRSE EN CONTENIDO CANÓNICO DEC-065]',
+                  copy: '[COPY SINTÉTICA LARGA PARA VALIDAR REFLOW SIN CONVERTIRSE EN CONTENIDO CANÓNICO DEC-065]',
                   category: CardEffectCategory.interaction,
                   state: CardRevealState.available,
-                  impactSummary:
-                      'Resumen de impacto confirmado también sintético y deliberadamente largo.',
+                  impactSummary: 'Resumen de impacto confirmado también sintético y deliberadamente largo.',
                   actions: _actions,
                   reducedMotion: true,
                   onAction: (_) {},
