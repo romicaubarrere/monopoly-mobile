@@ -61,10 +61,7 @@ class FreeParkingEventSurface extends StatelessWidget {
             label: semanticLabel,
             excludeSemantics: true,
             child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(
-                begin: reducedMotion ? 1 : 0.98,
-                end: 1,
-              ),
+              tween: Tween<double>(begin: reducedMotion ? 1 : 0.98, end: 1),
               duration: reducedMotion ? Duration.zero : AppMotion.receipt,
               curve: Curves.easeOutCubic,
               builder: (context, scale, child) => Transform.scale(
@@ -113,11 +110,12 @@ class FreeParkingEventSurface extends StatelessWidget {
                         const SizedBox(height: AppSpacing.x2),
                         Text(
                           'El movimiento ya fue confirmado. Este recibo muestra únicamente el resultado aplicado.',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppPalette.inkSecondary,
-                            fontWeight: FontWeight.w700,
-                            height: 1.35,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppPalette.inkSecondary,
+                                fontWeight: FontWeight.w700,
+                                height: 1.35,
+                              ),
                         ),
                         const SizedBox(height: AppSpacing.x4),
                         EconomyReceipt.confirmed(
@@ -209,10 +207,8 @@ class _BreakdownRow extends StatelessWidget {
         Expanded(
           child: Text(
             item.label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppPalette.ink,
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: AppPalette.ink, fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(width: AppSpacing.x3),
