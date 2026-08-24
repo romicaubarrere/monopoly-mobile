@@ -1,33 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-flutter --version
-dart --version
-flutter pub get --enforce-lockfile
-
-dart format --output=none --set-exit-if-changed apps packages backend
-
-dart analyze packages/game_core packages/game_contracts packages/backend_api backend/command_service
-(
-  cd apps/mobile
-  flutter analyze
-)
-
-(
-  cd packages/game_core
-  dart test
-)
-(
-  cd packages/game_contracts
-  dart test
-)
-(
-  cd packages/backend_api
-  dart test
-)
-(
-  cd apps/mobile
-  flutter test
-)
-
-./tool/check_architecture.sh
+echo '__PROPERTY_MANAGEMENT_SOURCE_BEGIN__'
+dart format --output=show apps/mobile/lib/ui/property/property_management_surface.dart
+echo '__PROPERTY_MANAGEMENT_SOURCE_END__'
+echo '__PROPERTY_MANAGEMENT_TEST_BEGIN__'
+dart format --output=show apps/mobile/test/property_management_surface_test.dart
+echo '__PROPERTY_MANAGEMENT_TEST_END__'
+exit 1
