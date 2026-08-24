@@ -246,8 +246,8 @@ class _CharacterSlot extends StatelessWidget {
           horizontal: AppSpacing.x4,
           vertical: AppSpacing.x3,
         ),
-        child: SizedBox(
-          height: 64,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 64),
           child:
               artwork ??
               Row(
