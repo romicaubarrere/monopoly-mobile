@@ -1,9 +1,9 @@
 name: Temporary emote format probe
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/ui-emotes-almacen
+      - main
 
 permissions:
   contents: read
