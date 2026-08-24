@@ -66,5 +66,7 @@ void main() {
 
 final class _ThrowingSink implements AuthorityLogSink {
   @override
-  void write(Map<String, Object> fields) => throw StateError('sink unavailable');
+  void write(Map<String, Object> fields) {
+    throw StateError('sink unavailable');
+  }
 }

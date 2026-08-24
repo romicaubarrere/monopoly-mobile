@@ -55,7 +55,11 @@ final class AuthorityLogEvent {
       if (stateVersion != null) stateVersion!,
     ];
     if (numericValues.any((value) => value < 0)) {
-      throw ArgumentError.value(numericValues, 'numericValues', 'must be non-negative');
+      throw ArgumentError.value(
+        numericValues,
+        'numericValues',
+        'must be non-negative',
+      );
     }
   }
 
@@ -75,21 +79,21 @@ final class AuthorityLogEvent {
   final int? stateVersion;
 
   Map<String, Object> toLogFields() => <String, Object>{
-        'operation': operation.name,
-        'outcome': outcome.name,
-        'reason': reason.name,
-        'latencyMs': latencyMs,
-        'retryCount': retryCount,
-        'conflictCount': conflictCount,
-        'firestoreReadCount': firestoreReadCount,
-        'firestoreWriteCount': firestoreWriteCount,
-        'bytesRead': bytesRead,
-        'bytesWritten': bytesWritten,
-        'snapshotBytes': snapshotBytes,
-        'coldStart': coldStart,
-        if (schemaVersion != null) 'schemaVersion': schemaVersion!,
-        if (stateVersion != null) 'stateVersion': stateVersion!,
-      };
+    'operation': operation.name,
+    'outcome': outcome.name,
+    'reason': reason.name,
+    'latencyMs': latencyMs,
+    'retryCount': retryCount,
+    'conflictCount': conflictCount,
+    'firestoreReadCount': firestoreReadCount,
+    'firestoreWriteCount': firestoreWriteCount,
+    'bytesRead': bytesRead,
+    'bytesWritten': bytesWritten,
+    'snapshotBytes': snapshotBytes,
+    'coldStart': coldStart,
+    if (schemaVersion != null) 'schemaVersion': schemaVersion!,
+    if (stateVersion != null) 'stateVersion': stateVersion!,
+  };
 }
 
 abstract interface class AuthorityLogSink {
