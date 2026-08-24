@@ -5,6 +5,14 @@ flutter --version
 dart --version
 flutter pub get --enforce-lockfile
 
+# TEMPORARY read-only formatter probe for PR #60. Remove before acceptance.
+dart format packages/game_core/lib/src/deadline_timeout.dart
+if ! git diff --quiet -- packages/game_core/lib/src/deadline_timeout.dart; then
+  echo '--- canonical Dart formatter diff ---'
+  git diff -- packages/game_core/lib/src/deadline_timeout.dart
+  exit 1
+fi
+
 dart format --output=none --set-exit-if-changed apps packages backend
 dart run tool/check_spec_registry.dart
 
