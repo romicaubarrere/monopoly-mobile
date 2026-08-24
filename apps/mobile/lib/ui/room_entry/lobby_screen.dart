@@ -223,8 +223,7 @@ class _RoomCodePanel extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.x3),
               Semantics(
-                label:
-                    'Código de sala ${_displayCode.replaceAll(' ', ', ')}',
+                label: 'Código de sala ${_displayCode.replaceAll(' ', ', ')}',
                 child: Text(
                   _displayCode,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -310,9 +309,8 @@ class _LobbySeatRow extends StatelessWidget {
                 children: [
                   Text(
                     seat.displayName,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   if (seat.isSelf) const _SmallBadge(label: 'VOS'),
                   if (seat.isHost) const _SmallBadge(label: 'HOST'),
@@ -348,10 +346,8 @@ class _SmallBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.6,
-        ),
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.6),
       ),
     );
   }
@@ -421,9 +417,8 @@ class _LobbyFooter extends StatelessWidget {
               Text(
                 'La partida se habilita cuando el estado de la sala lo permita.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppPalette.inkSecondary,
-                ),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: AppPalette.inkSecondary),
               ),
             ],
           ],
