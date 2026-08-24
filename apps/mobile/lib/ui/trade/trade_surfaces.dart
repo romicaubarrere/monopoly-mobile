@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design_system/tokens.dart';
+import '../../design_system/visual_components.dart';
 import '../feedback/async_action_button.dart';
 import '../feedback/interaction_feedback_state.dart';
 import '../feedback/interaction_status_layer.dart';
@@ -86,7 +87,7 @@ class TradeBuilderSurface extends StatelessWidget {
     final statusState = _statusFeedbackState;
 
     return Material(
-      color: AppPalette.surface,
+      color: AppPalette.canvas,
       child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(
@@ -102,19 +103,10 @@ class TradeBuilderSurface extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'NEGOCIAR',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppPalette.primary,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.6,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.x1),
-                Text(
-                  rivalLabel,
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                _TradeAlmacenHeader(
+                  stamp: 'Cuenta de almacén',
+                  kicker: 'NEGOCIAR',
+                  title: rivalLabel,
                 ),
                 const SizedBox(height: AppSpacing.x5),
                 _TradeSideSection(
@@ -124,8 +116,9 @@ class TradeBuilderSurface extends StatelessWidget {
                   assets: offeredAssets,
                   editable: editable,
                   onToggleAsset: onToggleOfferedAsset,
+                  accent: AppPalette.burgundy,
                 ),
-                const SizedBox(height: AppSpacing.x5),
+                const SizedBox(height: AppSpacing.x4),
                 _TradeSideSection(
                   title: 'Vos pedís',
                   cashLabel: 'Efectivo que pedís',
@@ -133,6 +126,7 @@ class TradeBuilderSurface extends StatelessWidget {
                   assets: requestedAssets,
                   editable: editable,
                   onToggleAsset: onToggleRequestedAsset,
+                  accent: AppPalette.wornBlue,
                 ),
                 const SizedBox(height: AppSpacing.x5),
                 _BilateralSummary(
@@ -249,7 +243,7 @@ class TradeReviewSurface extends StatelessWidget {
     final statusState = _statusFeedbackState;
 
     return Material(
-      color: AppPalette.surface,
+      color: AppPalette.canvas,
       borderRadius: const BorderRadius.vertical(
         top: Radius.circular(AppRadius.sheet),
       ),
@@ -271,19 +265,10 @@ class TradeReviewSurface extends StatelessWidget {
               children: [
                 const _MandatoryHandle(),
                 const SizedBox(height: AppSpacing.x4),
-                Text(
-                  'PROPUESTA',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppPalette.primary,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.6,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.x1),
-                Text(
-                  proposerLabel,
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                _TradeAlmacenHeader(
+                  stamp: 'Propuesta',
+                  kicker: 'NEGOCIACIÓN',
+                  title: proposerLabel,
                 ),
                 const SizedBox(height: AppSpacing.x4),
                 _ReviewExchange(
@@ -417,6 +402,66 @@ class TradeReviewSurface extends StatelessWidget {
   };
 }
 
+class _TradeAlmacenHeader extends StatelessWidget {
+  const _TradeAlmacenHeader({
+    required this.stamp,
+    required this.kicker,
+    required this.title,
+  });
+
+  final String stamp;
+  final String kicker;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        PaperPanel(
+          background: AppPalette.surface,
+          borderColor: AppPalette.burgundy,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.x4,
+            AppSpacing.x5,
+            AppSpacing.x4,
+            AppSpacing.x4,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: StampBadge(
+                  label: stamp,
+                  color: AppPalette.wornBlue,
+                  angle: -0.025,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.x3),
+              Text(
+                kicker,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppPalette.primary,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.6,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.x1),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
+              ),
+            ],
+          ),
+        ),
+        const Positioned(right: 18, top: -6, child: TapeMark(width: 58)),
+      ],
+    );
+  }
+}
+
 class _TradeSideSection extends StatelessWidget {
   const _TradeSideSection({
     required this.title,
@@ -425,6 +470,7 @@ class _TradeSideSection extends StatelessWidget {
     required this.assets,
     required this.editable,
     required this.onToggleAsset,
+    required this.accent,
   });
 
   final String title;
@@ -433,35 +479,59 @@ class _TradeSideSection extends StatelessWidget {
   final List<TradeAssetView> assets;
   final bool editable;
   final ValueChanged<String>? onToggleAsset;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: AppSpacing.x3),
-        TextField(
-          controller: cashController,
-          enabled: editable,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: cashLabel, hintText: '0'),
-        ),
-        const SizedBox(height: AppSpacing.x3),
-        for (final asset in assets)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.x2),
-            child: _TradeAssetRow(
-              asset: asset,
-              editable: editable,
-              onToggle: onToggleAsset,
+    return PaperPanel(
+      background: AppPalette.surface,
+      borderColor: accent,
+      padding: const EdgeInsets.all(AppSpacing.x4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(width: 4, height: 24, color: accent),
+              const SizedBox(width: AppSpacing.x2),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.x3),
+          TextField(
+            controller: cashController,
+            enabled: editable,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppPalette.canvas,
+              labelText: cashLabel,
+              hintText: '0',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.control),
+              ),
             ),
           ),
-      ],
+          const SizedBox(height: AppSpacing.x3),
+          for (final asset in assets)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.x2),
+              child: _TradeAssetRow(
+                asset: asset,
+                editable: editable,
+                onToggle: onToggleAsset,
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -491,9 +561,27 @@ class _TradeAssetRow extends StatelessWidget {
       enabled: actionable,
       label: '${asset.label}. $stateLabel$availabilityLabel.',
       excludeSemantics: true,
-      child: SizedBox(
-        height: AppSizes.primaryControlHeight,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minHeight: AppSizes.primaryControlHeight,
+        ),
         child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            backgroundColor: asset.selected
+                ? const Color(0xFFE7F0E6)
+                : AppPalette.surface,
+            foregroundColor: AppPalette.ink,
+            side: BorderSide(
+              color: asset.selected
+                  ? AppPalette.bottleGreen
+                  : AppPalette.inkSecondary,
+              width: asset.selected ? 1.6 : 1,
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.x3,
+              vertical: AppSpacing.x2,
+            ),
+          ),
           onPressed: actionable ? () => onToggle!(asset.id) : null,
           child: Row(
             children: [
@@ -506,19 +594,13 @@ class _TradeAssetRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.x2),
               Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      asset.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(asset.label),
                     if (asset.detail != null)
                       Text(
                         asset.detail!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(color: AppPalette.inkSecondary),
                       ),
@@ -548,18 +630,26 @@ class _BilateralSummary extends StatelessWidget {
       container: true,
       label: 'Vos entregás: $giveLabel. Vos recibís: $receiveLabel.',
       excludeSemantics: true,
-      child: Container(
+      child: PaperPanel(
+        background: AppPalette.kraft,
+        borderColor: AppPalette.ink,
         padding: const EdgeInsets.all(AppSpacing.x4),
-        decoration: BoxDecoration(
-          color: AppPalette.canvas,
-          border: Border.all(color: AppPalette.inkSecondary),
-          borderRadius: BorderRadius.circular(AppRadius.card),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              'Balance de la propuesta',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppPalette.burgundy,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.x3),
             _SummaryLine(title: 'Vos entregás', body: giveLabel),
             const SizedBox(height: AppSpacing.x3),
+            const Divider(color: AppPalette.inkSecondary),
+            const SizedBox(height: AppSpacing.x2),
             _SummaryLine(title: 'Vos recibís', body: receiveLabel),
           ],
         ),
@@ -587,12 +677,14 @@ class _ReviewExchange extends StatelessWidget {
             icon: Icons.call_received_rounded,
             title: 'Recibís',
             body: receiveLabel,
+            accent: AppPalette.bottleGreen,
           ),
           const SizedBox(height: AppSpacing.x3),
           _ReviewBlock(
             icon: Icons.call_made_rounded,
             title: 'Entregás',
             body: giveLabel,
+            accent: AppPalette.burgundy,
           ),
         ],
       ),
@@ -605,25 +697,24 @@ class _ReviewBlock extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.body,
+    required this.accent,
   });
 
   final IconData icon;
   final String title;
   final String body;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return PaperPanel(
+      background: AppPalette.surface,
+      borderColor: accent,
       padding: const EdgeInsets.all(AppSpacing.x3),
-      decoration: BoxDecoration(
-        color: AppPalette.canvas,
-        border: Border.all(color: AppPalette.inkSecondary),
-        borderRadius: BorderRadius.circular(AppRadius.control),
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20),
+          Icon(icon, size: 20, color: accent),
           const SizedBox(width: AppSpacing.x3),
           Expanded(
             child: _SummaryLine(title: title, body: body),
@@ -677,34 +768,47 @@ class _DeadlineIndicator extends StatelessWidget {
       container: true,
       label: 'Tiempo para responder: $label. El cierre lo confirma la partida.',
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.schedule_rounded, size: 18),
-              const SizedBox(width: AppSpacing.x2),
-              Expanded(
-                child: Text(
-                  'Tiempo para responder',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppPalette.inkSecondary,
-                    fontWeight: FontWeight.w700,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.x3),
+        decoration: BoxDecoration(
+          color: AppPalette.surface,
+          border: Border.all(color: AppPalette.ink, width: 1.2),
+          borderRadius: BorderRadius.circular(AppRadius.control),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.schedule_rounded, size: 18),
+                const SizedBox(width: AppSpacing.x2),
+                Expanded(
+                  child: Text(
+                    'Tiempo para responder',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppPalette.inkSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.x2),
-          LinearProgressIndicator(value: clamped),
-        ],
+              ],
+            ),
+            const SizedBox(height: AppSpacing.x2),
+            LinearProgressIndicator(
+              value: clamped,
+              color: AppPalette.wornBlue,
+              backgroundColor: AppPalette.paperEdge,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -737,9 +841,14 @@ class _ReviewSecondaryAction extends StatelessWidget {
       enabled: actionable,
       label: semanticLabel,
       excludeSemantics: true,
-      child: SizedBox(
-        height: AppSizes.minTouchTarget,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: AppSizes.minTouchTarget),
         child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            backgroundColor: AppPalette.surface,
+            foregroundColor: AppPalette.ink,
+            side: const BorderSide(color: AppPalette.ink, width: 1.2),
+          ),
           onPressed: actionable ? onPressed : null,
           icon: Icon(icon),
           label: Text(label),
@@ -767,17 +876,15 @@ class _TradeOutcome extends StatelessWidget {
       liveRegion: true,
       label: '$title. $body',
       excludeSemantics: true,
-      child: Container(
+      child: PaperPanel(
+        background: AppPalette.surface,
+        borderColor: AppPalette.bottleGreen,
         padding: const EdgeInsets.all(AppSpacing.x3),
-        decoration: BoxDecoration(
-          color: AppPalette.canvas,
-          border: Border.all(color: AppPalette.inkSecondary),
-          borderRadius: BorderRadius.circular(AppRadius.control),
-        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20),
+            const SizedBox(width: AppSpacing.x1),
+            Icon(icon, size: 20, color: AppPalette.bottleGreen),
             const SizedBox(width: AppSpacing.x3),
             Expanded(
               child: Column(
