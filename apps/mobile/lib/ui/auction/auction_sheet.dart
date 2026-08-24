@@ -217,8 +217,7 @@ class AuctionSheet extends StatelessWidget {
   };
 
   String get _defaultStatusMessage => switch (state) {
-    AuctionSurfaceState.pendingBid =>
-      'Esperando confirmación. La oferta visible sigue siendo la última confirmada.',
+    AuctionSurfaceState.pendingBid => 'Esperando confirmación. La oferta visible sigue siendo la última confirmada.',
     AuctionSurfaceState.bidRejected =>
       'La puja no fue aplicada. Actualizá el monto sobre el estado confirmado.',
     AuctionSurfaceState.passed =>
@@ -313,10 +312,8 @@ class _AuctionAlmacenHeader extends StatelessWidget {
               const SizedBox(height: AppSpacing.x1),
               Text(
                 propertyLabel,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  height: 1.05,
-                ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
               ),
             ],
           ),
@@ -426,9 +423,7 @@ class _DeadlineIndicator extends StatelessWidget {
             const SizedBox(height: AppSpacing.x2),
             LinearProgressIndicator(
               value: clamped,
-              color: clamped >= 0.75
-                  ? AppPalette.primary
-                  : AppPalette.wornBlue,
+              color: clamped >= 0.75 ? AppPalette.primary : AppPalette.wornBlue,
               backgroundColor: AppPalette.paperEdge,
               borderRadius: BorderRadius.circular(999),
             ),
@@ -451,10 +446,8 @@ class _ParticipantList extends StatelessWidget {
       children: [
         Text(
           'Participantes',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.4,
-          ),
+          style: Theme.of(context).textTheme.titleSmall
+              ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.4),
         ),
         const SizedBox(height: AppSpacing.x2),
         for (final participant in participants)
@@ -527,9 +520,8 @@ class _ParticipantRow extends StatelessWidget {
             Expanded(
               child: Text(
                 participant.label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             Text(
@@ -575,9 +567,8 @@ class _CashAvailable extends StatelessWidget {
             Expanded(
               child: Text(
                 'Tu efectivo disponible',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             Text(
@@ -720,15 +711,16 @@ class _Metric extends StatelessWidget {
         const SizedBox(height: AppSpacing.x1),
         Text(
           value,
-          style: (emphasized
-                  ? Theme.of(context).textTheme.headlineSmall
-                  : Theme.of(context).textTheme.titleMedium)
-              ?.copyWith(
-                color: emphasized ? AppPalette.burgundy : AppPalette.ink,
-                fontWeight: emphasized ? FontWeight.w900 : FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-                height: 1,
-              ),
+          style:
+              (emphasized
+                      ? Theme.of(context).textTheme.headlineSmall
+                      : Theme.of(context).textTheme.titleMedium)
+                  ?.copyWith(
+                    color: emphasized ? AppPalette.burgundy : AppPalette.ink,
+                    fontWeight: emphasized ? FontWeight.w900 : FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    height: 1,
+                  ),
         ),
       ],
     );
