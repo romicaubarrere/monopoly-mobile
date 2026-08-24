@@ -1,9 +1,9 @@
 name: Temporary Bankruptcy formatter
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/ui-bankruptcy-almacen
+      - main
 
 permissions:
   contents: read
