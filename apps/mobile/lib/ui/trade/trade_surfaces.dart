@@ -569,7 +569,9 @@ class _TradeAssetRow extends StatelessWidget {
       label: '${asset.label}. $stateLabel$availabilityLabel.',
       excludeSemantics: true,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: AppSizes.primaryControlHeight),
+        constraints: const BoxConstraints(
+          minHeight: AppSizes.primaryControlHeight,
+        ),
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
             backgroundColor: asset.selected
