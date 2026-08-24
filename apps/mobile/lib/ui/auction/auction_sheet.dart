@@ -426,7 +426,9 @@ class _DeadlineIndicator extends StatelessWidget {
             const SizedBox(height: AppSpacing.x2),
             LinearProgressIndicator(
               value: clamped,
-              color: clamped >= 0.75 ? AppPalette.primary : AppPalette.wornBlue,
+              color: clamped >= 0.75
+                  ? AppPalette.primary
+                  : AppPalette.wornBlue,
               backgroundColor: AppPalette.paperEdge,
               borderRadius: BorderRadius.circular(999),
             ),
