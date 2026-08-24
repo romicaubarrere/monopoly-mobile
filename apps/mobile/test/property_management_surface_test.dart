@@ -10,7 +10,9 @@ void main() {
     (tester) async {
       final semantics = tester.ensureSemantics();
 
-      await tester.pumpWidget(_app(state: PropertyManagementViewState.available));
+      await tester.pumpWidget(
+        _app(state: PropertyManagementViewState.available),
+      );
 
       expect(
         find.bySemanticsLabel(
@@ -58,7 +60,10 @@ void main() {
 
     expect(buildButton.onPressed, isNotNull);
     expect(mortgageButton.onPressed, isNull);
-    expect(find.text('Primero vendé las mejoras incompatibles'), findsOneWidget);
+    expect(
+      find.text('Primero vendé las mejoras incompatibles'),
+      findsOneWidget,
+    );
 
     buildButton.onPressed!();
     expect(intent, PropertyManagementActionKind.addMani);
@@ -74,7 +79,9 @@ void main() {
         ),
       );
 
-      final buttons = tester.widgetList<OutlinedButton>(find.byType(OutlinedButton));
+      final buttons = tester.widgetList<OutlinedButton>(
+        find.byType(OutlinedButton),
+      );
       expect(buttons, isNotEmpty);
       expect(buttons.every((button) => button.onPressed == null), isTrue);
       expect(find.text('Hipotecando…'), findsOneWidget);
