@@ -109,12 +109,12 @@ final class DeadlineResolution {
   /// Only pass/reject are complete deterministic timeout outcomes in this
   /// slice. Bot decisions and debt liquidation remain explicit delegations.
   bool get isTerminal =>
-      isDue && (action == DeadlineAction.pass || action == DeadlineAction.reject);
+      isDue &&
+      (action == DeadlineAction.pass || action == DeadlineAction.reject);
 }
 
 abstract final class DeadlineTimeoutEngine {
-  static String operationIdFor(String decisionId) =>
-      'deadline:v1:$decisionId';
+  static String operationIdFor(String decisionId) => 'deadline:v1:$decisionId';
 
   /// Resolves deadline eligibility using authority time.
   ///
