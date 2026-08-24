@@ -1,0 +1,26 @@
+name: Diagnose Negotiation Format
+
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/lib/ui/trade/trade_surfaces.dart'
+      - '.github/workflows/diagnose-negotiation-format.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+      - name: Print canonical Dart formatter diff
+        shell: bash
+        run: |
+          dart format apps/mobile/lib/ui/trade/trade_surfaces.dart
+          git diff -- apps/mobile/lib/ui/trade/trade_surfaces.dart
