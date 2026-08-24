@@ -711,8 +711,10 @@ class _PropertyActionTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            height: AppSizes.primaryControlHeight,
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              minHeight: AppSizes.primaryControlHeight,
+            ),
             child: OutlinedButton.icon(
               onPressed: actionable ? onPressed : null,
               icon: pending
