@@ -253,10 +253,8 @@ class _PropertyAlmacenHeader extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x3),
                 Text(
                   propertyLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    height: 1.05,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
                 ),
                 const SizedBox(height: AppSpacing.x1),
                 Text(
@@ -294,7 +292,11 @@ class _PrimaryEconomy extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: _Metric(label: 'Precio', value: priceLabel, emphasized: true),
+            child: _Metric(
+              label: 'Precio',
+              value: priceLabel,
+              emphasized: true,
+            ),
           ),
           const SizedBox(width: AppSpacing.x3),
           Expanded(
@@ -383,9 +385,8 @@ class _GroupProgress extends StatelessWidget {
           Expanded(
             child: Text(
               'Grupo: $label',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
           const ExcludeSemantics(child: InkDoodle(size: 28)),
@@ -450,8 +451,7 @@ class _DeclineButton extends StatelessWidget {
         'No comprar y abrir subasta. Confirmando qué pasó antes de continuar.',
       InteractionFeedbackState.offline =>
         'No comprar y abrir subasta. No disponible mientras se reconecta.',
-      InteractionFeedbackState.disabled =>
-        'No comprar y abrir subasta. No disponible mientras se confirma otra acción.',
+      InteractionFeedbackState.disabled => 'No comprar y abrir subasta. No disponible mientras se confirma otra acción.',
       _ => 'No comprar y abrir subasta',
     };
 
