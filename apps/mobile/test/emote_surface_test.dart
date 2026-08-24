@@ -140,7 +140,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
-        home: const Scaffold(
+        home: Scaffold(
           body: EmoteBubble(senderLabel: 'Leo', option: _options.first),
         ),
       ),
@@ -178,7 +178,7 @@ void main() {
                     Expanded(
                       child: EmoteTray(options: _options, onSelected: (_) {}),
                     ),
-                    const EmoteBubble(
+                    EmoteBubble(
                       senderLabel: 'Jugador con nombre largo',
                       option: _options.first,
                     ),
