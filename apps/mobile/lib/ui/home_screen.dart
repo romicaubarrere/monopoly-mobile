@@ -55,10 +55,8 @@ class _TopBar extends StatelessWidget {
         Expanded(
           child: Text(
             'ALMACÉN DE JUEGO',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.6,
-            ),
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 1.6),
           ),
         ),
         const SizedBox(width: AppSpacing.x3),
@@ -73,7 +71,10 @@ class _TopBar extends StatelessWidget {
               border: Border.all(color: AppPalette.ink, width: 1.2),
               borderRadius: BorderRadius.circular(AppRadius.sign),
             ),
-            child: const Icon(Icons.wifi_tethering_rounded, semanticLabel: null),
+            child: const Icon(
+              Icons.wifi_tethering_rounded,
+              semanticLabel: null,
+            ),
           ),
         ),
       ],
@@ -115,10 +116,8 @@ class _HomeHero extends StatelessWidget {
               const SizedBox(height: AppSpacing.x3),
               Text(
                 'Una partida mobile con olor a papel impreso, carteles de almacén y caos familiar en la medida justa.',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppPalette.inkSecondary,
-                  height: 1.35,
-                ),
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(color: AppPalette.inkSecondary, height: 1.35),
               ),
               const SizedBox(height: AppSpacing.x5),
               Row(
@@ -194,10 +193,8 @@ class _PlayActions extends StatelessWidget {
         Text(
           'Crear primero. Unirse rápido. Nada de navegación que compita con la partida.',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppPalette.inkSecondary,
-            height: 1.3,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: AppPalette.inkSecondary, height: 1.3),
         ),
       ],
     );
@@ -217,10 +214,8 @@ class _BoardPreviewSection extends StatelessWidget {
             Expanded(
               child: Text(
                 'UNA MESA, EN EL BOLSILLO',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.8,
-                ),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.8),
               ),
             ),
             const StampBadge(
@@ -233,10 +228,8 @@ class _BoardPreviewSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.x2),
         Text(
           'Checkpoint estructural con 40 posiciones sintéticas. No contiene mapa, economía ni cartas DEC-065.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: AppPalette.inkSecondary,
-            height: 1.35,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: AppPalette.inkSecondary, height: 1.35),
         ),
         const SizedBox(height: AppSpacing.x4),
         const _GameShellPreview(),
@@ -290,9 +283,8 @@ class _GameShellPreview extends StatelessWidget {
           Text(
             'Disponible cuando exista una partida confirmada.',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppPalette.inkSecondary,
-            ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: AppPalette.inkSecondary),
           ),
         ],
       ),
@@ -417,9 +409,8 @@ class _BoardContextPreview extends StatelessWidget {
                           const SizedBox(height: AppSpacing.x2),
                           Text(
                             'datos de muestra',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppPalette.inkSecondary,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppPalette.inkSecondary),
                           ),
                         ],
                       ),
