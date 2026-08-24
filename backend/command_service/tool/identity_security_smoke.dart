@@ -45,7 +45,10 @@ Future<void> main() async {
     verifier,
     _token(
       header: <String, Object?>{'alg': 'RS256', 'kid': 'synthetic-key-id'},
-      payload: <String, Object?>{..._validPayload(now), 'aud': 'wrong-project'},
+      payload: <String, Object?>{
+        ..._validPayload(now),
+        'aud': 'wrong-project',
+      },
     ),
     'invalid_audience',
   );
@@ -102,7 +105,8 @@ String _token({
   String encode(Object value) => base64Url
       .encode(utf8.encode(jsonEncode(value)))
       .replaceAll('=', '');
-  return '${encode(header)}.${encode(payload)}.${base64Url.encode(<int>[1, 2, 3]).replaceAll('=', '')}';
+  final signature = base64Url.encode(<int>[1, 2, 3]).replaceAll('=', '');
+  return '${encode(header)}.${encode(payload)}.$signature';
 }
 
 Future<void> _expectIdentityFailure(
