@@ -109,9 +109,8 @@ class AuctionSheet extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x1),
                 Text(
                   propertyLabel,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: AppSpacing.x4),
                 _AuctionHeadline(
@@ -212,16 +211,15 @@ class AuctionSheet extends StatelessWidget {
     AuctionSurfaceState.outbid => null,
     AuctionSurfaceState.pendingBid => InteractionFeedbackState.pending,
     AuctionSurfaceState.bidRejected => InteractionFeedbackState.rejected,
-    AuctionSurfaceState.passed || AuctionSurfaceState.hardCap =>
-      InteractionFeedbackState.confirmed,
+    AuctionSurfaceState.passed ||
+    AuctionSurfaceState.hardCap => InteractionFeedbackState.confirmed,
     AuctionSurfaceState.slotExpired => InteractionFeedbackState.stale,
     AuctionSurfaceState.uncertain => InteractionFeedbackState.uncertain,
     AuctionSurfaceState.offline => InteractionFeedbackState.offline,
   };
 
   String get _defaultStatusMessage => switch (state) {
-    AuctionSurfaceState.pendingBid =>
-      'Esperando confirmación. La oferta visible sigue siendo la última confirmada.',
+    AuctionSurfaceState.pendingBid => 'Esperando confirmación. La oferta visible sigue siendo la última confirmada.',
     AuctionSurfaceState.bidRejected =>
       'La puja no fue aplicada. Actualizá el monto sobre el estado confirmado.',
     AuctionSurfaceState.passed =>
@@ -387,9 +385,8 @@ class _ParticipantList extends StatelessWidget {
       children: [
         Text(
           'Participantes',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
+          style: Theme.of(context).textTheme.titleSmall
+              ?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: AppSpacing.x2),
         for (final participant in participants)
@@ -446,9 +443,8 @@ class _ParticipantRow extends StatelessWidget {
             Expanded(
               child: Text(
                 participant.label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
             Text(
@@ -483,9 +479,8 @@ class _CashAvailable extends StatelessWidget {
           Expanded(
             child: Text(
               'Tu efectivo disponible',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
           Text(
@@ -546,7 +541,8 @@ class _PassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActionable = state == InteractionFeedbackState.idle && onPressed != null;
+    final isActionable =
+        state == InteractionFeedbackState.idle && onPressed != null;
     final semanticLabel = switch (state) {
       InteractionFeedbackState.uncertain =>
         'Pasar. Confirmando qué pasó antes de continuar.',
@@ -592,9 +588,8 @@ class _Metric extends StatelessWidget {
       children: [
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppPalette.inkSecondary,
-          ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: AppPalette.inkSecondary),
         ),
         const SizedBox(height: AppSpacing.x1),
         Text(
