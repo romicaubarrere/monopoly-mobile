@@ -23,9 +23,9 @@ class DicePair extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _DieFace(value: first),
+          _DieFace(value: first, angle: -0.035),
           const SizedBox(width: AppSpacing.x3),
-          _DieFace(value: second),
+          _DieFace(value: second, angle: 0.028),
         ],
       ),
     );
@@ -33,26 +33,47 @@ class DicePair extends StatelessWidget {
 }
 
 class _DieFace extends StatelessWidget {
-  const _DieFace({required this.value});
+  const _DieFace({required this.value, required this.angle});
 
   final int? value;
+  final double angle;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 58,
-      height: 58,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        border: Border.all(color: AppPalette.ink, width: 1.5),
-        borderRadius: BorderRadius.circular(AppRadius.control),
-      ),
-      child: Text(
-        value?.toString() ?? '—',
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.w900,
-          fontFeatures: const [FontFeature.tabularFigures()],
+    return Transform.rotate(
+      angle: angle,
+      child: Container(
+        width: 62,
+        height: 62,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppPalette.surface,
+          border: Border.all(color: AppPalette.ink, width: 1.8),
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x30000000),
+              offset: Offset(4, 4),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Container(
+          width: 46,
+          height: 46,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: Border.all(color: AppPalette.paperEdge, width: 1),
+            borderRadius: BorderRadius.circular(AppRadius.sign),
+          ),
+          child: Text(
+            value?.toString() ?? '—',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: AppPalette.ink,
+              fontWeight: FontWeight.w900,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
         ),
       ),
     );

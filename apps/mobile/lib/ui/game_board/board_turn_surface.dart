@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../design_system/tokens.dart';
+import '../../design_system/visual_components.dart';
 import '../feedback/async_action_button.dart';
 import '../feedback/interaction_feedback_state.dart';
 import 'dice_pair.dart';
@@ -44,6 +45,7 @@ class BoardTurnSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppPalette.canvas,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -66,24 +68,41 @@ class BoardTurnSurface extends StatelessWidget {
                     cashLabel: cashLabel,
                     connectionLabel: connectionLabel,
                   ),
-                  const SizedBox(height: AppSpacing.x3),
+                  const SizedBox(height: AppSpacing.x4),
                   _BoardFrame(
                     currentPosition: currentPosition,
                     highlightedPosition: highlightedPosition,
                   ),
                   const SizedBox(height: AppSpacing.x4),
+                  const Center(
+                    child: StampBadge(
+                      label: 'Dados de la mesa',
+                      color: AppPalette.wornBlue,
+                      angle: -0.02,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.x3),
                   DicePair(first: firstDie, second: secondDie),
                   if (movementSummary != null) ...[
                     const SizedBox(height: AppSpacing.x3),
                     Semantics(
                       liveRegion: true,
                       label: movementSummary,
-                      child: Text(
-                        movementSummary!,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppPalette.inkSecondary,
-                          fontWeight: FontWeight.w700,
+                      child: PaperPanel(
+                        background: AppPalette.surface,
+                        borderColor: AppPalette.paperEdge,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.x3,
+                          vertical: AppSpacing.x2,
+                        ),
+                        child: Text(
+                          movementSummary!,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppPalette.inkSecondary,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ),
                     ),
@@ -126,59 +145,108 @@ class _TurnHud extends StatelessWidget {
       label:
           'Turno: $currentPlayerLabel. $roundLabel. Saldo: $cashLabel. Conexión: $connectionLabel.',
       excludeSemantics: true,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Expanded(
+          PaperPanel(
+            background: AppPalette.surface,
+            borderColor: AppPalette.burgundy,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.x4,
+              AppSpacing.x5,
+              AppSpacing.x4,
+              AppSpacing.x4,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  'TURNO EN EL MOSTRADOR',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppPalette.primary,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.x1),
+                Text(
                   currentPlayerLabel,
                   style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                      ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
                 ),
-                const SizedBox(height: AppSpacing.x1),
-                Text(
-                  roundLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppPalette.inkSecondary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.x3),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  cashLabel,
-                  textAlign: TextAlign.end,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.x1),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                const SizedBox(height: AppSpacing.x3),
+                Wrap(
+                  spacing: AppSpacing.x2,
+                  runSpacing: AppSpacing.x2,
                   children: [
-                    const Icon(Icons.wifi_rounded, size: 16),
-                    const SizedBox(width: AppSpacing.x1),
-                    Flexible(
-                      child: Text(
-                        connectionLabel,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: AppPalette.inkSecondary),
-                      ),
+                    _HudTag(
+                      icon: Icons.repeat_rounded,
+                      label: roundLabel,
+                      color: AppPalette.kraft,
+                    ),
+                    _HudTag(
+                      icon: Icons.payments_outlined,
+                      label: cashLabel,
+                      color: const Color(0xFFE7F0E6),
+                      tabular: true,
+                    ),
+                    _HudTag(
+                      icon: Icons.wifi_rounded,
+                      label: connectionLabel,
+                      color: const Color(0xFFE7EEF1),
                     ),
                   ],
                 ),
               ],
+            ),
+          ),
+          const Positioned(right: 22, top: -5, child: TapeMark(width: 62)),
+        ],
+      ),
+    );
+  }
+}
+
+class _HudTag extends StatelessWidget {
+  const _HudTag({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.tabular = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool tabular;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 34),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.x2,
+        vertical: AppSpacing.x2,
+      ),
+      decoration: BoxDecoration(
+        color: color,
+        border: Border.all(color: AppPalette.ink, width: 1),
+        borderRadius: BorderRadius.circular(AppRadius.sign),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16),
+          const SizedBox(width: AppSpacing.x1),
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontFeatures: tabular
+                    ? const [FontFeature.tabularFigures()]
+                    : null,
+              ),
             ),
           ),
         ],
@@ -206,103 +274,123 @@ class _BoardFrame extends StatelessWidget {
       container: true,
       label: summary,
       excludeSemantics: true,
-      child: AspectRatio(
-        aspectRatio: 0.78,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final height = constraints.maxHeight;
-            final tileWidth = width / 11;
-            final edge = math.min(36.0, tileWidth * 1.25);
-            final sideHeight = (height - (edge * 2)) / 9;
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AspectRatio(
+            aspectRatio: 0.78,
+            child: PaperPanel(
+              background: AppPalette.kraft,
+              borderColor: AppPalette.ink,
+              padding: const EdgeInsets.all(AppSpacing.x2),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = constraints.maxWidth;
+                  final height = constraints.maxHeight;
+                  final tileWidth = width / 11;
+                  final edge = math.min(36.0, tileWidth * 1.25);
+                  final sideHeight = (height - (edge * 2)) / 9;
 
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: AppPalette.canvas,
-                border: Border.all(color: AppPalette.ink, width: 1.5),
-                borderRadius: BorderRadius.circular(AppRadius.control),
-              ),
-              child: Stack(
-                children: [
-                  ...List.generate(40, (index) {
-                    final position = _tilePosition(
-                      index: index,
-                      width: width,
-                      height: height,
-                      tileWidth: tileWidth,
-                      edge: edge,
-                      sideHeight: sideHeight,
-                    );
-                    final isCurrent = index == currentPosition;
-                    final isHighlighted = index == highlightedPosition;
-                    final reduceMotion = MediaQuery.disableAnimationsOf(
-                      context,
-                    );
+                  return DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppPalette.canvas,
+                      border: Border.all(color: AppPalette.ink, width: 1.2),
+                      borderRadius: BorderRadius.circular(AppRadius.sign),
+                    ),
+                    child: Stack(
+                      children: [
+                        ...List.generate(40, (index) {
+                          final position = _tilePosition(
+                            index: index,
+                            width: width,
+                            height: height,
+                            tileWidth: tileWidth,
+                            edge: edge,
+                            sideHeight: sideHeight,
+                          );
+                          final isCurrent = index == currentPosition;
+                          final isHighlighted = index == highlightedPosition;
+                          final isCorner = index % 10 == 0;
+                          final reduceMotion = MediaQuery.disableAnimationsOf(
+                            context,
+                          );
+                          final tileColor = switch ((isHighlighted, isCorner)) {
+                            (true, _) => AppPalette.mustard,
+                            (false, true) => AppPalette.kraft,
+                            _ => AppPalette.surface,
+                          };
 
-                    return Positioned(
-                      left: position.left,
-                      top: position.top,
-                      width: position.width,
-                      height: position.height,
-                      child: AnimatedContainer(
-                        key: ValueKey('board-tile-$index'),
-                        duration: reduceMotion
-                            ? Duration.zero
-                            : const Duration(milliseconds: 180),
-                        decoration: BoxDecoration(
-                          color: isHighlighted
-                              ? AppPalette.ritual
-                              : AppPalette.surface,
-                          border: Border.all(
-                            color: isCurrent
-                                ? AppPalette.primary
-                                : AppPalette.ink,
-                            width: isCurrent ? 2.5 : 0.6,
+                          return Positioned(
+                            left: position.left,
+                            top: position.top,
+                            width: position.width,
+                            height: position.height,
+                            child: AnimatedContainer(
+                              key: ValueKey('board-tile-$index'),
+                              duration: reduceMotion
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 180),
+                              decoration: BoxDecoration(
+                                color: tileColor,
+                                border: Border.all(
+                                  color: isCurrent
+                                      ? AppPalette.burgundy
+                                      : AppPalette.ink,
+                                  width: isCurrent ? 2.5 : 0.65,
+                                ),
+                              ),
+                              child: isCurrent
+                                  ? const Center(child: _CurrentTokenMarker())
+                                  : null,
+                            ),
+                          );
+                        }),
+                        Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(edge + AppSpacing.x3),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const StampBadge(
+                                  label: 'Partida en curso',
+                                  color: AppPalette.bottleGreen,
+                                  angle: 0.018,
+                                ),
+                                const SizedBox(height: AppSpacing.x3),
+                                Text(
+                                  'TABLERO\nEN JUEGO',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1.1,
+                                        height: 0.95,
+                                      ),
+                                ),
+                                const SizedBox(height: AppSpacing.x2),
+                                Text(
+                                  '40 posiciones · estado confirmado',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: AppPalette.inkSecondary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        child: isCurrent
-                            ? const Center(
-                                child: Icon(
-                                  Icons.circle,
-                                  size: 10,
-                                  color: AppPalette.primary,
-                                  semanticLabel: null,
-                                ),
-                              )
-                            : null,
-                      ),
-                    );
-                  }),
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(edge + AppSpacing.x3),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.route_rounded,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 30,
-                          ),
-                          const SizedBox(height: AppSpacing.x2),
-                          Text(
-                            'TU JUGADA',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.8,
-                                ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
-            );
-          },
-        ),
+            ),
+          ),
+          const Positioned(left: 24, top: -5, child: TapeMark(width: 58)),
+          const Positioned(right: 18, bottom: 16, child: InkDoodle(size: 28)),
+        ],
       ),
     );
   }
@@ -350,6 +438,32 @@ class _BoardFrame extends StatelessWidget {
       top: height - edge - ((sideIndex + 1) * sideHeight),
       width: edge,
       height: sideHeight,
+    );
+  }
+}
+
+class _CurrentTokenMarker extends StatelessWidget {
+  const _CurrentTokenMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: AppPalette.burgundy,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppPalette.surface, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33000000),
+              offset: Offset(1, 1),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
