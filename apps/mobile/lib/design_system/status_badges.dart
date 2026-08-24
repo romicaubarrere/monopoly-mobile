@@ -73,11 +73,7 @@ class PlayerChip extends StatelessWidget {
       ),
     );
 
-    final semanticsLabel = [
-      name,
-      if (isSelf) 'vos',
-      ?statusLabel,
-    ].join(', ');
+    final semanticsLabel = [name, if (isSelf) 'vos', ?statusLabel].join(', ');
 
     if (onTap == null) {
       return Semantics(label: semanticsLabel, child: content);
