@@ -113,9 +113,7 @@ void main() {
     expect(find.text('ACCIÓN PLACEHOLDER'), findsNothing);
   });
 
-  testWidgets('confirmed_transfer_row_has_confirmed_semantics', (
-    tester,
-  ) async {
+  testWidgets('confirmed_transfer_row_has_confirmed_semantics', (tester) async {
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(
@@ -159,8 +157,7 @@ void main() {
                         'Razón factual PLACEHOLDER provista por la partida.',
                     creditorLabel: 'ACREEDOR PLACEHOLDER CON NOMBRE LARGO',
                     transferSummary: _transfers,
-                    continuationMessage:
-                        'La partida continúa según el estado confirmado PLACEHOLDER.',
+                    continuationMessage: 'La partida continúa según el estado confirmado PLACEHOLDER.',
                   ),
                 ),
               ),
