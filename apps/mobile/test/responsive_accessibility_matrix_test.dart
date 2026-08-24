@@ -66,6 +66,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
     );
+    await tester.scrollUntilVisible(find.text('BOARD COMO CONTEXTO'), 300);
+    await tester.pumpAndSettle();
 
     expect(
       find.bySemanticsLabel(
