@@ -1,4 +1,5 @@
 import 'package:board_mobile/design_system/app_theme.dart';
+import 'package:board_mobile/design_system/visual_components.dart';
 import 'package:board_mobile/ui/auction/auction_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,6 +38,36 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Tu efectivo disponible'), findsOneWidget);
+
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
+    'auction_visual_pass_uses_alamacen_hierarchy_without_replacing_semantics',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final controller = TextEditingController(text: '350');
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        _app(
+          controller: controller,
+          state: AuctionSurfaceState.leading,
+          onBid: () {},
+          onPass: () {},
+        ),
+      );
+
+      expect(find.byType(StampBadge), findsOneWidget);
+      expect(find.byType(PaperPanel), findsAtLeastNWidgets(3));
+      expect(find.text('REMATE DE BARRIO'), findsOneWidget);
+      expect(find.text('SUBASTA'), findsOneWidget);
+      expect(find.text('Subir rápido'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(r'Oferta actual: $ 300. Lidera: Rival A.'),
+        findsOneWidget,
+      );
 
       semantics.dispose();
     },
