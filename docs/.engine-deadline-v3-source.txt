@@ -1,0 +1,1 @@
+supersedes PR #60 fresh-base rematerialization; remove before acceptance
