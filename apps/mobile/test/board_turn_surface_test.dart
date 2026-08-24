@@ -1,4 +1,5 @@
 import 'package:board_mobile/design_system/app_theme.dart';
+import 'package:board_mobile/design_system/visual_components.dart';
 import 'package:board_mobile/ui/feedback/interaction_feedback_state.dart';
 import 'package:board_mobile/ui/game_board/board_turn_surface.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,31 @@ void main() {
     for (var index = 0; index < 40; index += 1) {
       expect(find.byKey(ValueKey('board-tile-$index')), findsOneWidget);
     }
+  });
+
+  testWidgets('board_almacen_visual_pass_reuses_shared_material_components', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const BoardTurnSurface(
+          currentPlayerLabel: 'Tu turno',
+          roundLabel: 'Ronda sintética',
+          cashLabel: r'$ 1.250',
+          connectionLabel: 'Conectado',
+          currentPosition: 3,
+          rollState: InteractionFeedbackState.idle,
+        ),
+      ),
+    );
+
+    expect(find.byType(PaperPanel), findsNWidgets(2));
+    expect(find.byType(StampBadge), findsNWidgets(2));
+    expect(find.byType(TapeMark), findsNWidgets(2));
+    expect(find.text('TURNO EN EL MOSTRADOR'), findsOneWidget);
+    expect(find.text('TABLERO\nEN JUEGO'), findsOneWidget);
+    expect(find.text('40 posiciones · estado confirmado'), findsOneWidget);
   });
 
   testWidgets('dice_display_only_renders_confirmed_values_supplied_by_state', (
