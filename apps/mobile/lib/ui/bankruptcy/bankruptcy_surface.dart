@@ -160,8 +160,7 @@ class BankruptcySurface extends StatelessWidget {
       'Esperando confirmación. La bancarrota todavía no está confirmada.',
     BankruptcySurfaceState.rejected =>
       'La partida rechazó esa acción. Volvemos al último estado confirmado.',
-    BankruptcySurfaceState.stale =>
-      'La situación cambió mientras mirabas. Reconstruyendo desde el estado más reciente.',
+    BankruptcySurfaceState.stale => 'La situación cambió mientras mirabas. Reconstruyendo desde el estado más reciente.',
     BankruptcySurfaceState.uncertain =>
       'Confirmando qué pasó antes de permitir otra acción equivalente.',
     BankruptcySurfaceState.offline =>
@@ -212,9 +211,7 @@ class _BankruptcyHeader extends StatelessWidget {
                   label: confirmed
                       ? 'BANCARROTA CONFIRMADA'
                       : 'ESTADO DE INSOLVENCIA',
-                  color: confirmed
-                      ? AppPalette.burgundy
-                      : AppPalette.wornBlue,
+                  color: confirmed ? AppPalette.burgundy : AppPalette.wornBlue,
                   angle: -0.018,
                 ),
               ),
@@ -242,10 +239,8 @@ class _BankruptcyHeader extends StatelessWidget {
                 confirmed
                     ? 'La partida ya confirmó la transición. Este resumen muestra solo el resultado confirmado.'
                     : 'No declaramos una derrota antes de que la partida confirme la bancarrota.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppPalette.inkSecondary,
-                  height: 1.3,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: AppPalette.inkSecondary, height: 1.3),
               ),
             ],
           ),
@@ -409,10 +404,8 @@ class _SummaryRow extends StatelessWidget {
           child: Text(
             value,
             textAlign: TextAlign.end,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppPalette.ink,
-              fontWeight: FontWeight.w900,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: AppPalette.ink, fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -468,13 +461,13 @@ class _TransferRow extends StatelessWidget {
               ],
             ],
           ),
-          if (transfer.detail != null && transfer.detail!.trim().isNotEmpty) ...[
+          if (transfer.detail != null &&
+              transfer.detail!.trim().isNotEmpty) ...[
             const SizedBox(height: AppSpacing.x1),
             Text(
               transfer.detail!,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppPalette.inkSecondary,
-              ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppPalette.inkSecondary),
             ),
           ],
         ],
