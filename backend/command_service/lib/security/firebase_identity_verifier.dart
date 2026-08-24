@@ -87,7 +87,9 @@ final class FirebaseIdentityVerifier {
       throw const IdentityVerificationException('invalid_subject');
     }
 
-    final signingInput = Uint8List.fromList(utf8.encode('${parts[0]}.${parts[1]}'));
+    final signingInput = Uint8List.fromList(
+      utf8.encode('${parts[0]}.${parts[1]}'),
+    );
     final signature = _decodeBase64Url(parts[2], 'invalid_signature');
     final signatureValid = await _signatureVerifier.verify(
       kid: kid,
