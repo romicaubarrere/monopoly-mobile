@@ -17,7 +17,14 @@ void main() {
     expect(find.text('Mesa chica.\nRivalidad grande.'), findsOneWidget);
     expect(find.text('Crear partida'), findsOneWidget);
     expect(find.text('Unirse con código'), findsOneWidget);
-    expect(find.bySemanticsLabel('Monopoly de Romina'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label == 'Monopoly de Romina',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Home keeps the DEC-065 boundary explicit', (tester) async {
