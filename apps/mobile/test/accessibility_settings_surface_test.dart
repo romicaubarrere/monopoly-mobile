@@ -116,10 +116,7 @@ void main() {
       find.byKey(const ValueKey('disabled-reason-disabled-placeholder')),
       findsOneWidget,
     );
-    expect(
-      find.bySemanticsLabel('Preferencia no disponible'),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('Preferencia no disponible'), findsOneWidget);
 
     await tester.tap(find.text('Preferencia no disponible'));
     await tester.pump();
@@ -154,7 +151,10 @@ void main() {
           matching: find.byType(InkWell),
         )
         .first;
-    expect(tester.getSize(actionInkWellFinder).height, greaterThanOrEqualTo(44));
+    expect(
+      tester.getSize(actionInkWellFinder).height,
+      greaterThanOrEqualTo(44),
+    );
 
     await tester.tap(find.text('Abrir ajustes del sistema'));
     await tester.pump();
@@ -171,7 +171,9 @@ void main() {
       disableAnimations: true,
     );
 
-    final initialSize = tester.getSize(find.byType(AccessibilitySettingsSurface));
+    final initialSize = tester.getSize(
+      find.byType(AccessibilitySettingsSurface),
+    );
     await tester.pump(const Duration(seconds: 1));
 
     expect(tester.takeException(), isNull);
