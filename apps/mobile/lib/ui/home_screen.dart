@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../design_system/tokens.dart';
+import '../design_system/visual_components.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -26,48 +27,13 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _Eyebrow(),
-                  const SizedBox(height: AppSpacing.x4),
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      'Una partida que entra en una mano.',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.x3),
-                  Text(
-                    'Mobile-first, competitiva y legible. El tablero da contexto; las decisiones viven cerca del pulgar.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppPalette.inkSecondary,
-                      height: 1.35,
-                    ),
-                  ),
+                  const _TopBar(),
+                  const SizedBox(height: AppSpacing.x5),
+                  const _HomeHero(),
                   const SizedBox(height: AppSpacing.x6),
-                  FilledButton(
-                    onPressed: () {},
-                    child: const Text('Crear partida'),
-                  ),
-                  const SizedBox(height: AppSpacing.x3),
-                  OutlinedButton(
-                    onPressed: () {},
-                    child: const Text('Unirse con código'),
-                  ),
+                  const _PlayActions(),
                   const SizedBox(height: AppSpacing.x8),
-                  Text(
-                    'Shell de partida',
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: AppSpacing.x2),
-                  Text(
-                    'Checkpoint estructural con 40 posiciones sintéticas. No contiene mapa, economía ni cartas DEC-065.',
-                    style: Theme.of(context).textTheme.bodyMedium
-                        ?.copyWith(color: AppPalette.inkSecondary),
-                  ),
-                  const SizedBox(height: AppSpacing.x4),
-                  const _GameShellPreview(),
+                  const _BoardPreviewSection(),
                 ],
               ),
             );
@@ -78,36 +44,200 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _Eyebrow extends StatelessWidget {
-  const _Eyebrow();
+class _TopBar extends StatelessWidget {
+  const _TopBar();
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.x3,
-            vertical: AppSpacing.x2,
-          ),
-          decoration: BoxDecoration(
-            color: AppPalette.ink,
-            borderRadius: BorderRadius.circular(AppRadius.control),
-          ),
+        Expanded(
           child: Text(
-            'M1 · UI SHELL',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            'ALMACÉN DE JUEGO',
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 1.6),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.x3),
+        Semantics(
+          label: 'Estado de conexión: prototipo local',
+          child: Container(
+            width: AppSizes.minTouchTarget,
+            height: AppSizes.minTouchTarget,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
               color: AppPalette.surface,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
+              border: Border.all(color: AppPalette.ink, width: 1.2),
+              borderRadius: BorderRadius.circular(AppRadius.sign),
+            ),
+            child: const Icon(
+              Icons.wifi_tethering_rounded,
+              semanticLabel: null,
             ),
           ),
         ),
-        const Spacer(),
-        Semantics(
-          label: 'Estado de conexión: prototipo local',
-          child: Icon(Icons.wifi_tethering_rounded, semanticLabel: null),
+      ],
+    );
+  }
+}
+
+class _HomeHero extends StatelessWidget {
+  const _HomeHero();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        PaperPanel(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.x4,
+            AppSpacing.x5,
+            AppSpacing.x4,
+            AppSpacing.x5,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const AlmacenSign(),
+              const SizedBox(height: AppSpacing.x6),
+              Semantics(
+                header: true,
+                child: Text(
+                  'Mesa chica.\nRivalidad grande.',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 0.98,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.x3),
+              Text(
+                'Una partida mobile con olor a papel impreso, carteles de almacén y caos familiar en la medida justa.',
+                style: Theme.of(context).textTheme.bodyLarge
+                    ?.copyWith(color: AppPalette.inkSecondary, height: 1.35),
+              ),
+              const SizedBox(height: AppSpacing.x5),
+              const Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSpacing.x2,
+                runSpacing: AppSpacing.x2,
+                children: [
+                  StampBadge(label: 'hecho para picarse'),
+                  InkDoodle(),
+                ],
+              ),
+            ],
+          ),
         ),
+        const Positioned(top: -7, left: 34, child: TapeMark(width: 64)),
+        const Positioned(
+          right: 12,
+          top: 82,
+          child: StampBadge(
+            label: 'hoy se juega',
+            color: AppPalette.wornBlue,
+            angle: -0.045,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlayActions extends StatelessWidget {
+  const _PlayActions();
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryStyle = FilledButton.styleFrom(
+      backgroundColor: AppPalette.primary,
+      foregroundColor: AppPalette.surface,
+      side: const BorderSide(color: AppPalette.burgundy, width: 2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sign),
+      ),
+      textStyle: const TextStyle(
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.7,
+      ),
+    );
+    final secondaryStyle = OutlinedButton.styleFrom(
+      foregroundColor: AppPalette.ink,
+      backgroundColor: AppPalette.surface,
+      side: const BorderSide(color: AppPalette.ink, width: 1.5),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.sign),
+      ),
+      textStyle: const TextStyle(
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.4,
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FilledButton(
+          style: primaryStyle,
+          onPressed: () {},
+          child: const Text('Crear partida'),
+        ),
+        const SizedBox(height: AppSpacing.x3),
+        OutlinedButton(
+          style: secondaryStyle,
+          onPressed: () {},
+          child: const Text('Unirse con código'),
+        ),
+        const SizedBox(height: AppSpacing.x3),
+        Text(
+          'Crear primero. Unirse rápido. Nada de navegación que compita con la partida.',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: AppPalette.inkSecondary, height: 1.3),
+        ),
+      ],
+    );
+  }
+}
+
+class _BoardPreviewSection extends StatelessWidget {
+  const _BoardPreviewSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: AppSpacing.x3,
+          runSpacing: AppSpacing.x2,
+          children: [
+            Text(
+              'UNA MESA, EN EL BOLSILLO',
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 0.8),
+            ),
+            const StampBadge(
+              label: '40 casilleros',
+              color: AppPalette.bottleGreen,
+              angle: 0.02,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.x2),
+        Text(
+          'Checkpoint estructural con 40 posiciones sintéticas. No contiene mapa, economía ni cartas DEC-065.',
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: AppPalette.inkSecondary, height: 1.35),
+        ),
+        const SizedBox(height: AppSpacing.x4),
+        const _GameShellPreview(),
       ],
     );
   }
@@ -118,45 +248,51 @@ class _GameShellPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        side: const BorderSide(color: AppPalette.ink, width: 1.5),
-        borderRadius: BorderRadius.circular(AppRadius.card),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.x4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Flexible(child: _TurnBadge()),
-                const SizedBox(width: AppSpacing.x2),
-                Flexible(
-                  child: Text(
-                    'Saldo · \$ —',
-                    textAlign: TextAlign.end,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+    return PaperPanel(
+      padding: const EdgeInsets.all(AppSpacing.x4),
+      background: AppPalette.kraft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.x2,
+            runSpacing: AppSpacing.x2,
+            children: [
+              const _TurnBadge(),
+              Text(
+                'Saldo · \$ —',
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  fontWeight: FontWeight.w900,
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.x4),
+          const _BoardContextPreview(),
+          const SizedBox(height: AppSpacing.x4),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppPalette.ink,
+              foregroundColor: AppPalette.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sign),
+              ),
             ),
-            const SizedBox(height: AppSpacing.x4),
-            const _BoardContextPreview(),
-            const SizedBox(height: AppSpacing.x4),
-            FilledButton(onPressed: null, child: const Text('Tirar dados')),
-            const SizedBox(height: AppSpacing.x2),
-            Text(
-              'Disponible cuando exista una partida confirmada.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: AppPalette.inkSecondary),
-            ),
-          ],
-        ),
+            onPressed: null,
+            child: const Text('Tirar dados'),
+          ),
+          const SizedBox(height: AppSpacing.x2),
+          Text(
+            'Disponible cuando exista una partida confirmada.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: AppPalette.inkSecondary),
+          ),
+        ],
       ),
     );
   }
@@ -175,13 +311,17 @@ class _TurnBadge extends StatelessWidget {
           vertical: AppSpacing.x2,
         ),
         decoration: BoxDecoration(
-          color: AppPalette.info,
-          borderRadius: BorderRadius.circular(999),
+          color: AppPalette.bottleGreen,
+          border: Border.all(color: AppPalette.ink, width: 1.2),
+          borderRadius: BorderRadius.circular(AppRadius.sign),
         ),
         child: Text(
           'TU TURNO · DEMO',
-          style: Theme.of(context).textTheme.labelMedium
-              ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: AppPalette.surface,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.4,
+          ),
         ),
       ),
     );
@@ -211,7 +351,7 @@ class _BoardContextPreview extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppPalette.canvas,
                 border: Border.all(color: AppPalette.ink, width: 1.5),
-                borderRadius: BorderRadius.circular(AppRadius.control),
+                borderRadius: BorderRadius.circular(AppRadius.sign),
               ),
               child: Stack(
                 children: [
@@ -224,6 +364,13 @@ class _BoardContextPreview extends StatelessWidget {
                       edge: edge,
                       sideHeight: sideHeight,
                     );
+                    final color = switch (index % 8) {
+                      0 => AppPalette.mustard,
+                      1 => AppPalette.wornBlue,
+                      2 => AppPalette.bottleGreen,
+                      3 => AppPalette.primary,
+                      _ => AppPalette.surface,
+                    };
 
                     return Positioned(
                       left: position.left,
@@ -234,9 +381,7 @@ class _BoardContextPreview extends StatelessWidget {
                         label: 'Casillero sintético ${index + 1}',
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: index == 0
-                                ? AppPalette.ritual
-                                : AppPalette.surface,
+                            color: index == 0 ? AppPalette.ritual : color,
                             border: Border.all(
                               color: AppPalette.ink,
                               width: 0.6,
@@ -266,6 +411,12 @@ class _BoardContextPreview extends StatelessWidget {
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 0.6,
                                 ),
+                          ),
+                          const SizedBox(height: AppSpacing.x2),
+                          Text(
+                            'datos de muestra',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppPalette.inkSecondary),
                           ),
                         ],
                       ),
