@@ -75,6 +75,7 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(find.bySemanticsLabel('Casillero sintético 1'), findsNothing);
   });
 
   testWidgets('disabled roll keeps an explicit visible reason', (tester) async {
