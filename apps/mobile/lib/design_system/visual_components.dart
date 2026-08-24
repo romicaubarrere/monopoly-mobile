@@ -177,10 +177,7 @@ class InkDoodle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ExcludeSemantics(
-      child: CustomPaint(
-        size: Size.square(size),
-        painter: _InkDoodlePainter(),
-      ),
+      child: CustomPaint(size: Size.square(size), painter: _InkDoodlePainter()),
     );
   }
 }
