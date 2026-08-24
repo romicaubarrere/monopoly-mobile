@@ -60,7 +60,7 @@ void main() {
   testWidgets('board preview exposes one structural semantics container', (
     tester,
   ) async {
-    final semantics = SemanticsTester(tester);
+    final semantics = tester.ensureSemantics();
     addTearDown(semantics.dispose);
 
     await tester.pumpWidget(
