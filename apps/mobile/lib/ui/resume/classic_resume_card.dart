@@ -73,26 +73,21 @@ class ClassicResumeCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.x3),
                 Text(
                   presentation.progressLabel,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    height: 1.25,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge
+                      ?.copyWith(fontWeight: FontWeight.w800, height: 1.25),
                 ),
                 const SizedBox(height: AppSpacing.x1),
                 Text(
                   presentation.savedAtLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppPalette.inkSecondary,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: AppPalette.inkSecondary),
                 ),
                 if (statusMessage != null) ...[
                   const SizedBox(height: AppSpacing.x3),
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.x3),
                     decoration: BoxDecoration(
-                      color: isError
-                          ? AppPalette.surface
-                          : AppPalette.canvas,
+                      color: isError ? AppPalette.surface : AppPalette.canvas,
                       border: Border.all(
                         color: isError
                             ? AppPalette.burgundy
@@ -135,10 +130,8 @@ class ClassicResumeCard extends StatelessWidget {
                       ? 'El estado guardado no se sobrescribe desde esta pantalla.'
                       : 'Se reanuda desde el último estado confirmado por la partida.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppPalette.inkSecondary,
-                    height: 1.3,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: AppPalette.inkSecondary, height: 1.3),
                 ),
               ],
             ),
