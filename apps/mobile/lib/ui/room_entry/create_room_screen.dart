@@ -103,9 +103,7 @@ class CreateRoomScreen extends StatelessWidget {
                           children: [
                             Text(
                               'MODOS DE JUEGO',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
+                              style: Theme.of(context).textTheme.labelLarge
                                   ?.copyWith(
                                     color: AppPalette.bottleGreen,
                                     fontWeight: FontWeight.w900,
@@ -169,9 +167,7 @@ class CreateRoomScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(AppSpacing.x2),
                     child: FilledButton(
                       onPressed: canCreate ? onCreateRoom : null,
-                      child: Text(
-                        isPending ? 'Creando sala…' : 'Crear sala',
-                      ),
+                      child: Text(isPending ? 'Creando sala…' : 'Crear sala'),
                     ),
                   ),
                 ),
