@@ -1,0 +1,407 @@
+{
+  "privateSentinel": {
+    "rngVersion": "hmac_sha256_counter_v1",
+    "seedMarker": "authority-private-unchanged",
+    "streamCounters": {
+      "dice": 2
+    }
+  },
+  "buy": {
+    "command": {
+      "commandId": "cmd-offer-1",
+      "schemaVersion": 1,
+      "expectedStateVersion": 1,
+      "clientInstanceId": "client-1",
+      "gameId": "game-vp0",
+      "actorPlayerId": "p1",
+      "type": "BuyProperty",
+      "payload": {
+        "decisionId": "cmd-roll-1:propertyOffer",
+        "propertyId": "street-07"
+      }
+    },
+    "inputHashMarker": "fixture-semantic-hash-v1-buy",
+    "stateProjection": {
+      "stateVersionAfter": 2,
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 1893,
+          "position": 8,
+          "ownedPropertyIds": [
+            "street-07"
+          ],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "ownership": {
+        "byPropertyId": {
+          "street-07": "p1"
+        }
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "turnResolved",
+        "turnNumber": 1
+      },
+      "pendingDecision": null,
+      "activeAuction": null,
+      "lastMutation": {
+        "actorPlayerId": "p1",
+        "commandId": "cmd-offer-1",
+        "type": "buyAuction"
+      }
+    },
+    "resultSummary": {
+      "commandId": "cmd-offer-1",
+      "status": "accepted",
+      "stateVersionBefore": 1,
+      "stateVersionAfter": 2,
+      "events": [
+        {
+          "type": "propertyPurchased",
+          "data": {
+            "playerId": "p1",
+            "price": 107,
+            "propertyId": "street-07"
+          }
+        }
+      ]
+    }
+  },
+  "decline": {
+    "command": {
+      "commandId": "cmd-offer-1",
+      "schemaVersion": 1,
+      "expectedStateVersion": 1,
+      "clientInstanceId": "client-1",
+      "gameId": "game-vp0",
+      "actorPlayerId": "p1",
+      "type": "DeclineProperty",
+      "payload": {
+        "decisionId": "cmd-roll-1:propertyOffer",
+        "propertyId": "street-07"
+      }
+    },
+    "inputHashMarker": "fixture-semantic-hash-v1-decline",
+    "stateProjection": {
+      "stateVersionAfter": 2,
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 8,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "ownership": {},
+      "turnState": {
+        "currentPlayerId": "p1",
+        "landingPropertyId": "street-07",
+        "phase": "auction",
+        "turnNumber": 1
+      },
+      "pendingDecision": {
+        "allowedPlayerIds": [
+          "p1"
+        ],
+        "createdAt": "2026-08-25T02:30:00.000Z",
+        "deadlineAt": "2026-08-25T02:30:06.000Z",
+        "decisionId": "cmd-offer-1:auction:turn:2",
+        "kind": "auctionTurn",
+        "payload": {
+          "auctionId": "cmd-offer-1:auction",
+          "propertyId": "street-07"
+        },
+        "stateVersionCreated": 2,
+        "timeoutPolicy": "pass"
+      },
+      "activeAuction": {
+        "auctionId": "cmd-offer-1:auction",
+        "currentBid": 0,
+        "currentBidderPlayerId": "p1",
+        "eligiblePlayerIds": [
+          "p1",
+          "p2"
+        ],
+        "hardDeadlineAt": "2026-08-25T02:30:45.000Z",
+        "minimumIncrement": 10,
+        "passedPlayerIds": [],
+        "propertyId": "street-07",
+        "startedAt": "2026-08-25T02:30:00.000Z"
+      },
+      "lastMutation": {
+        "actorPlayerId": "p1",
+        "commandId": "cmd-offer-1",
+        "type": "buyAuction"
+      }
+    },
+    "resultSummary": {
+      "commandId": "cmd-offer-1",
+      "status": "accepted",
+      "stateVersionBefore": 1,
+      "stateVersionAfter": 2,
+      "events": [
+        {
+          "type": "propertyDeclined",
+          "data": {
+            "playerId": "p1",
+            "propertyId": "street-07"
+          }
+        },
+        {
+          "type": "auctionStarted",
+          "data": {
+            "auctionId": "cmd-offer-1:auction",
+            "eligiblePlayerIds": [
+              "p1",
+              "p2"
+            ],
+            "propertyId": "street-07"
+          }
+        }
+      ]
+    }
+  },
+  "bid": {
+    "command": {
+      "commandId": "cmd-bid-1",
+      "schemaVersion": 1,
+      "expectedStateVersion": 2,
+      "clientInstanceId": "client-1",
+      "gameId": "game-vp0",
+      "actorPlayerId": "p1",
+      "type": "PlaceBid",
+      "payload": {
+        "amount": 40,
+        "auctionId": "cmd-offer-1:auction"
+      }
+    },
+    "inputHashMarker": "fixture-semantic-hash-v1-bid",
+    "stateProjection": {
+      "stateVersionAfter": 3,
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 8,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "ownership": {},
+      "turnState": {
+        "currentPlayerId": "p1",
+        "landingPropertyId": "street-07",
+        "phase": "auction",
+        "turnNumber": 1
+      },
+      "pendingDecision": {
+        "allowedPlayerIds": [
+          "p2"
+        ],
+        "createdAt": "2026-08-25T02:30:02.000Z",
+        "deadlineAt": "2026-08-25T02:30:08.000Z",
+        "decisionId": "cmd-offer-1:auction:turn:3",
+        "kind": "auctionTurn",
+        "payload": {
+          "auctionId": "cmd-offer-1:auction",
+          "propertyId": "street-07"
+        },
+        "stateVersionCreated": 3,
+        "timeoutPolicy": "pass"
+      },
+      "activeAuction": {
+        "auctionId": "cmd-offer-1:auction",
+        "currentBid": 40,
+        "currentBidderPlayerId": "p2",
+        "eligiblePlayerIds": [
+          "p1",
+          "p2"
+        ],
+        "hardDeadlineAt": "2026-08-25T02:30:45.000Z",
+        "leaderPlayerId": "p1",
+        "minimumIncrement": 10,
+        "passedPlayerIds": [],
+        "propertyId": "street-07",
+        "startedAt": "2026-08-25T02:30:00.000Z"
+      },
+      "lastMutation": {
+        "actorPlayerId": "p1",
+        "commandId": "cmd-bid-1",
+        "type": "buyAuction"
+      }
+    },
+    "resultSummary": {
+      "commandId": "cmd-bid-1",
+      "status": "accepted",
+      "stateVersionBefore": 2,
+      "stateVersionAfter": 3,
+      "events": [
+        {
+          "type": "auctionBidPlaced",
+          "data": {
+            "amount": 40,
+            "auctionId": "cmd-offer-1:auction",
+            "playerId": "p1"
+          }
+        }
+      ]
+    }
+  },
+  "deadlinePass": {
+    "command": {
+      "commandId": "deadline:v1:cmd-offer-1:auction:turn:3",
+      "schemaVersion": 1,
+      "expectedStateVersion": 3,
+      "clientInstanceId": "authority-system",
+      "gameId": "game-vp0",
+      "actorPlayerId": "p2",
+      "type": "PassAuction",
+      "payload": {
+        "auctionId": "cmd-offer-1:auction"
+      }
+    },
+    "inputHashMarker": "fixture-semantic-hash-v1-deadlinePass",
+    "stateProjection": {
+      "stateVersionAfter": 4,
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 1960,
+          "position": 8,
+          "ownedPropertyIds": [
+            "street-07"
+          ],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "ownership": {
+        "byPropertyId": {
+          "street-07": "p1"
+        }
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "turnResolved",
+        "turnNumber": 1
+      },
+      "pendingDecision": null,
+      "activeAuction": null,
+      "lastMutation": {
+        "actorPlayerId": "p2",
+        "commandId": "deadline:v1:cmd-offer-1:auction:turn:3",
+        "type": "buyAuction"
+      }
+    },
+    "resultSummary": {
+      "commandId": "deadline:v1:cmd-offer-1:auction:turn:3",
+      "status": "accepted",
+      "stateVersionBefore": 3,
+      "stateVersionAfter": 4,
+      "events": [
+        {
+          "type": "auctionPassed",
+          "data": {
+            "auctionId": "cmd-offer-1:auction",
+            "playerId": "p2"
+          }
+        },
+        {
+          "type": "auctionWon",
+          "data": {
+            "auctionId": "cmd-offer-1:auction",
+            "propertyId": "street-07",
+            "winnerPlayerId": "p1",
+            "winningBid": 40
+          }
+        }
+      ]
+    }
+  }
+}
