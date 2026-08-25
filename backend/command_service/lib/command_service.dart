@@ -3,6 +3,7 @@ library;
 export 'deadline_resolution_planner.dart';
 export 'ready_start_planner.dart';
 export 'rng_operation_planner.dart';
+export 'roll_movement_planner.dart';
 
 /// Authority-side composition root placeholder.
 ///
