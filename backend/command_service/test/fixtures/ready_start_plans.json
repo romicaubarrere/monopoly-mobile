@@ -1,0 +1,85 @@
+[
+  {
+    "id": "vp0-ready-start-canonical-plan",
+    "operation": {
+      "commandId": "cmd-start-vp0",
+      "actorUid": "uid-host",
+      "inputHashVersion": 1,
+      "roomId": "room-vp0",
+      "expectedRoomVersion": 12
+    },
+    "initialRoom": {
+      "roomId": "room-vp0",
+      "roomVersion": 12,
+      "status": "open",
+      "hostUid": "uid-host",
+      "memberUids": ["uid-host", "uid-b", "bot-c"],
+      "readyByUid": {
+        "uid-host": true,
+        "uid-b": true,
+        "bot-c": true
+      },
+      "presetId": "express"
+    },
+    "privateInput": {
+      "seedBytes": [
+        0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31
+      ]
+    },
+    "expectedPlan": {
+      "gameId": "game-vp0",
+      "stateVersion": 0,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {"minimumIncrement": 10},
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {"temporaryTakeover": true},
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "seatOrder": ["player-bot", "player-host", "player-b"],
+      "starterAllocation": [
+        {
+          "playerId": "player-bot",
+          "propertyIds": ["street-15", "street-16"],
+          "cash": 1769
+        },
+        {
+          "playerId": "player-host",
+          "propertyIds": ["street-03", "street-04"],
+          "cash": 1793
+        },
+        {
+          "playerId": "player-b",
+          "propertyIds": ["street-08", "street-10"],
+          "cash": 1782
+        }
+      ],
+      "streamCounters": {
+        "dice": 0,
+        "seat_order": 2,
+        "starting_properties": 8,
+        "cards_a_shuffle": 2,
+        "cards_b_shuffle": 2
+      },
+      "privateDeckState": {
+        "cardsAOrder": ["card-a-0", "card-a-1", "card-a-2"],
+        "cardsBOrder": ["card-b-1", "card-b-0", "card-b-2"]
+      }
+    }
+  }
+]
