@@ -485,14 +485,14 @@ RulesCatalog _catalog() {
     ),
     deckCatalog: DeckCatalog(
       cards: <DeckCard>[
-      DeckCard(
-        cardId: 'card-a',
-        deckId: 'cards_a',
+        DeckCard(
+          cardId: 'card-a',
+          deckId: 'cards_a',
           effect: CardEffect(type: 'synthetic'),
         ),
-      DeckCard(
-        cardId: 'card-b',
-        deckId: 'cards_b',
+        DeckCard(
+          cardId: 'card-b',
+          deckId: 'cards_b',
           effect: CardEffect(type: 'synthetic'),
         ),
       ],

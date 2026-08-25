@@ -366,9 +366,12 @@ _AutoLiquidation _autoLiquidate({
   void mortgageEligible({required bool outsideCompleteGroupsOnly}) {
     final ordered =
         assets.where((asset) {
-          if (asset.ownerPlayerId != debtor.playerId || asset.mortgaged)
+          if (asset.ownerPlayerId != debtor.playerId || asset.mortgaged) {
             return false;
-          if (!_groupHasNoImprovements(asset, assets, catalog)) return false;
+          }
+          if (!_groupHasNoImprovements(asset, assets, catalog)) {
+            return false;
+          }
           final inComplete = _isInCompleteGroup(asset, debtor, catalog);
           return !outsideCompleteGroupsOnly || !inComplete;
         }).toList()..sort(
@@ -525,8 +528,9 @@ bool _catalogMatches(PublicGameState state, RulesCatalog catalog) =>
 
 PlayerState? _activePlayer(PublicGameState state, String playerId) {
   for (final player in state.players) {
-    if (player.playerId == playerId && player.status == PlayerStatus.active)
+    if (player.playerId == playerId && player.status == PlayerStatus.active) {
       return player;
+    }
   }
   return null;
 }
@@ -540,7 +544,9 @@ bool _validOwnership(PublicGameState state, RulesCatalog catalog) {
   try {
     final assets = _assets(state);
     final assetIds = assets.map((asset) => asset.propertyId).toList();
-    if (assetIds.toSet().length != assetIds.length) return false;
+    if (assetIds.toSet().length != assetIds.length) {
+      return false;
+    }
     final playerIds = state.players.map((player) => player.playerId).toSet();
     if (assets.any(
       (asset) =>
@@ -554,7 +560,9 @@ bool _validOwnership(PublicGameState state, RulesCatalog catalog) {
         if (asset.ownerPlayerId != null) asset.propertyId: asset.ownerPlayerId!,
     };
     final raw = state.ownership['byPropertyId'];
-    if (raw is! Map<String, Object?> || raw.length != byId.length) return false;
+    if (raw is! Map<String, Object?> || raw.length != byId.length) {
+      return false;
+    }
     for (final entry in byId.entries) {
       if (raw[entry.key] != entry.value ||
           !catalog.economyCatalog.properties.containsKey(entry.key)) {
@@ -567,15 +575,18 @@ bool _validOwnership(PublicGameState state, RulesCatalog catalog) {
           .map((entry) => entry.key)
           .toSet();
       if (ids.length != player.ownedPropertyIds.length ||
-          !ids.containsAll(player.ownedPropertyIds))
+          !ids.containsAll(player.ownedPropertyIds)) {
         return false;
+      }
     }
     final playerCards = state.players
         .expand((player) => player.keepCardIds)
         .toList(growable: false);
     final bankCards = _stringList(state.bank['keepCardIds']);
     final allCards = <String>[...playerCards, ...bankCards];
-    if (allCards.toSet().length != allCards.length) return false;
+    if (allCards.toSet().length != allCards.length) {
+      return false;
+    }
     return true;
   } on Object {
     return false;
@@ -584,12 +595,14 @@ bool _validOwnership(PublicGameState state, RulesCatalog catalog) {
 
 List<PropertyState> _assets(PublicGameState state) {
   final raw = state.ownership['properties'];
-  if (raw is! List<Object?>)
+  if (raw is! List<Object?>) {
     throw const DomainContractViolation('ownership.properties missing');
+  }
   return raw
       .map((value) {
-        if (value is! Map<String, Object?>)
+        if (value is! Map<String, Object?>) {
           throw const DomainContractViolation('invalid property state');
+        }
         return PropertyState(
           propertyId: value['propertyId']! as String,
           kind: PropertyKind.values.singleWhere(
@@ -726,8 +739,9 @@ final class _DebtContext {
         decision['kind'] != 'debtResolution' ||
         decision['stateVersionCreated'] != state.header.stateVersion ||
         decision['allowedPlayerIds'] is! List<Object?> ||
-        !(decision['allowedPlayerIds'] as List<Object?>).contains(actorId))
+        !(decision['allowedPlayerIds'] as List<Object?>).contains(actorId)) {
       return null;
+    }
     final debtCaseId = debt['debtCaseId'];
     final decisionId = decision['decisionId'];
     final amount = debt['amountDue'];
@@ -739,13 +753,20 @@ final class _DebtContext {
         creditor is! Map<String, Object?> ||
         command.payload.length != 2 ||
         command.payload['debtCaseId'] != debtCaseId ||
-        command.payload['decisionId'] != decisionId)
+        command.payload['decisionId'] != decisionId) {
       return null;
+    }
     final kind = creditor['kind'];
     final playerId = creditor['playerId'];
-    if (kind != 'bank' && kind != 'player') return null;
-    if (kind == 'player' && playerId is! String) return null;
-    if (kind == 'bank' && playerId != null) return null;
+    if (kind != 'bank' && kind != 'player') {
+      return null;
+    }
+    if (kind == 'player' && playerId is! String) {
+      return null;
+    }
+    if (kind == 'bank' && playerId != null) {
+      return null;
+    }
     return _DebtContext(
       debtCaseId,
       actorId,
