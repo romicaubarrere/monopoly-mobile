@@ -1,0 +1,93 @@
+[
+  {
+    "id": "vp0-authoritative-roll-movement",
+    "rngVersion": "hmac_sha256_counter_v1",
+    "operation": {
+      "commandId": "cmd-roll-1",
+      "actorUid": "uid-1",
+      "actorPlayerId": "p1",
+      "gameId": "game-vp0",
+      "expectedStateVersion": 0,
+      "inputHashVersion": 1,
+      "transitionTime": "2026-08-25T01:30:00Z"
+    },
+    "memberUidByPlayerId": {"p1": "uid-1", "p2": "uid-2"},
+    "privateInput": {
+      "schemaVersion": 1,
+      "rngVersion": "hmac_sha256_counter_v1",
+      "seedBytes": [
+        0, 1, 2, 3, 4, 5, 6, 7,
+        8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 27, 28, 29, 30, 31
+      ],
+      "streamCounters": {
+        "dice": 0,
+        "seat_order": 0,
+        "starting_properties": 0,
+        "cards_a_shuffle": 0,
+        "cards_b_shuffle": 0
+      }
+    },
+    "initialPublicState": {
+      "schemaVersion": 1,
+      "stateVersion": 0,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "gameId": "game-vp0",
+      "roomId": "room-vp0",
+      "status": "active",
+      "turnState": {
+        "turnNumber": 1,
+        "phase": "awaitingRoll",
+        "currentPlayerId": "p1"
+      },
+      "players": [
+        {"playerId": "p1", "position": 0},
+        {"playerId": "p2", "position": 0}
+      ]
+    },
+    "expectedPlan": {
+      "stateVersionAfter": 1,
+      "die1": 6,
+      "die2": 2,
+      "fromPosition": 0,
+      "toPosition": 8,
+      "propertyId": "street-07",
+      "turnStateAfter": {
+        "turnNumber": 1,
+        "phase": "awaitingPropertyDecision",
+        "currentPlayerId": "p1",
+        "landingPropertyId": "street-07",
+        "lastRoll": {"die1": 6, "die2": 2, "total": 8}
+      },
+      "pendingDecision": {
+        "decisionId": "cmd-roll-1:propertyOffer",
+        "kind": "propertyOffer",
+        "allowedPlayerIds": ["p1"],
+        "stateVersionCreated": 1,
+        "createdAt": "2026-08-25T01:30:00.000Z",
+        "deadlineAt": "2026-08-25T01:30:12.000Z",
+        "timeoutPolicy": "pass",
+        "payload": {"propertyId": "street-07", "purchasePrice": 107}
+      },
+      "events": [
+        {
+          "type": "diceRolled",
+          "data": {"playerId": "p1", "die1": 6, "die2": 2, "total": 8}
+        },
+        {
+          "type": "playerMoved",
+          "data": {"playerId": "p1", "from": 0, "to": 8, "spaces": 8}
+        }
+      ],
+      "successorCounters": {
+        "dice": 2,
+        "seat_order": 0,
+        "starting_properties": 0,
+        "cards_a_shuffle": 0,
+        "cards_b_shuffle": 0
+      }
+    }
+  }
+]
