@@ -151,7 +151,7 @@ void main() {
       expect(retry.toCanonicalPublicJson(), first.toCanonicalPublicJson());
       expect(
         digest.toString(),
-        '6140b301c91702473d2e8173585042833b498dbb767a120962d295cc3a148894',
+        '6140b301c91702473d2e8173585042833b498dbb767a120962d295cc3a148894', // pragma: allowlist secret
       );
       expect(source.header.stateVersion, 1);
       expect(_player(source).cash, 500);
