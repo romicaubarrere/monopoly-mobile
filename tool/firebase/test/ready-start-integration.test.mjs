@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { after, before, beforeEach, test } from 'node:test';
+import { after, before, test } from 'node:test';
 
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc, getDoc, runTransaction, setDoc } from 'firebase/firestore';
@@ -24,10 +24,6 @@ before(async () => {
 
 after(async () => {
   await env?.cleanup();
-});
-
-beforeEach(async () => {
-  await env.clearFirestore();
 });
 
 function canonicalize(value) {
@@ -135,7 +131,7 @@ async function applySetReady({
 
 async function applyStartGame({
   roomId,
-  commandId = fixture.operation.commandId,
+  commandId = `${fixture.operation.commandId}-${roomId}`,
   actorUid = fixture.operation.actorUid,
   expectedRoomVersion = fixture.operation.expectedRoomVersion,
   forceCallbackRetry = false,
@@ -147,6 +143,7 @@ async function applyStartGame({
     payload: {},
   });
   const plan = fixture.expectedPlan;
+  const gameId = `${plan.gameId}-${roomId}`;
   let callbackAttempts = 0;
   let result;
 
@@ -154,8 +151,8 @@ async function applyStartGame({
     const db = context.firestore();
     const roomRef = doc(db, 'rooms', roomId);
     const commandRef = doc(db, 'roomCommands', commandId);
-    const gameRef = doc(db, 'games', plan.gameId);
-    const secretRef = doc(db, 'gameSecrets', plan.gameId);
+    const gameRef = doc(db, 'games', gameId);
+    const secretRef = doc(db, 'gameSecrets', gameId);
     const barrierRef = doc(db, 'readyStartRetryBarriers', roomId);
 
     result = await runTransaction(db, async (tx) => {
@@ -200,7 +197,7 @@ async function applyStartGame({
         rulesVersion: plan.rulesVersion,
         rngVersion: plan.rngVersion,
         rngCommitment,
-        gameId: plan.gameId,
+        gameId,
         roomId,
         status: 'active',
         memberUids: room.memberUids,
@@ -217,7 +214,7 @@ async function applyStartGame({
       };
       const roomVersion = expectedRoomVersion + 1;
       const resultSummary = {
-        gameId: plan.gameId,
+        gameId,
         stateVersion: plan.stateVersion,
         rulesVersion: plan.rulesVersion,
         presetConfig: plan.presetConfig,
@@ -230,7 +227,7 @@ async function applyStartGame({
         roomRef,
         {
           status: 'active',
-          gameId: plan.gameId,
+          gameId,
           roomVersion,
           frozenRulesVersion: plan.rulesVersion,
           frozenPresetConfig: plan.presetConfig,
@@ -245,7 +242,7 @@ async function applyStartGame({
         inputHash,
         status: 'accepted',
         roomId,
-        gameId: plan.gameId,
+        gameId,
         roomVersionBefore: expectedRoomVersion,
         roomVersionAfter: roomVersion,
         resultSummary,
@@ -253,7 +250,7 @@ async function applyStartGame({
       return {disposition: 'accepted', ...resultSummary};
     });
   });
-  return {result, callbackAttempts};
+  return {result, callbackAttempts, commandId, gameId};
 }
 
 test('VP0 SetReady is versioned, idempotent, and collision-safe', async () => {
@@ -291,7 +288,7 @@ test('VP0 SetReady is versioned, idempotent, and collision-safe', async () => {
 
 test('VP0 StartGame commits the shared Dart plan atomically under callback retry', async () => {
   const roomId = await seedRoom('callback-retry');
-  const {result, callbackAttempts} = await applyStartGame({
+  const {result, callbackAttempts, commandId, gameId} = await applyStartGame({
     roomId,
     forceCallbackRetry: true,
   });
@@ -308,9 +305,9 @@ test('VP0 StartGame commits the shared Dart plan atomically under callback retry
     const db = context.firestore();
     const [room, game, secret, command] = await Promise.all([
       getDoc(doc(db, 'rooms', roomId)),
-      getDoc(doc(db, 'games', fixture.expectedPlan.gameId)),
-      getDoc(doc(db, 'gameSecrets', fixture.expectedPlan.gameId)),
-      getDoc(doc(db, 'roomCommands', fixture.operation.commandId)),
+      getDoc(doc(db, 'games', gameId)),
+      getDoc(doc(db, 'gameSecrets', gameId)),
+      getDoc(doc(db, 'roomCommands', commandId)),
     ]);
     assert.equal(room.data().status, 'active');
     assert.equal(room.data().roomVersion, 13);
@@ -326,7 +323,7 @@ test('VP0 StartGame commits the shared Dart plan atomically under callback retry
     );
     assert.equal(game.data().seedBytes, undefined);
     assert.equal(game.data().privateDeckState, undefined);
-    assert.equal(command.data().gameId, fixture.expectedPlan.gameId);
+    assert.equal(command.data().gameId, gameId);
   });
 });
 
@@ -339,7 +336,7 @@ test('VP0 lost ACK and two clients converge without a second RNG effect', async 
   assert.equal(duplicate.result.disposition, 'duplicate');
   assert.deepEqual(duplicate.result, {
     disposition: 'duplicate',
-    gameId: fixture.expectedPlan.gameId,
+    gameId: accepted.gameId,
     stateVersion: fixture.expectedPlan.stateVersion,
     rulesVersion: fixture.expectedPlan.rulesVersion,
     presetConfig: fixture.expectedPlan.presetConfig,
@@ -349,14 +346,14 @@ test('VP0 lost ACK and two clients converge without a second RNG effect', async 
 
   await env.withSecurityRulesDisabled(async (firstContext) => {
     const first = await getDoc(
-      doc(firstContext.firestore(), 'games', fixture.expectedPlan.gameId),
+      doc(firstContext.firestore(), 'games', accepted.gameId),
     );
     await env.withSecurityRulesDisabled(async (secondContext) => {
       const second = await getDoc(
-        doc(secondContext.firestore(), 'games', fixture.expectedPlan.gameId),
+        doc(secondContext.firestore(), 'games', accepted.gameId),
       );
       assert.deepEqual(first.data(), second.data());
-      assert.equal(first.data().gameId, fixture.expectedPlan.gameId);
+      assert.equal(first.data().gameId, accepted.gameId);
       assert.equal(first.data().stateVersion, 0);
       assert.deepEqual(first.data().seatOrder, fixture.expectedPlan.seatOrder);
       assert.deepEqual(first.data().presetConfig, fixture.expectedPlan.presetConfig);
@@ -374,8 +371,8 @@ test('VP0 StartGame guards reject before public/private persistence', async () =
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     const [game, secret] = await Promise.all([
-      getDoc(doc(db, 'games', fixture.expectedPlan.gameId)),
-      getDoc(doc(db, 'gameSecrets', fixture.expectedPlan.gameId)),
+      getDoc(doc(db, 'games', rejected.gameId)),
+      getDoc(doc(db, 'gameSecrets', rejected.gameId)),
     ]);
     assert.equal(game.exists(), false);
     assert.equal(secret.exists(), false);
