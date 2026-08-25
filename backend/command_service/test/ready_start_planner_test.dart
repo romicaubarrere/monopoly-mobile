@@ -214,11 +214,9 @@ void main() {
 }
 
 Map<String, Object?> _fixture() {
-  final decoded =
-      jsonDecode(
-            File('test/fixtures/ready_start_plans.json').readAsStringSync(),
-          )
-          as List<Object?>;
+  final decoded = jsonDecode(
+    File('test/fixtures/ready_start_plans.json').readAsStringSync(),
+  ) as List<Object?>;
   return decoded.cast<Map<String, Object?>>().single;
 }
 
