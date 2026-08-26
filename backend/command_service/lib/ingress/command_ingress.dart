@@ -85,6 +85,7 @@ final class CommandIngress {
   Future<T> handle<T>({
     required IngressCommandEnvelope command,
     required AuthorityExecutor<T> execute,
+    IngressContext? ingressContext,
   }) async {
     if (command.commandId.isEmpty) {
       throw ArgumentError.value(
@@ -108,8 +109,8 @@ final class CommandIngress {
       );
     }
 
-    final requestReceivedAt = _now().toUtc();
-    final context = IngressContext(requestReceivedAt: requestReceivedAt);
+    final context =
+        ingressContext ?? IngressContext(requestReceivedAt: _now().toUtc());
     final startedAt = _now();
 
     try {

@@ -18,9 +18,25 @@ It does not define UI, Firebase configuration, or gameplay rules.
 - Engine remains the only owner of command legality, dice, movement, cash,
   ownership, auctions, deadlines, and state transitions.
 
-The concrete Firebase/HTTP implementation belongs behind the two ports. It may
-attach authentication out-of-band, but authenticated UID is never accepted in
-the command body.
+`HttpAuthorityWireTransport` is the concrete mobile HTTP adapter behind the two
+ports. It attaches a Firebase ID token only as a Bearer header, requires HTTPS
+outside loopback Emulator origins, and exposes only the three VP0 routes below.
+Authenticated UID is never accepted in a command body.
+
+## HTTP surface
+
+- `POST /v1/authority/commands` sends the canonical command envelope and its
+  recomputable semantic fingerprint.
+- `POST /v1/authority/reconnect` sends the observed version and, when needed,
+  only the uncertain command identity.
+- `GET /v1/authority/games/{gameId}` reads replacement public snapshots.
+
+`AuthorityHttpIngress` verifies the Firebase identity, decodes the same
+`board_backend_api` wire contracts, captures `requestReceivedAt` once, and
+passes the verified identity separately to `AuthorityHttpExecutor`. The
+executor remains responsible for membership and for composing the accepted
+Engine planners with durable Firestore transactions; no game rule exists in
+the HTTP layer.
 
 ## Minimum Flutter repository behavior
 
@@ -59,5 +75,9 @@ any depth. The concrete adapter must preserve the same rule and must never read
 
 The package tests prove canonical retry identity, semantic collision changes,
 public/private rejection, monotonic reply versions, payload-free lost-ACK
-reconciliation, and replacement snapshot behavior. Firebase Emulator evidence
-for server persistence remains in the accepted #69/#71/#73/#74 chain.
+reconciliation, replacement snapshot behavior, and an authenticated loopback
+HTTP round trip from `WireAuthorityClient` through the typed ingress. Firebase
+Emulator evidence for server persistence remains in the accepted
+#69/#71/#73/#74 chain. The remaining vertical gap is the concrete
+`AuthorityHttpExecutor` composition over those existing Firestore adapters,
+followed by Flutter widget/integration and Tier-1 device evidence.

@@ -86,6 +86,43 @@ void main() {
         isNot(buy(4, 'property-2').inputHash),
       );
     });
+
+    test('ingress recomputes fingerprint and rejects body mutation', () {
+      final request = AuthorityCommandRequest.game(
+        GameCommand(
+          commandId: 'cmd-buy-ingress-1',
+          schemaVersion: 1,
+          expectedStateVersion: 4,
+          clientInstanceId: 'client-a',
+          gameId: 'game-1',
+          actorPlayerId: 'player-1',
+          type: GameCommandType.buyProperty,
+          payload: const <String, Object?>{'propertyId': 'property-1'},
+        ),
+      );
+      final wire = request.toWireJson();
+
+      expect(
+        AuthorityCommandRequest.fromWireJson(wire).inputHash,
+        request.inputHash,
+      );
+      expect(
+        () => AuthorityCommandRequest.fromWireJson(<String, Object?>{
+          ...wire,
+          'command': <String, Object?>{
+            ...(wire['command']! as Map<String, Object?>),
+            'expectedStateVersion': 5,
+          },
+        }),
+        throwsA(
+          isA<ClientAuthorityContractViolation>().having(
+            (error) => error.code,
+            'code',
+            'semanticFingerprintMismatch',
+          ),
+        ),
+      );
+    });
   });
 
   group('public snapshot privacy and replacement', () {

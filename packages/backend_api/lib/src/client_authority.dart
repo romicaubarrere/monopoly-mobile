@@ -69,6 +69,49 @@ final class AuthorityCommandRequest {
         command: command.toJson(),
       );
 
+  /// Decodes the exact public wire envelope at Authority ingress.
+  ///
+  /// The semantic fingerprint is recomputed from the canonical command rather
+  /// than trusted from the network. This keeps the HTTP boundary on the same
+  /// schema and collision rules as the Flutter adapter.
+  factory AuthorityCommandRequest.fromWireJson(Map<String, Object?> value) {
+    _requireExactKeys(value, const <String>{
+      'family',
+      'inputHashVersion',
+      'inputHash',
+      'command',
+    });
+    final family = switch (value['family']) {
+      'room' => AuthorityCommandFamily.room,
+      'game' => AuthorityCommandFamily.game,
+      _ => throw const ClientAuthorityContractViolation('invalidCommandFamily'),
+    };
+    if (value['inputHashVersion'] != ProtocolFoundation.inputHashVersion) {
+      throw const ClientAuthorityContractViolation(
+        'unsupportedInputHashVersion',
+      );
+    }
+    final inputHash = value['inputHash'];
+    if (inputHash is! String || !_sha256Pattern.hasMatch(inputHash)) {
+      throw const ClientAuthorityContractViolation('invalidInputHash');
+    }
+    final command = _jsonObject(value['command'], 'invalidCommand');
+    final request = switch (family) {
+      AuthorityCommandFamily.room => AuthorityCommandRequest.room(
+        _decodeRoomCommand(command),
+      ),
+      AuthorityCommandFamily.game => AuthorityCommandRequest.game(
+        _decodeGameCommand(command),
+      ),
+    };
+    if (request.inputHash != inputHash) {
+      throw const ClientAuthorityContractViolation(
+        'semanticFingerprintMismatch',
+      );
+    }
+    return request;
+  }
+
   final AuthorityCommandFamily family;
   final Map<String, Object?> command;
   final int inputHashVersion;
@@ -212,6 +255,54 @@ final class AuthorityReconnectRequest {
         'invalidObservedStateVersion',
       );
     }
+  }
+
+  factory AuthorityReconnectRequest.fromWireJson(Map<String, Object?> value) {
+    _requireExactKeys(
+      value,
+      const <String>{'gameId', 'observedStateVersion', 'uncertainCommand'},
+      optional: const <String>{'uncertainCommand'},
+    );
+    final gameId = value['gameId'];
+    final observedStateVersion = value['observedStateVersion'];
+    if (gameId is! String || gameId.isEmpty) {
+      throw const ClientAuthorityContractViolation('invalidReconnectGameId');
+    }
+    if (observedStateVersion is! int || observedStateVersion < 0) {
+      throw const ClientAuthorityContractViolation(
+        'invalidObservedStateVersion',
+      );
+    }
+    final uncertain = value['uncertainCommand'];
+    UncertainCommandIdentity? identity;
+    if (uncertain != null) {
+      final object = _jsonObject(uncertain, 'invalidUncertainIdentity');
+      _requireExactKeys(object, const <String>{
+        'commandId',
+        'inputHashVersion',
+        'inputHash',
+      });
+      final commandId = object['commandId'];
+      final inputHashVersion = object['inputHashVersion'];
+      final inputHash = object['inputHash'];
+      if (commandId is! String ||
+          inputHashVersion is! int ||
+          inputHash is! String) {
+        throw const ClientAuthorityContractViolation(
+          'invalidUncertainIdentity',
+        );
+      }
+      identity = UncertainCommandIdentity(
+        commandId: commandId,
+        inputHashVersion: inputHashVersion,
+        inputHash: inputHash,
+      );
+    }
+    return AuthorityReconnectRequest(
+      gameId: gameId,
+      observedStateVersion: observedStateVersion,
+      uncertainCommand: identity,
+    );
   }
 
   final String gameId;
@@ -427,6 +518,112 @@ void _rejectPrivateMaterial(Object? value, [String? key]) {
     for (final item in value) {
       _rejectPrivateMaterial(item);
     }
+  }
+}
+
+/// Freezes and privacy-validates a public Authority response before egress.
+Map<String, Object?> validatedAuthorityPublicWireObject(
+  Map<String, Object?> value,
+) {
+  final result = _immutableJson(value);
+  _rejectPrivateMaterial(result);
+  return result;
+}
+
+Map<String, Object?> _jsonObject(Object? value, String code) {
+  if (value is Map<String, Object?>) return value;
+  throw ClientAuthorityContractViolation(code);
+}
+
+RoomCommand _decodeRoomCommand(Map<String, Object?> value) {
+  try {
+    _requireExactKeys(
+      value,
+      const <String>{
+        'commandId',
+        'schemaVersion',
+        'expectedRoomVersion',
+        'clientInstanceId',
+        'type',
+        'payload',
+        'sentAt',
+      },
+      optional: const <String>{'expectedRoomVersion', 'sentAt'},
+    );
+    final type = RoomCommandType.values.singleWhere(
+      (candidate) => candidate.wireValue == value['type'],
+    );
+    return RoomCommand(
+      commandId: value['commandId']! as String,
+      schemaVersion: value['schemaVersion']! as int,
+      expectedRoomVersion: value['expectedRoomVersion'] as int?,
+      clientInstanceId: value['clientInstanceId']! as String,
+      type: type,
+      payload: _jsonObject(value['payload'], 'invalidCommandPayload'),
+      sentAt: _optionalWireDateTime(value['sentAt']),
+    );
+  } on ClientAuthorityContractViolation {
+    rethrow;
+  } on Object {
+    throw const ClientAuthorityContractViolation('invalidCommand');
+  }
+}
+
+GameCommand _decodeGameCommand(Map<String, Object?> value) {
+  try {
+    _requireExactKeys(
+      value,
+      const <String>{
+        'commandId',
+        'schemaVersion',
+        'expectedStateVersion',
+        'clientInstanceId',
+        'gameId',
+        'actorPlayerId',
+        'type',
+        'payload',
+        'sentAt',
+      },
+      optional: const <String>{'sentAt'},
+    );
+    final type = GameCommandType.values.singleWhere(
+      (candidate) => candidate.wireValue == value['type'],
+    );
+    return GameCommand(
+      commandId: value['commandId']! as String,
+      schemaVersion: value['schemaVersion']! as int,
+      expectedStateVersion: value['expectedStateVersion']! as int,
+      clientInstanceId: value['clientInstanceId']! as String,
+      gameId: value['gameId']! as String,
+      actorPlayerId: value['actorPlayerId']! as String,
+      type: type,
+      payload: _jsonObject(value['payload'], 'invalidCommandPayload'),
+      sentAt: _optionalWireDateTime(value['sentAt']),
+    );
+  } on ClientAuthorityContractViolation {
+    rethrow;
+  } on Object {
+    throw const ClientAuthorityContractViolation('invalidCommand');
+  }
+}
+
+DateTime? _optionalWireDateTime(Object? value) {
+  if (value == null) return null;
+  if (value is String) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed != null) return parsed.toUtc();
+  }
+  throw const ClientAuthorityContractViolation('invalidCommand');
+}
+
+void _requireExactKeys(
+  Map<String, Object?> value,
+  Set<String> allowed, {
+  Set<String> optional = const <String>{},
+}) {
+  if (value.keys.any((key) => !allowed.contains(key)) ||
+      allowed.difference(optional).any((key) => !value.containsKey(key))) {
+    throw const ClientAuthorityContractViolation('invalidWireEnvelope');
   }
 }
 
