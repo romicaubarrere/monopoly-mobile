@@ -118,12 +118,36 @@ any depth. The concrete adapter must preserve the same rule and must never read
 - Reconnect/fault: observe public snapshots; resolve an uncertain request using
   the durable identity contract; preserve the authority-owned deadline.
 
+## Verified server composition status
+
+The Firebase Emulator Suite proves the Auth bootstrap, Firestore rules and the
+transaction adapter independently. It does not yet prove the complete HTTP
+path. `FirstPlayableAuthorityRuntime` is a Dart composition root and requires a
+Dart `FirstPlayableAuthorityStore`; the only concrete Firestore adapter in this
+branch is currently the JavaScript
+`FirstPlayableAuthorityFirestoreStore`. That module cannot be injected into the
+Dart port and no process boundary between them is defined.
+
+The minimum server-side binding still required is therefore:
+
+1. a Dart-compatible implementation of `FirstPlayableAuthorityStore` (or an
+   explicitly specified same-runtime boundary) that preserves the existing
+   versioned decision codec and atomic Firestore transactions;
+2. a server-owned `RulesCatalog` resolver keyed by the frozen rules version and
+   preset persisted for the room/game; Flutter must never supply that catalog;
+3. a concrete Firebase ID-token signature verifier for the Dart ingress, with
+   Emulator acceptance enabled only for the configured loopback Emulator host.
+
+None of these gaps changes the Flutter repository contract. Mobile continues
+to send canonical commands and consume replacement public snapshots only.
+
 The package tests prove canonical retry identity, semantic collision changes,
 public/private rejection, monotonic reply versions, payload-free lost-ACK
 reconciliation, replacement snapshot behavior, authoritative Create/Join
 membership, and an authenticated loopback HTTP round trip from
-`WireAuthorityClient` through the typed ingress. Firebase Emulator evidence for
-server persistence remains in the accepted #69/#71/#73/#74 chain. The
-remaining vertical gap is executing this complete HTTP/Authority/store flow on
-the Firebase Emulator, followed by Flutter widget/integration and Tier-1 device
-evidence.
+`WireAuthorityClient` through the typed ingress. The complete Auth + Firestore
+Emulator Suite passes 57/57 tests on this branch, including the concrete
+transaction adapter, rules, idempotency/lost-ACK, reconnect and public/private
+guards. The remaining vertical gap is binding the Dart HTTP runtime to that
+durable store and real token verification, then executing the flow from Flutter
+and collecting Tier-1 device evidence.
