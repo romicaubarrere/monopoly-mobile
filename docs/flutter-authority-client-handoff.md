@@ -54,19 +54,23 @@ direct mapping, seed, RNG counters or future deck order.
 
 ## Minimum Flutter repository behavior
 
-1. Build one `AuthorityCommandRequest` from the canonical `RoomCommand` or
+1. Start without a client-minted `playerId`. Create/Join must return the
+   authority-assigned `actorPlayerId` in their accepted public result; the
+   confirmed context rejects a missing or changed identity before any gameplay
+   command can be constructed.
+2. Build one `AuthorityCommandRequest` from the canonical `RoomCommand` or
    `GameCommand`, with a durable `commandId` and current room/state version.
-2. Store the request as uncertain before sending it.
-3. Call `CommandGateway.send` without applying authoritative state
+3. Store the request as uncertain before sending it.
+4. Call `CommandGateway.send` without applying authoritative state
    optimistically.
-4. On ACK, use the public result and replace cached state with the returned or
+5. On ACK, use the public result and replace cached state with the returned or
    streamed `AuthorityPublicSnapshot`.
-5. On transport ambiguity, keep the same request. Reconnect with only
+6. On transport ambiguity, keep the same request. Reconnect with only
    `commandId + inputHashVersion + inputHash` and the observed state version.
-6. `useDurableResult` resolves the prior command. `retrySameCommand` resends the
+7. `useDurableResult` resolves the prior command. `retrySameCommand` resends the
    byte-identical request. `failClosed` surfaces the safe error and never mints
    a replacement command ID.
-7. Every reconnect snapshot replaces the cache completely. Client snapshot
+8. Every reconnect snapshot replaces the cache completely. Client snapshot
    upload or merge is intentionally absent from the API.
 
 ## Public/private boundary

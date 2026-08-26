@@ -1,3 +1,5 @@
+import 'package:board_game_contracts/game_contracts.dart';
+
 import 'client_authority.dart';
 import 'first_playable_binding.dart';
 
@@ -9,13 +11,12 @@ import 'first_playable_binding.dart';
 /// does not infer turn legality, prices, ownership, movement, or auction rules.
 final class FirstPlayableAuthorityContext
     implements FirstPlayableConfirmedContext {
-  FirstPlayableAuthorityContext({required String actorPlayerId})
-    : _actorPlayerId = _requiredIdentifier(
-        actorPlayerId,
-        'invalidActorPlayerId',
-      );
+  FirstPlayableAuthorityContext({String? actorPlayerId})
+    : _actorPlayerId = actorPlayerId == null
+          ? null
+          : _requiredIdentifier(actorPlayerId, 'invalidActorPlayerId');
 
-  final String _actorPlayerId;
+  String? _actorPlayerId;
   String? _roomId;
   int? _roomVersion;
   String? _gameId;
@@ -26,7 +27,8 @@ final class FirstPlayableAuthorityContext
   String? _auctionId;
 
   @override
-  String get actorPlayerId => _actorPlayerId;
+  String get actorPlayerId =>
+      _requiredIdentifier(_actorPlayerId, 'confirmedActorUnavailable');
 
   @override
   String get roomId => _requiredIdentifier(_roomId, 'confirmedRoomUnavailable');
@@ -138,6 +140,7 @@ final class FirstPlayableAuthorityContext
     AuthorityCommandRequest request,
     AuthorityCommandReply reply,
   ) {
+    final commandType = request.asRoomCommand.type;
     final result = reply.publicResult;
     final roomSnapshot = _object(result['roomSnapshot']);
     final requestedRoomId = _identifier(
@@ -154,12 +157,29 @@ final class FirstPlayableAuthorityContext
     if (nextRoomId == null || nextRoomVersion != reply.versionAfter) {
       throw const ClientAuthorityContractViolation('invalidRoomReplyContext');
     }
+    final replyActorPlayerId =
+        _identifier(result['actorPlayerId']) ??
+        _identifier(roomSnapshot?['actorPlayerId']);
+    final establishesMembership =
+        commandType == RoomCommandType.createRoom ||
+        commandType == RoomCommandType.joinRoom;
+    if (establishesMembership && replyActorPlayerId == null) {
+      throw const ClientAuthorityContractViolation(
+        'missingAuthorityActorPlayerId',
+      );
+    }
+    if (_actorPlayerId != null &&
+        replyActorPlayerId != null &&
+        _actorPlayerId != replyActorPlayerId) {
+      throw const ClientAuthorityContractViolation('actorPlayerIdMismatch');
+    }
     if (_roomId == nextRoomId &&
         _roomVersion != null &&
         nextRoomVersion < _roomVersion!) {
       return;
     }
 
+    _actorPlayerId ??= replyActorPlayerId;
     _roomId = nextRoomId;
     _roomVersion = nextRoomVersion;
     final nextGameId =

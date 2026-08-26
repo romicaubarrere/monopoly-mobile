@@ -4,6 +4,90 @@ import 'package:board_game_core/game_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('CreateRoom ACK establishes authority-owned actor membership', () {
+    final context = FirstPlayableAuthorityContext();
+    final request = _roomEntryRequest(
+      commandId: 'cmd-create-1',
+      type: RoomCommandType.createRoom,
+    );
+
+    expect(
+      () => context.actorPlayerId,
+      throwsA(_violation('confirmedActorUnavailable')),
+    );
+
+    context.applyCommandReply(
+      request,
+      AuthorityCommandReply(
+        commandId: request.commandId,
+        status: AuthorityCommandStatus.accepted,
+        versionBefore: 0,
+        versionAfter: 1,
+        publicResult: const <String, Object?>{
+          'roomId': 'room-1',
+          'roomVersion': 1,
+          'actorPlayerId': 'player-authority-1',
+        },
+      ),
+    );
+
+    expect(context.actorPlayerId, 'player-authority-1');
+    expect(context.roomId, 'room-1');
+    expect(context.roomVersion, 1);
+  });
+
+  test('room entry fails closed without authority-owned actor membership', () {
+    final context = FirstPlayableAuthorityContext();
+    final request = _roomEntryRequest(
+      commandId: 'cmd-join-1',
+      type: RoomCommandType.joinRoom,
+    );
+
+    expect(
+      () => context.applyCommandReply(
+        request,
+        AuthorityCommandReply(
+          commandId: request.commandId,
+          status: AuthorityCommandStatus.accepted,
+          versionBefore: 3,
+          versionAfter: 4,
+          publicResult: const <String, Object?>{
+            'roomId': 'room-1',
+            'roomVersion': 4,
+          },
+        ),
+      ),
+      throwsA(_violation('missingAuthorityActorPlayerId')),
+    );
+  });
+
+  test('later room ACK cannot replace confirmed actor membership', () {
+    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final request = _roomRequest(
+      commandId: 'cmd-ready-membership',
+      type: RoomCommandType.setReady,
+      expectedVersion: 4,
+    );
+
+    expect(
+      () => context.applyCommandReply(
+        request,
+        AuthorityCommandReply(
+          commandId: request.commandId,
+          status: AuthorityCommandStatus.accepted,
+          versionBefore: 4,
+          versionAfter: 5,
+          publicResult: const <String, Object?>{
+            'roomId': 'room-1',
+            'roomVersion': 5,
+            'actorPlayerId': 'player-2',
+          },
+        ),
+      ),
+      throwsA(_violation('actorPlayerIdMismatch')),
+    );
+  });
+
   test('room ACK supplies the next confirmed room version', () {
     final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
     final request = _roomRequest(
@@ -168,6 +252,23 @@ AuthorityCommandRequest _roomRequest({
       'roomId': 'room-1',
       if (type == RoomCommandType.setReady) 'ready': true,
     },
+  ),
+);
+
+AuthorityCommandRequest _roomEntryRequest({
+  required String commandId,
+  required RoomCommandType type,
+}) => AuthorityCommandRequest.room(
+  RoomCommand(
+    commandId: commandId,
+    schemaVersion: 1,
+    clientInstanceId: 'client-1',
+    type: type,
+    payload: type == RoomCommandType.createRoom
+        ? const <String, Object?>{
+            'presetDraft': <String, Object?>{'presetId': 'synthetic-vp0'},
+          }
+        : const <String, Object?>{'roomCode': 'ABC123'},
   ),
 );
 
