@@ -1,10 +1,12 @@
 import 'package:board_backend_api/backend_api.dart' as api;
+import 'package:board_game_contracts/game_contracts.dart';
 import 'package:board_game_core/game_core.dart';
 
 import '../buy_auction_planner.dart';
 import '../ingress/command_ingress.dart';
 import '../observability/authority_observability.dart';
 import '../reconnect_planner.dart' as reconnect_planner;
+import '../ready_start_planner.dart';
 import '../rng_operation_planner.dart';
 import '../roll_movement_planner.dart';
 import '../security/firebase_identity_verifier.dart';
@@ -131,6 +133,115 @@ final class FirstPlayableGameReadResult {
   final AuthorityExecutionMetrics metrics;
 }
 
+/// Authority-private material generated once before Firestore retries StartGame.
+final class FirstPlayableStartMaterial {
+  FirstPlayableStartMaterial({required this.gameId, required List<int> seed})
+    : seed = List<int>.unmodifiable(seed) {
+    if (gameId.isEmpty || this.seed.length != 32) {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'invalidStartMaterial',
+      );
+    }
+  }
+
+  final String gameId;
+  final List<int> seed;
+}
+
+typedef FirstPlayableStartMaterialFactory =
+    Future<FirstPlayableStartMaterial> Function(RoomCommand command);
+
+/// Consistent room view loaded by the durable adapter transaction.
+final class FirstPlayableRoomTransactionView {
+  FirstPlayableRoomTransactionView({
+    required this.roomId,
+    required this.roomVersion,
+    required this.status,
+    required this.hostUid,
+    required this.presetId,
+    required List<ReadyRoomMember> members,
+    required this.catalog,
+    this.storedReceipt,
+  }) : members = List<ReadyRoomMember>.unmodifiable(members) {
+    final memberUids = members.map((member) => member.uid).toList();
+    final playerIds = members.map((member) => member.playerId).toList();
+    if (roomId.isEmpty ||
+        roomVersion < 0 ||
+        status.isEmpty ||
+        hostUid.isEmpty ||
+        presetId.isEmpty ||
+        members.isEmpty ||
+        members.any(
+          (member) => member.uid.isEmpty || member.playerId.isEmpty,
+        ) ||
+        memberUids.toSet().length != memberUids.length ||
+        playerIds.toSet().length != playerIds.length) {
+      throw const FirstPlayableAuthorityExecutorViolation('invalidRoomView');
+    }
+  }
+
+  final String roomId;
+  final int roomVersion;
+  final String status;
+  final String hostUid;
+  final String presetId;
+  final List<ReadyRoomMember> members;
+  final RulesCatalog catalog;
+  final StoredAuthorityCommandReceipt? storedReceipt;
+}
+
+/// Atomic room mutation selected by the Ready/Start executor.
+///
+/// SetReady updates [membersAfter]. StartGame persists [startPlan] as the room,
+/// public game and private game documents in the same transaction. Rejections
+/// persist only their safe receipt; duplicates and collisions write nothing.
+final class FirstPlayableRoomTransactionDecision {
+  FirstPlayableRoomTransactionDecision({
+    required this.reply,
+    required this.outcome,
+    required this.reason,
+    this.membersAfter,
+    this.startPlan,
+    this.receiptToPersist,
+  }) {
+    final accepted = reply.status == api.AuthorityCommandStatus.accepted;
+    final replay = reply.status == api.AuthorityCommandStatus.duplicate;
+    final mutationCount =
+        (membersAfter == null ? 0 : 1) + (startPlan == null ? 0 : 1);
+    if (accepted != (mutationCount == 1) ||
+        accepted && receiptToPersist == null ||
+        replay && receiptToPersist != null ||
+        replay && mutationCount != 0 ||
+        !accepted && mutationCount != 0) {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'invalidRoomTransactionDecision',
+      );
+    }
+  }
+
+  final api.AuthorityCommandReply reply;
+  final AuthorityOutcome outcome;
+  final AuthorityReason reason;
+  final List<ReadyRoomMember>? membersAfter;
+  final ReadyStartPlan? startPlan;
+  final StoredAuthorityCommandReceipt? receiptToPersist;
+}
+
+final class FirstPlayableRoomTransactionResult {
+  const FirstPlayableRoomTransactionResult({
+    required this.decision,
+    this.metrics = const AuthorityExecutionMetrics(),
+  });
+
+  final FirstPlayableRoomTransactionDecision decision;
+  final AuthorityExecutionMetrics metrics;
+}
+
+typedef FirstPlayableRoomTransactionCallback =
+    FirstPlayableRoomTransactionDecision Function(
+      FirstPlayableRoomTransactionView view,
+    );
+
 typedef FirstPlayableGameTransactionCallback =
     FirstPlayableGameTransactionDecision Function(
       FirstPlayableGameTransactionView view,
@@ -143,6 +254,14 @@ typedef FirstPlayableGameTransactionCallback =
 /// callback; and atomically apply exactly the returned decision. Secure seed,
 /// tokens and direct UID mappings must remain server-side.
 abstract interface class FirstPlayableAuthorityStore {
+  /// Atomically loads and mutates one room plus its command receipt. StartGame
+  /// also commits the returned public/private game state in this transaction.
+  Future<FirstPlayableRoomTransactionResult> transactRoom({
+    required String roomId,
+    required String commandId,
+    required FirstPlayableRoomTransactionCallback evaluate,
+  });
+
   Future<FirstPlayableGameTransactionResult> transactGame({
     required String gameId,
     required String commandId,
@@ -162,9 +281,17 @@ abstract interface class FirstPlayableAuthorityStore {
 /// duplicate/collision classification, the atomic repository decision and the
 /// public response mapping consumed by Flutter.
 final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
-  const FirstPlayableAuthorityExecutor({required this._store});
+  const FirstPlayableAuthorityExecutor({
+    required FirstPlayableAuthorityStore store,
+    FirstPlayableStartMaterialFactory? startMaterialFactory,
+  }) : // Public named parameters cannot initialize private fields directly.
+       // ignore: prefer_initializing_formals
+       _store = store,
+       // ignore: prefer_initializing_formals
+       _startMaterialFactory = startMaterialFactory;
 
   final FirstPlayableAuthorityStore _store;
+  final FirstPlayableStartMaterialFactory? _startMaterialFactory;
 
   @override
   Future<AuthorityExecutionResult<api.AuthorityCommandReply>> executeCommand({
@@ -172,9 +299,11 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required VerifiedIdentity identity,
     required api.AuthorityCommandRequest request,
   }) async {
-    if (request.family != api.AuthorityCommandFamily.game) {
-      throw const FirstPlayableAuthorityExecutorViolation(
-        'roomCommandCompositionPending',
+    if (request.family == api.AuthorityCommandFamily.room) {
+      return _executeRoomCommand(
+        context: context,
+        identity: identity,
+        request: request,
       );
     }
     final command = request.asGameCommand;
@@ -196,6 +325,54 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       reason: decision.reason,
       metrics: transaction.metrics,
     );
+  }
+
+  Future<AuthorityExecutionResult<api.AuthorityCommandReply>>
+  _executeRoomCommand({
+    required IngressContext context,
+    required VerifiedIdentity identity,
+    required api.AuthorityCommandRequest request,
+  }) async {
+    final command = request.asRoomCommand;
+    if (command.type != RoomCommandType.setReady &&
+        command.type != RoomCommandType.startGame) {
+      throw FirstPlayableAuthorityExecutorViolation(
+        'unsupportedRoomCommand:${command.type.wireValue}',
+      );
+    }
+    final roomId = command.payload['roomId']! as String;
+    final startMaterial = command.type == RoomCommandType.startGame
+        ? await _requireStartMaterialFactory()(command)
+        : null;
+    final transaction = await _store.transactRoom(
+      roomId: roomId,
+      commandId: command.commandId,
+      evaluate: (view) => _evaluateRoomCommand(
+        context: context,
+        actorUid: identity.uid,
+        request: request,
+        command: command,
+        view: view,
+        startMaterial: startMaterial,
+      ),
+    );
+    final decision = transaction.decision;
+    return AuthorityExecutionResult<api.AuthorityCommandReply>(
+      value: decision.reply,
+      outcome: decision.outcome,
+      reason: decision.reason,
+      metrics: transaction.metrics,
+    );
+  }
+
+  FirstPlayableStartMaterialFactory _requireStartMaterialFactory() {
+    final factory = _startMaterialFactory;
+    if (factory == null) {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'startMaterialUnavailable',
+      );
+    }
+    return factory;
   }
 
   @override
@@ -317,6 +494,232 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       request: request,
       evaluation: evaluation,
     );
+  }
+
+  static FirstPlayableRoomTransactionDecision _evaluateRoomCommand({
+    required IngressContext context,
+    required String actorUid,
+    required api.AuthorityCommandRequest request,
+    required RoomCommand command,
+    required FirstPlayableRoomTransactionView view,
+    required FirstPlayableStartMaterial? startMaterial,
+  }) {
+    final prior = view.storedReceipt;
+    if (prior != null) {
+      final exactDuplicate =
+          prior.actorUid == actorUid &&
+          prior.receipt.commandId == command.commandId &&
+          prior.receipt.inputHashVersion == request.inputHashVersion &&
+          prior.receipt.inputHash == request.inputHash;
+      if (exactDuplicate) {
+        return FirstPlayableRoomTransactionDecision(
+          reply: FirstPlayableResponseAdapter.duplicate(prior.receipt),
+          outcome: AuthorityOutcome.duplicate,
+          reason: AuthorityReason.duplicateCommand,
+        );
+      }
+      return _roomCollision(command, view.roomVersion);
+    }
+    if (view.roomId != command.payload['roomId']) {
+      throw const FirstPlayableAuthorityExecutorViolation('roomIdMismatch');
+    }
+    _requireRoomMember(view, actorUid);
+    if (view.status != 'open' ||
+        command.expectedRoomVersion != view.roomVersion) {
+      return _persistableRoomDecision(
+        actorUid: actorUid,
+        request: request,
+        reply: _roomRejection(command, view.roomVersion, 'staleRoomVersion'),
+        reason: AuthorityReason.staleVersion,
+      );
+    }
+
+    return switch (command.type) {
+      RoomCommandType.setReady => _evaluateSetReady(
+        actorUid: actorUid,
+        request: request,
+        command: command,
+        view: view,
+      ),
+      RoomCommandType.startGame => _evaluateStartGame(
+        context: context,
+        actorUid: actorUid,
+        request: request,
+        command: command,
+        view: view,
+        startMaterial: startMaterial!,
+      ),
+      _ => throw FirstPlayableAuthorityExecutorViolation(
+        'unsupportedRoomCommand:${command.type.wireValue}',
+      ),
+    };
+  }
+
+  static FirstPlayableRoomTransactionDecision _evaluateSetReady({
+    required String actorUid,
+    required api.AuthorityCommandRequest request,
+    required RoomCommand command,
+    required FirstPlayableRoomTransactionView view,
+  }) {
+    final ready = command.payload['ready']! as bool;
+    final membersAfter = <ReadyRoomMember>[
+      for (final member in view.members)
+        ReadyRoomMember(
+          uid: member.uid,
+          playerId: member.playerId,
+          kind: member.kind,
+          ready: member.uid == actorUid ? ready : member.ready,
+          botPolicyId: member.botPolicyId,
+        ),
+    ];
+    final versionAfter = view.roomVersion + 1;
+    final publicResult = <String, Object?>{
+      'commandId': command.commandId,
+      'status': 'accepted',
+      'stateVersionBefore': view.roomVersion,
+      'stateVersionAfter': versionAfter,
+      'roomId': view.roomId,
+      'roomVersionBefore': view.roomVersion,
+      'roomVersionAfter': versionAfter,
+      'readyByPlayerId': <String, Object?>{
+        for (final member in membersAfter) member.playerId: member.ready,
+      },
+    };
+    final reply = api.AuthorityCommandReply(
+      commandId: command.commandId,
+      status: api.AuthorityCommandStatus.accepted,
+      versionBefore: view.roomVersion,
+      versionAfter: versionAfter,
+      publicResult: publicResult,
+    );
+    return _persistableRoomDecision(
+      actorUid: actorUid,
+      request: request,
+      reply: reply,
+      membersAfter: membersAfter,
+    );
+  }
+
+  static FirstPlayableRoomTransactionDecision _evaluateStartGame({
+    required IngressContext context,
+    required String actorUid,
+    required api.AuthorityCommandRequest request,
+    required RoomCommand command,
+    required FirstPlayableRoomTransactionView view,
+    required FirstPlayableStartMaterial startMaterial,
+  }) {
+    try {
+      final plan = ReadyStartPlanner.plan(
+        command: command,
+        authenticatedActorUid: actorUid,
+        hostUid: view.hostUid,
+        gameId: startMaterial.gameId,
+        presetId: view.presetId,
+        members: view.members,
+        catalog: view.catalog,
+        secureSeed: startMaterial.seed,
+      );
+      final publicResult = <String, Object?>{
+        'commandId': command.commandId,
+        'status': 'accepted',
+        'stateVersionBefore': view.roomVersion,
+        'stateVersionAfter': plan.roomVersionAfter,
+        'roomId': view.roomId,
+        'roomVersionBefore': view.roomVersion,
+        'roomVersionAfter': plan.roomVersionAfter,
+        ...plan.safeResultSummary,
+      };
+      final reply = api.AuthorityCommandReply(
+        commandId: command.commandId,
+        status: api.AuthorityCommandStatus.accepted,
+        versionBefore: view.roomVersion,
+        versionAfter: plan.roomVersionAfter,
+        publicResult: publicResult,
+      );
+      return _persistableRoomDecision(
+        actorUid: actorUid,
+        request: request,
+        reply: reply,
+        startPlan: plan,
+      );
+    } on ReadyStartViolation catch (error) {
+      return _persistableRoomDecision(
+        actorUid: actorUid,
+        request: request,
+        reply: _roomRejection(command, view.roomVersion, error.code),
+      );
+    }
+  }
+
+  static FirstPlayableRoomTransactionDecision _persistableRoomDecision({
+    required String actorUid,
+    required api.AuthorityCommandRequest request,
+    required api.AuthorityCommandReply reply,
+    AuthorityReason reason = AuthorityReason.none,
+    List<ReadyRoomMember>? membersAfter,
+    ReadyStartPlan? startPlan,
+  }) => FirstPlayableRoomTransactionDecision(
+    reply: reply,
+    outcome: reply.status == api.AuthorityCommandStatus.accepted
+        ? AuthorityOutcome.success
+        : reason == AuthorityReason.staleVersion
+        ? AuthorityOutcome.stale
+        : AuthorityOutcome.rejected,
+    reason: reason,
+    membersAfter: membersAfter,
+    startPlan: startPlan,
+    receiptToPersist: StoredAuthorityCommandReceipt(
+      actorUid: actorUid,
+      receipt: reconnect_planner.DurableCommandReceipt(
+        commandId: reply.commandId,
+        inputHashVersion: request.inputHashVersion,
+        inputHash: request.inputHash,
+        publicResult: reply.publicResult,
+      ),
+    ),
+  );
+
+  static FirstPlayableRoomTransactionDecision _roomCollision(
+    RoomCommand command,
+    int version,
+  ) => FirstPlayableRoomTransactionDecision(
+    reply: _roomRejection(command, version, 'commandIdCollision'),
+    outcome: AuthorityOutcome.collision,
+    reason: AuthorityReason.commandIdCollision,
+  );
+
+  static api.AuthorityCommandReply _roomRejection(
+    RoomCommand command,
+    int version,
+    String errorCode,
+  ) => api.AuthorityCommandReply(
+    commandId: command.commandId,
+    status: api.AuthorityCommandStatus.rejected,
+    versionBefore: version,
+    versionAfter: version,
+    errorCode: errorCode,
+    publicResult: <String, Object?>{
+      'commandId': command.commandId,
+      'status': 'rejected',
+      'stateVersionBefore': version,
+      'stateVersionAfter': version,
+      'roomVersionBefore': version,
+      'roomVersionAfter': version,
+      'errorCode': errorCode,
+    },
+  );
+
+  static ReadyRoomMember _requireRoomMember(
+    FirstPlayableRoomTransactionView view,
+    String actorUid,
+  ) {
+    final matches = view.members
+        .where((member) => member.uid == actorUid)
+        .toList(growable: false);
+    if (matches.length != 1) {
+      throw const MembershipAuthorizationException('not_a_member');
+    }
+    return matches.single;
   }
 
   static _EvaluatedGameCommand _evaluateRoll({
