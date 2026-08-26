@@ -12,6 +12,40 @@ import 'first_playable_authority_executor.dart';
 /// seed. Stable derivation lets different instances reproduce command material
 /// after a lost ACK without persisting plaintext room codes or RNG seeds.
 final class FirstPlayableAuthorityMaterialFactory {
+  factory FirstPlayableAuthorityMaterialFactory.fromEnvironment({
+    required Map<String, String> environment,
+    required Duration roomCodeTtl,
+  }) {
+    final encodedKey = environment[materialKeyEnvironmentVariable];
+    if (encodedKey == null || encodedKey.isEmpty) {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'materialKeyMissing',
+      );
+    }
+    if (encodedKey.trim() != encodedKey) {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'materialKeyMalformed',
+      );
+    }
+    late final List<int> key;
+    try {
+      key = base64Decode(encodedKey);
+    } on FormatException {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'materialKeyMalformed',
+      );
+    }
+    if (base64Encode(key) != encodedKey) {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'materialKeyMalformed',
+      );
+    }
+    return FirstPlayableAuthorityMaterialFactory(
+      key: key,
+      roomCodeTtl: roomCodeTtl,
+    );
+  }
+
   FirstPlayableAuthorityMaterialFactory({
     required List<int> key,
     required this.roomCodeTtl,
@@ -28,6 +62,11 @@ final class FirstPlayableAuthorityMaterialFactory {
 
   static const String _roomCodeAlphabet =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+  /// Infrastructure-only secret. Flutter and persisted documents must never
+  /// receive this value.
+  static const String materialKeyEnvironmentVariable =
+      'FIRST_PLAYABLE_AUTHORITY_HMAC_KEY_BASE64';
 
   final Uint8List _key;
   final Duration roomCodeTtl;

@@ -12,6 +12,56 @@ void main() {
     roomCodeTtl: const Duration(minutes: 10),
   );
 
+  test('Environment factory accepts only a canonical infrastructure key', () {
+    final encodedKey = base64Encode(key);
+    final fromEnvironment =
+        FirstPlayableAuthorityMaterialFactory.fromEnvironment(
+          environment: <String, String>{
+            FirstPlayableAuthorityMaterialFactory
+                .materialKeyEnvironmentVariable: encodedKey,
+          },
+          roomCodeTtl: const Duration(minutes: 10),
+        );
+
+    expect(fromEnvironment.roomCodeTtl, const Duration(minutes: 10));
+  });
+
+  test('Environment factory fails closed without reflecting key material', () {
+    for (final environment in <Map<String, String>>[
+      const <String, String>{},
+      <String, String>{
+        FirstPlayableAuthorityMaterialFactory.materialKeyEnvironmentVariable:
+            ' not-base64 ',
+      },
+      <String, String>{
+        FirstPlayableAuthorityMaterialFactory.materialKeyEnvironmentVariable:
+            base64Encode(List<int>.filled(31, 7)),
+      },
+    ]) {
+      try {
+        FirstPlayableAuthorityMaterialFactory.fromEnvironment(
+          environment: environment,
+          roomCodeTtl: const Duration(minutes: 10),
+        );
+        fail('Invalid key configuration must fail closed');
+      } on FirstPlayableAuthorityExecutorViolation catch (error) {
+        expect(
+          error.code,
+          anyOf(
+            'materialKeyMissing',
+            'materialKeyMalformed',
+            'materialKeyTooShort',
+          ),
+        );
+        expect(error.toString(), isNot(contains('not-base64')));
+        expect(
+          error.toString(),
+          isNot(contains(base64Encode(List<int>.filled(31, 7)))),
+        );
+      }
+    }
+  });
+
   test(
     'Create material is stable across instances and never embeds the key',
     () async {

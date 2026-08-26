@@ -65,6 +65,13 @@ infrastructure-private HMAC key that is separate from game RNG state. It must
 reproduce identity material for the same `commandId` across instances. Create
 expiry is authority time plus the configured TTL; Firestore transaction retries
 reuse the single material instance produced at ingress.
+The live composition must use
+`FirstPlayableAuthorityRuntime.withEnvironmentMaterials`; it reads
+`FIRST_PLAYABLE_AUTHORITY_HMAC_KEY_BASE64` only from the server process
+environment, requires canonical base64 decoding to at least 32 bytes, and never
+accepts the key from Flutter, an HTTP request, Firestore, logs, or repository
+configuration. Room-code TTL remains an explicit infrastructure value rather
+than client input.
 The executor returns the Create code transiently, persists only its hash, and
 reconstructs the same code for an exact lost-ACK retry. Join accepts a locator
 only while `expiresAt > requestReceivedAt`, requires an open room, validates the

@@ -13,6 +13,26 @@ import 'first_playable_authority_material_factory.dart';
 /// Firestore SDK object. This keeps document decoding and persistence behind a
 /// single adapter while all gameplay remains in the canonical Engine planners.
 final class FirstPlayableAuthorityRuntime {
+  factory FirstPlayableAuthorityRuntime.withEnvironmentMaterials({
+    required FirebaseIdentityVerifier identityVerifier,
+    required FirstPlayableAuthorityStore store,
+    required BestEffortAuthorityObservability observability,
+    required Duration roomCodeTtl,
+    Map<String, String>? environment,
+    DateTime Function()? now,
+  }) {
+    return FirstPlayableAuthorityRuntime.withHmacMaterials(
+      identityVerifier: identityVerifier,
+      store: store,
+      observability: observability,
+      materialFactory: FirstPlayableAuthorityMaterialFactory.fromEnvironment(
+        environment: environment ?? Platform.environment,
+        roomCodeTtl: roomCodeTtl,
+      ),
+      now: now,
+    );
+  }
+
   FirstPlayableAuthorityRuntime.withHmacMaterials({
     required FirebaseIdentityVerifier identityVerifier,
     required FirstPlayableAuthorityStore store,
