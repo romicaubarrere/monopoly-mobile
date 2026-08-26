@@ -36,16 +36,17 @@ after(async () => {
   await env?.cleanup();
 });
 
-async function adminStore() {
-  let store;
+async function withAdminStore(callback) {
+  let result;
   await env.withSecurityRulesDisabled(async (context) => {
-    store = new FirstPlayableAuthorityFirestoreStore(context.firestore(), {
+    const store = new FirstPlayableAuthorityFirestoreStore(context.firestore(), {
       doc,
       getDoc,
       runTransaction,
     });
+    result = await callback(store);
   });
-  return store;
+  return result;
 }
 
 function receipt({ commandId, actorUid, inputHash, before, after, result }) {
@@ -113,7 +114,6 @@ test('Ready/Start persists room, public game, private membership and receipt ato
   const commandId = 'cmd-store-start';
   const actorUid = 'uid-1';
   const inputHash = 'start-semantic-fingerprint-v1';
-  const store = await adminStore();
   const room = {
     ...structuredClone(readyFixture.initialRoom),
     roomId,
@@ -179,12 +179,15 @@ test('Ready/Start persists room, public game, private membership and receipt ato
     };
   };
 
-  const accepted = await store.transactRoom({ roomId, commandId, evaluate });
-  const duplicate = await store.transactRoom({ roomId, commandId, evaluate });
+  const { accepted, duplicate, durable } = await withAdminStore(async (store) => {
+    const accepted = await store.transactRoom({ roomId, commandId, evaluate });
+    const duplicate = await store.transactRoom({ roomId, commandId, evaluate });
+    const durable = await store.readGame({ gameId });
+    return { accepted, duplicate, durable };
+  });
   assert.equal(accepted.status, 'accepted');
   assert.equal(duplicate.status, 'duplicate');
 
-  const durable = await store.readGame({ gameId });
   assert.equal(durable.publicGame.stateVersion, 0);
   assert.equal(durable.publicGame.memberUidByPlayerId, undefined);
   assert.deepEqual(
@@ -201,7 +204,6 @@ test('Ready/Start persists room, public game, private membership and receipt ato
 
 test('Roll, Buy and reconnect converge through one adapter without a second RNG effect', async () => {
   const gameId = 'game-store-flow';
-  const store = await adminStore();
   await env.withSecurityRulesDisabled(async (context) => {
     await Promise.all([
       setDoc(doc(context.firestore(), 'games', gameId), {
@@ -258,19 +260,6 @@ test('Roll, Buy and reconnect converge through one adapter without a second RNG 
       }),
     };
   };
-  const roll = await store.transactGame({
-    gameId,
-    commandId: rollCommandId,
-    evaluate: rollEvaluate,
-  });
-  const lostAckRetry = await store.transactGame({
-    gameId,
-    commandId: rollCommandId,
-    evaluate: rollEvaluate,
-  });
-  assert.equal(roll.status, 'accepted');
-  assert.equal(lostAckRetry.status, 'duplicate');
-
   const buy = buyFixture.buy;
   const buyCommandId = buy.command.commandId;
   const buyEvaluate = ({ publicGame, privateGame, storedReceipt }) => {
@@ -302,16 +291,32 @@ test('Roll, Buy and reconnect converge through one adapter without a second RNG 
       }),
     };
   };
-  await store.transactGame({
-    gameId,
-    commandId: buyCommandId,
-    evaluate: buyEvaluate,
-  });
-
-  const reconnected = await store.readGame({
-    gameId,
-    commandId: rollCommandId,
-  });
+  const { roll, lostAckRetry, reconnected } = await withAdminStore(
+    async (store) => {
+      const roll = await store.transactGame({
+        gameId,
+        commandId: rollCommandId,
+        evaluate: rollEvaluate,
+      });
+      const lostAckRetry = await store.transactGame({
+        gameId,
+        commandId: rollCommandId,
+        evaluate: rollEvaluate,
+      });
+      await store.transactGame({
+        gameId,
+        commandId: buyCommandId,
+        evaluate: buyEvaluate,
+      });
+      const reconnected = await store.readGame({
+        gameId,
+        commandId: rollCommandId,
+      });
+      return { roll, lostAckRetry, reconnected };
+    },
+  );
+  assert.equal(roll.status, 'accepted');
+  assert.equal(lostAckRetry.status, 'duplicate');
   assert.equal(reconnected.publicGame.stateVersion, 2);
   assert.equal(reconnected.publicGame.publicState.players[0].cash, 1893);
   assert.equal(
@@ -325,7 +330,6 @@ test('Roll, Buy and reconnect converge through one adapter without a second RNG 
 test('adapter rejects private authority fields before a public write', async () => {
   const gameId = 'game-store-public-guard';
   const commandId = 'cmd-private-leak';
-  const store = await adminStore();
   await env.withSecurityRulesDisabled(async (context) => {
     await Promise.all([
       setDoc(doc(context.firestore(), 'games', gameId), {
@@ -340,26 +344,28 @@ test('adapter rejects private authority fields before a public write', async () 
   });
 
   await assert.rejects(
-    store.transactGame({
-      gameId,
-      commandId,
-      evaluate: () => ({
-        schemaVersion: 1,
-        family: 'game',
-        reply: { status: 'accepted' },
-        publicPatch: { memberUidByPlayerId: { p1: 'uid-1' } },
-        receipt: receipt({
-          commandId,
-          actorUid: 'uid-1',
-          inputHash: 'private-leak-v1',
-          before: 0,
-          after: 1,
-          result: { status: 'accepted' },
+    withAdminStore((store) =>
+      store.transactGame({
+        gameId,
+        commandId,
+        evaluate: () => ({
+          schemaVersion: 1,
+          family: 'game',
+          reply: { status: 'accepted' },
+          publicPatch: { memberUidByPlayerId: { p1: 'uid-1' } },
+          receipt: receipt({
+            commandId,
+            actorUid: 'uid-1',
+            inputHash: 'private-leak-v1',
+            before: 0,
+            after: 1,
+            result: { status: 'accepted' },
+          }),
         }),
       }),
-    }),
+    ),
     /privateFieldInPublicDocument/,
   );
-  const durable = await store.readGame({ gameId });
+  const durable = await withAdminStore((store) => store.readGame({ gameId }));
   assert.equal(durable.publicGame.memberUidByPlayerId, undefined);
 });
