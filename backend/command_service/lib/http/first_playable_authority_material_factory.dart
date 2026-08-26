@@ -18,9 +18,7 @@ final class FirstPlayableAuthorityMaterialFactory {
   }) {
     final encodedKey = environment[materialKeyEnvironmentVariable];
     if (encodedKey == null || encodedKey.isEmpty) {
-      throw const FirstPlayableAuthorityExecutorViolation(
-        'materialKeyMissing',
-      );
+      throw const FirstPlayableAuthorityExecutorViolation('materialKeyMissing');
     }
     if (encodedKey.trim() != encodedKey) {
       throw const FirstPlayableAuthorityExecutorViolation(

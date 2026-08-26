@@ -18,7 +18,8 @@ void main() {
         FirstPlayableAuthorityMaterialFactory.fromEnvironment(
           environment: <String, String>{
             FirstPlayableAuthorityMaterialFactory
-                .materialKeyEnvironmentVariable: encodedKey,
+                    .materialKeyEnvironmentVariable:
+                encodedKey,
           },
           roomCodeTtl: const Duration(minutes: 10),
         );
