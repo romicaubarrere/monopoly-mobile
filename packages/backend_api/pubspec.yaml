@@ -7,6 +7,8 @@ environment:
 dependencies:
   board_game_contracts:
     path: ../game_contracts
+  board_game_core:
+    path: ../game_core
   crypto: 3.0.7
 dev_dependencies:
   lints: ^6.0.0
