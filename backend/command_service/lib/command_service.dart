@@ -7,6 +7,7 @@ export 'http/first_playable_authority_executor.dart';
 export 'http/first_playable_response_adapter.dart';
 export 'http/first_playable_authority_runtime.dart';
 export 'http/first_playable_persistence_codec.dart';
+export 'http/first_playable_authority_material_factory.dart';
 export 'reconnect_planner.dart';
 export 'ready_start_planner.dart';
 export 'rng_operation_planner.dart';

@@ -59,9 +59,12 @@ command receipt together. Plaintext room codes are rejected from every
 persistent document. Accepted public and private membership sets must agree;
 duplicate/collision decisions perform zero writes.
 
-`FirstPlayableRoomEntryMaterialFactory` owns only stable ingress material: the
-room/player identifiers, six-character room code, SHA-256 locator hash and
-Create expiry. It must reproduce the same material for the same `commandId`.
+`FirstPlayableAuthorityMaterialFactory` derives room/player/game identifiers,
+the six-character room code, SHA-256 locator hash and Start seed with an
+infrastructure-private HMAC key that is separate from game RNG state. It must
+reproduce identity material for the same `commandId` across instances. Create
+expiry is authority time plus the configured TTL; Firestore transaction retries
+reuse the single material instance produced at ingress.
 The executor returns the Create code transiently, persists only its hash, and
 reconstructs the same code for an exact lost-ACK retry. Join accepts a locator
 only while `expiresAt > requestReceivedAt`, requires an open room, validates the

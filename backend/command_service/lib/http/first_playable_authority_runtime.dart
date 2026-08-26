@@ -5,6 +5,7 @@ import '../observability/authority_observability.dart';
 import '../security/firebase_identity_verifier.dart';
 import 'authority_http_ingress.dart';
 import 'first_playable_authority_executor.dart';
+import 'first_playable_authority_material_factory.dart';
 
 /// Composition root for the live Flutter -> HTTP -> Authority vertical slice.
 ///
@@ -12,6 +13,21 @@ import 'first_playable_authority_executor.dart';
 /// Firestore SDK object. This keeps document decoding and persistence behind a
 /// single adapter while all gameplay remains in the canonical Engine planners.
 final class FirstPlayableAuthorityRuntime {
+  FirstPlayableAuthorityRuntime.withHmacMaterials({
+    required FirebaseIdentityVerifier identityVerifier,
+    required FirstPlayableAuthorityStore store,
+    required BestEffortAuthorityObservability observability,
+    required FirstPlayableAuthorityMaterialFactory materialFactory,
+    DateTime Function()? now,
+  }) : this(
+         identityVerifier: identityVerifier,
+         store: store,
+         observability: observability,
+         startMaterialFactory: materialFactory.startGame,
+         roomEntryMaterialFactory: materialFactory.roomEntry,
+         now: now,
+       );
+
   FirstPlayableAuthorityRuntime({
     required FirebaseIdentityVerifier identityVerifier,
     required FirstPlayableAuthorityStore store,
