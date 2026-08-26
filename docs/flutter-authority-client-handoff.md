@@ -52,6 +52,13 @@ atomic decision. The adapter fails closed if either side is missing or the two
 sets disagree. The public game document and Flutter snapshot never contain the
 direct mapping, seed, RNG counters or future deck order.
 
+Create/Join uses the same separation before a game exists. The Firestore
+adapter transacts the hashed `roomCodes/{codeHash}` locator, public
+`rooms/{roomId}`, private `roomSecrets/{roomId}` membership and durable room
+command receipt together. Plaintext room codes are rejected from every
+persistent document. Accepted public and private membership sets must agree;
+duplicate/collision decisions perform zero writes.
+
 ## Minimum Flutter repository behavior
 
 1. Start without a client-minted `playerId`. Create/Join must return the

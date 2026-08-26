@@ -8,6 +8,8 @@ const forbiddenPublicKeys = new Set([
   'streamCounters',
 ]);
 
+const forbiddenPersistedRoomKeys = new Set(['roomCode']);
+
 function assertObject(value, code) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(code);
@@ -25,6 +27,21 @@ function assertPublicOnly(value, path = 'public') {
       throw new Error(`privateFieldInPublicDocument:${path}.${key}`);
     }
     assertPublicOnly(entry, `${path}.${key}`);
+  }
+}
+
+function assertNoPlaintextRoomCode(value, path = 'roomEntry') {
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) =>
+      assertNoPlaintextRoomCode(entry, `${path}[${index}]`));
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value)) {
+    if (forbiddenPersistedRoomKeys.has(key)) {
+      throw new Error(`plaintextRoomCodeInPersistence:${path}.${key}`);
+    }
+    assertNoPlaintextRoomCode(entry, `${path}.${key}`);
   }
 }
 
@@ -50,7 +67,9 @@ function assertDecision(decision, commandId, family) {
   assertObject(decision.reply, 'invalidAuthorityReply');
   const status = decision.reply.status;
   const hasMutation = family === 'room'
-    ? decision.roomPatch != null || decision.startGame != null
+    ? decision.roomPatch != null ||
+      decision.startGame != null ||
+      decision.roomEntry != null
     : decision.publicPatch != null;
   const hasReceipt = decision.receipt != null;
 
@@ -91,6 +110,81 @@ export class FirstPlayableAuthorityFirestoreStore {
     this.doc = firestoreApi.doc;
     this.getDoc = firestoreApi.getDoc;
     this.runTransaction = firestoreApi.runTransaction;
+    this.timestampFromMillis = firestoreApi.timestampFromMillis;
+  }
+
+  async transactRoomEntry({ kind, codeHash, roomId, commandId, evaluate }) {
+    if (
+      (kind !== 'create' && kind !== 'join') ||
+      !codeHash ||
+      kind === 'create' && !roomId ||
+      !commandId ||
+      typeof evaluate !== 'function'
+    ) {
+      throw new Error('invalidRoomEntryTransaction');
+    }
+    const locatorRef = this.doc(this.db, 'roomCodes', codeHash);
+    const receiptRef = this.doc(this.db, 'roomCommands', commandId);
+
+    return this.runTransaction(this.db, async (tx) => {
+      const [locatorSnapshot, receiptSnapshot] = await Promise.all([
+        tx.get(locatorRef),
+        tx.get(receiptRef),
+      ]);
+      const locator = locatorSnapshot.exists() ? locatorSnapshot.data() : null;
+      const resolvedRoomId = kind === 'create' ? roomId : locator?.roomId;
+      const roomRef = resolvedRoomId
+        ? this.doc(this.db, 'rooms', resolvedRoomId)
+        : null;
+      const privateRoomRef = resolvedRoomId
+        ? this.doc(this.db, 'roomSecrets', resolvedRoomId)
+        : null;
+      const [roomSnapshot, privateRoomSnapshot] = roomRef == null
+        ? [null, null]
+        : await Promise.all([tx.get(roomRef), tx.get(privateRoomRef)]);
+      const decision = await evaluate({
+        locator,
+        room: roomSnapshot?.exists() ? roomSnapshot.data() : null,
+        privateRoom: privateRoomSnapshot?.exists()
+          ? privateRoomSnapshot.data()
+          : null,
+        storedReceipt: receiptSnapshot.exists()
+          ? receiptSnapshot.data()
+          : null,
+      });
+      assertDecision(decision, commandId, 'room');
+
+      if (decision.reply.status === 'accepted') {
+        assertRoomEntryDecision(decision.roomEntry, {
+          kind,
+          codeHash,
+          resolvedRoomId,
+        });
+        const entry = decision.roomEntry;
+        assertPublicOnly(entry.publicRoom);
+        assertNoPlaintextRoomCode(entry);
+        if (kind === 'create') {
+          if (typeof this.timestampFromMillis !== 'function') {
+            throw new Error('timestampFromMillisRequired');
+          }
+          tx.set(locatorRef, {
+            codeHash,
+            roomId: resolvedRoomId,
+            expiresAt: this.timestampFromMillis(entry.expiresAtMs),
+            updatedAt: this.timestampFromMillis(entry.updatedAtMs),
+          });
+          tx.set(roomRef, entry.publicRoom);
+          tx.set(privateRoomRef, entry.privateRoom);
+        } else {
+          tx.set(roomRef, entry.publicRoom, { merge: true });
+          tx.set(privateRoomRef, entry.privateRoom, { merge: true });
+        }
+        tx.set(receiptRef, decision.receipt);
+      } else if (decision.receipt != null) {
+        tx.set(receiptRef, decision.receipt);
+      }
+      return decision.reply;
+    });
   }
 
   async transactRoom({ roomId, commandId, evaluate }) {
@@ -214,6 +308,36 @@ export class FirstPlayableAuthorityFirestoreStore {
         ? receiptSnapshot.data()
         : null,
     };
+  }
+}
+
+function assertRoomEntryDecision(entry, { kind, codeHash, resolvedRoomId }) {
+  assertObject(entry, 'missingRoomEntryDecision');
+  assertObject(entry.publicRoom, 'missingPublicRoomDecision');
+  assertObject(entry.privateRoom, 'missingPrivateRoomDecision');
+  assertObject(
+    entry.privateRoom.memberUidByPlayerId,
+    'missingPrivateRoomMembership',
+  );
+  if (
+    entry.kind !== kind ||
+    entry.codeHash !== codeHash ||
+    entry.roomId !== resolvedRoomId ||
+    entry.publicRoom.roomId !== resolvedRoomId ||
+    !Array.isArray(entry.publicRoom.memberUids) ||
+    entry.publicRoom.memberUids.length === 0 ||
+    Object.keys(entry.privateRoom.memberUidByPlayerId).length !==
+      entry.publicRoom.memberUids.length ||
+    !Object.values(entry.privateRoom.memberUidByPlayerId).every((uid) =>
+      entry.publicRoom.memberUids.includes(uid)) ||
+    kind === 'create' &&
+      (!Number.isSafeInteger(entry.expiresAtMs) ||
+        !Number.isSafeInteger(entry.updatedAtMs) ||
+        entry.expiresAtMs <= entry.updatedAtMs) ||
+    kind === 'join' &&
+      (entry.expiresAtMs != null || entry.updatedAtMs != null)
+  ) {
+    throw new Error('invalidRoomEntryDecision');
   }
 }
 

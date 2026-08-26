@@ -27,9 +27,192 @@ function fakeFirestore(initial = {}) {
         );
       },
     }),
+    timestampFromMillis: (value) => ({ _millis: value }),
   };
   return { documents, api, db: {} };
 }
+
+function roomEntryDecision({ kind, commandId, codeHash, roomId, members }) {
+  const memberUids = members.map((member) => member.uid);
+  const memberUidByPlayerId = Object.fromEntries(
+    members.map((member) => [member.playerId, member.uid]),
+  );
+  const roomVersion = members.length;
+  const result = {
+    commandId,
+    status: 'accepted',
+    roomId,
+    roomVersion,
+    actorPlayerId: members.at(-1).playerId,
+  };
+  return {
+    schemaVersion: 1,
+    family: 'room',
+    reply: { status: 'accepted', result },
+    roomEntry: {
+      kind,
+      codeHash,
+      roomId,
+      ...(kind === 'create'
+        ? { updatedAtMs: 1_000, expiresAtMs: 61_000 }
+        : {}),
+      publicRoom: {
+        schemaVersion: 1,
+        roomId,
+        roomVersion,
+        status: 'open',
+        hostUid: memberUids[0],
+        memberUids,
+        readyByUid: Object.fromEntries(memberUids.map((uid) => [uid, false])),
+        presetId: 'express',
+      },
+      privateRoom: { schemaVersion: 1, memberUidByPlayerId },
+    },
+    receipt: receipt(commandId, result),
+  };
+}
+
+test('CreateRoom persists hashed locator and private membership exactly once', async () => {
+  const fake = fakeFirestore();
+  const store = new FirstPlayableAuthorityFirestoreStore(fake.db, fake.api);
+  const input = {
+    kind: 'create',
+    codeHash: 'sha256-code-a',
+    roomId: 'room-create-1',
+    commandId: 'cmd-create-1',
+  };
+  const evaluate = ({ storedReceipt }) => storedReceipt == null
+    ? roomEntryDecision({
+        ...input,
+        members: [{ uid: 'uid-1', playerId: 'player-1' }],
+      })
+    : {
+        schemaVersion: 1,
+        family: 'room',
+        reply: duplicateReply(storedReceipt),
+      };
+
+  const accepted = await store.transactRoomEntry({ ...input, evaluate });
+  const duplicate = await store.transactRoomEntry({ ...input, evaluate });
+
+  assert.equal(accepted.status, 'accepted');
+  assert.equal(duplicate.status, 'duplicate');
+  assert.equal(
+    fake.documents.get('roomCodes/sha256-code-a').expiresAt._millis,
+    61_000,
+  );
+  assert.equal(fake.documents.get('rooms/room-create-1').roomCode, undefined);
+  assert.deepEqual(
+    fake.documents.get('roomSecrets/room-create-1').memberUidByPlayerId,
+    { 'player-1': 'uid-1' },
+  );
+  assert.equal(
+    fake.documents.get('roomCommands/cmd-create-1').commandId,
+    'cmd-create-1',
+  );
+});
+
+test('JoinRoom updates public/private membership atomically and duplicate-safe', async () => {
+  const fake = fakeFirestore({
+    'roomCodes/sha256-code-b': {
+      codeHash: 'sha256-code-b',
+      roomId: 'room-join-1',
+      expiresAt: { value: 61_000 },
+    },
+    'rooms/room-join-1': {
+      schemaVersion: 1,
+      roomId: 'room-join-1',
+      roomVersion: 1,
+      status: 'open',
+      hostUid: 'uid-1',
+      memberUids: ['uid-1'],
+      readyByUid: { 'uid-1': false },
+      presetId: 'express',
+    },
+    'roomSecrets/room-join-1': {
+      schemaVersion: 1,
+      memberUidByPlayerId: { 'player-1': 'uid-1' },
+    },
+  });
+  const store = new FirstPlayableAuthorityFirestoreStore(fake.db, fake.api);
+  const input = {
+    kind: 'join',
+    codeHash: 'sha256-code-b',
+    commandId: 'cmd-join-1',
+  };
+  const evaluate = ({ storedReceipt }) => storedReceipt == null
+    ? roomEntryDecision({
+        ...input,
+        roomId: 'room-join-1',
+        members: [
+          { uid: 'uid-1', playerId: 'player-1' },
+          { uid: 'uid-2', playerId: 'player-2' },
+        ],
+      })
+    : {
+        schemaVersion: 1,
+        family: 'room',
+        reply: duplicateReply(storedReceipt),
+      };
+
+  await store.transactRoomEntry({ ...input, evaluate });
+  await store.transactRoomEntry({ ...input, evaluate });
+
+  assert.deepEqual(fake.documents.get('rooms/room-join-1').memberUids, [
+    'uid-1',
+    'uid-2',
+  ]);
+  assert.deepEqual(
+    fake.documents.get('roomSecrets/room-join-1').memberUidByPlayerId,
+    { 'player-1': 'uid-1', 'player-2': 'uid-2' },
+  );
+});
+
+test('room entry rejects plaintext code or inconsistent private membership', async () => {
+  const fake = fakeFirestore();
+  const store = new FirstPlayableAuthorityFirestoreStore(fake.db, fake.api);
+  const input = {
+    kind: 'create',
+    codeHash: 'sha256-code-c',
+    roomId: 'room-create-leak',
+    commandId: 'cmd-create-leak',
+  };
+  const base = roomEntryDecision({
+    ...input,
+    members: [{ uid: 'uid-1', playerId: 'player-1' }],
+  });
+
+  await assert.rejects(
+    store.transactRoomEntry({
+      ...input,
+      evaluate: () => ({
+        ...base,
+        roomEntry: {
+          ...base.roomEntry,
+          publicRoom: { ...base.roomEntry.publicRoom, roomCode: 'ABC123' },
+        },
+      }),
+    }),
+    /plaintextRoomCodeInPersistence/,
+  );
+  await assert.rejects(
+    store.transactRoomEntry({
+      ...input,
+      evaluate: () => ({
+        ...base,
+        roomEntry: {
+          ...base.roomEntry,
+          privateRoom: {
+            schemaVersion: 1,
+            memberUidByPlayerId: { 'player-x': 'uid-x' },
+          },
+        },
+      }),
+    }),
+    /invalidRoomEntryDecision/,
+  );
+  assert.equal(fake.documents.size, 0);
+});
 
 function receipt(commandId, result = { stateVersionAfter: 1 }) {
   return {
@@ -40,6 +223,35 @@ function receipt(commandId, result = { stateVersionAfter: 1 }) {
     resultSummary: result,
   };
 }
+
+test('room entry semantic collision performs zero membership writes', async () => {
+  const stored = receipt('cmd-entry-collision', { roomId: 'room-existing' });
+  const fake = fakeFirestore({
+    'roomCommands/cmd-entry-collision': stored,
+  });
+  const store = new FirstPlayableAuthorityFirestoreStore(fake.db, fake.api);
+
+  const reply = await store.transactRoomEntry({
+    kind: 'create',
+    codeHash: 'sha256-code-collision',
+    roomId: 'room-candidate',
+    commandId: 'cmd-entry-collision',
+    evaluate: ({ storedReceipt }) => {
+      assert.deepEqual(storedReceipt, stored);
+      return {
+        schemaVersion: 1,
+        family: 'room',
+        reply: { status: 'collision', errorCode: 'commandIdCollision' },
+      };
+    },
+  });
+
+  assert.equal(reply.status, 'collision');
+  assert.deepEqual(
+    [...fake.documents.entries()],
+    [['roomCommands/cmd-entry-collision', stored]],
+  );
+});
 
 test('accepted game decision persists public/private state and receipt once', async () => {
   const fake = fakeFirestore({
