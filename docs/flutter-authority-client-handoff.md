@@ -59,6 +59,16 @@ command receipt together. Plaintext room codes are rejected from every
 persistent document. Accepted public and private membership sets must agree;
 duplicate/collision decisions perform zero writes.
 
+`FirstPlayableRoomEntryMaterialFactory` owns only stable ingress material: the
+room/player identifiers, six-character room code, SHA-256 locator hash and
+Create expiry. It must reproduce the same material for the same `commandId`.
+The executor returns the Create code transiently, persists only its hash, and
+reconstructs the same code for an exact lost-ACK retry. Join accepts a locator
+only while `expiresAt > requestReceivedAt`, requires an open room, validates the
+next seat against the canonical preset/catalog, and updates public/private
+membership once. A changed fingerprint, actor or material hash is a collision
+with zero writes.
+
 ## Minimum Flutter repository behavior
 
 1. Start without a client-minted `playerId`. Create/Join must return the
@@ -100,9 +110,10 @@ any depth. The concrete adapter must preserve the same rule and must never read
 
 The package tests prove canonical retry identity, semantic collision changes,
 public/private rejection, monotonic reply versions, payload-free lost-ACK
-reconciliation, replacement snapshot behavior, and an authenticated loopback
-HTTP round trip from `WireAuthorityClient` through the typed ingress. Firebase
-Emulator evidence for server persistence remains in the accepted
-#69/#71/#73/#74 chain. The remaining vertical gap is the concrete
-`AuthorityHttpExecutor` composition over those existing Firestore adapters,
-followed by Flutter widget/integration and Tier-1 device evidence.
+reconciliation, replacement snapshot behavior, authoritative Create/Join
+membership, and an authenticated loopback HTTP round trip from
+`WireAuthorityClient` through the typed ingress. Firebase Emulator evidence for
+server persistence remains in the accepted #69/#71/#73/#74 chain. The
+remaining vertical gap is executing this complete HTTP/Authority/store flow on
+the Firebase Emulator, followed by Flutter widget/integration and Tier-1 device
+evidence.

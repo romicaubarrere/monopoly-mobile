@@ -211,6 +211,22 @@ test('room entry rejects plaintext code or inconsistent private membership', asy
     }),
     /invalidRoomEntryDecision/,
   );
+  await assert.rejects(
+    store.transactRoomEntry({
+      ...input,
+      evaluate: () => ({
+        ...base,
+        receipt: {
+          ...base.receipt,
+          resultSummary: {
+            ...base.receipt.resultSummary,
+            roomCode: 'ABC123',
+          },
+        },
+      }),
+    }),
+    /plaintextRoomCodeInPersistence/,
+  );
   assert.equal(fake.documents.size, 0);
 });
 

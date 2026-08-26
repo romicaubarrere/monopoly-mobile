@@ -47,6 +47,7 @@ function assertNoPlaintextRoomCode(value, path = 'roomEntry') {
 
 function assertReceipt(receipt, commandId) {
   assertObject(receipt, 'invalidReceipt');
+  assertNoPlaintextRoomCode(receipt, 'receipt');
   if (
     receipt.commandId !== commandId ||
     typeof receipt.actorUid !== 'string' ||

@@ -13,6 +13,48 @@ import 'first_playable_authority_executor.dart';
 abstract final class FirstPlayablePersistenceCodec {
   static const int schemaVersion = 1;
 
+  static Map<String, Object?> encodeRoomEntryDecision(
+    FirstPlayableRoomEntryTransactionDecision decision,
+  ) => <String, Object?>{
+    'schemaVersion': schemaVersion,
+    'family': 'room',
+    'reply': decision.reply.toWireJson(),
+    if (decision.mutation case final mutation?)
+      'roomEntry': <String, Object?>{
+        'kind': mutation.kind.name,
+        'codeHash': mutation.codeHash,
+        'roomId': mutation.roomId,
+        if (mutation.updatedAt case final value?)
+          'updatedAtMs': value.toUtc().millisecondsSinceEpoch,
+        if (mutation.expiresAt case final value?)
+          'expiresAtMs': value.toUtc().millisecondsSinceEpoch,
+        'publicRoom': <String, Object?>{
+          'schemaVersion': schemaVersion,
+          'roomId': mutation.roomId,
+          'roomVersion': mutation.roomVersion,
+          'status': 'open',
+          'hostUid': mutation.hostUid,
+          'memberUids': mutation.membersAfter
+              .map((member) => member.uid)
+              .toList(growable: false),
+          'readyByUid': <String, Object?>{
+            for (final member in mutation.membersAfter)
+              member.uid: member.ready,
+          },
+          'presetId': mutation.presetId,
+        },
+        'privateRoom': <String, Object?>{
+          'schemaVersion': schemaVersion,
+          'memberUidByPlayerId': <String, Object?>{
+            for (final member in mutation.membersAfter)
+              member.playerId: member.uid,
+          },
+        },
+      },
+    if (decision.receiptToPersist case final receipt?)
+      'receipt': _receipt(receipt, decision.reply),
+  };
+
   static Map<String, Object?> encodeGameDecision(
     FirstPlayableGameTransactionDecision decision,
   ) => <String, Object?>{
@@ -91,6 +133,8 @@ abstract final class FirstPlayablePersistenceCodec {
     'actorUid': stored.actorUid,
     'inputHashVersion': stored.receipt.inputHashVersion,
     'inputHash': stored.receipt.inputHash,
+    if (stored.roomEntryCodeHash != null)
+      'roomEntryCodeHash': stored.roomEntryCodeHash,
     'stateVersionBefore': reply.versionBefore,
     'stateVersionAfter': reply.versionAfter,
     'status': reply.status.wireValue,

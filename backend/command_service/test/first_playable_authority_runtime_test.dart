@@ -89,6 +89,15 @@ final class _RuntimeStore implements FirstPlayableAuthorityStore {
       );
 
   @override
+  Future<FirstPlayableRoomEntryTransactionResult> transactRoomEntry({
+    required FirstPlayableRoomEntryKind kind,
+    required String codeHash,
+    String? roomId,
+    required String commandId,
+    required FirstPlayableRoomEntryTransactionCallback evaluate,
+  }) => throw UnimplementedError('Roll runtime test does not enter a room');
+
+  @override
   Future<FirstPlayableGameReadResult> readGame({
     required String gameId,
     String? commandId,

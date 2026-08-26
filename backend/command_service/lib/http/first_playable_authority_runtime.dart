@@ -17,6 +17,7 @@ final class FirstPlayableAuthorityRuntime {
     required FirstPlayableAuthorityStore store,
     required BestEffortAuthorityObservability observability,
     FirstPlayableStartMaterialFactory? startMaterialFactory,
+    FirstPlayableRoomEntryMaterialFactory? roomEntryMaterialFactory,
     DateTime Function()? now,
   }) : _ingress = AuthorityHttpIngress(
          identityVerifier: identityVerifier,
@@ -24,6 +25,7 @@ final class FirstPlayableAuthorityRuntime {
          executor: FirstPlayableAuthorityExecutor(
            store: store,
            startMaterialFactory: startMaterialFactory,
+           roomEntryMaterialFactory: roomEntryMaterialFactory,
          ),
          now: now,
        );

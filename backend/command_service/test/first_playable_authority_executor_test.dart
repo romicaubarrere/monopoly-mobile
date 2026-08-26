@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:board_backend_api/backend_api.dart' as api;
 import 'package:board_command_service/command_service.dart' as service;
 import 'package:board_command_service/ingress/command_ingress.dart' as ingress;
@@ -191,6 +193,181 @@ void main() {
       throwsA(isA<membership.MembershipAuthorizationException>()),
     );
   });
+
+  test(
+    'CreateRoom returns one transient code and persists hash-only membership',
+    () async {
+      final store = _MemoryStore(
+        state: syntheticRollState(),
+        catalog: syntheticRollCatalog(),
+        privateRng: syntheticRollPrivateState(),
+      );
+      var materialCalls = 0;
+      final executor = service.FirstPlayableAuthorityExecutor(
+        store: store,
+        roomEntryMaterialFactory: (command, receivedAt) async {
+          materialCalls += 1;
+          return service.FirstPlayableRoomEntryMaterial(
+            kind: service.FirstPlayableRoomEntryKind.create,
+            roomCode: 'ABC123',
+            codeHash: 'a' * 64,
+            playerId: 'player-host',
+            roomId: 'room-created',
+            expiresAt: receivedAt.add(const Duration(minutes: 10)),
+          );
+        },
+      );
+      final request = _roomEntryRequest(
+        commandId: 'cmd-create-room',
+        type: RoomCommandType.createRoom,
+      );
+
+      final accepted = await executor.executeCommand(
+        context: context,
+        identity: identity,
+        request: request,
+      );
+      final duplicate = await executor.executeCommand(
+        context: context,
+        identity: identity,
+        request: request,
+      );
+
+      expect(accepted.value.status, api.AuthorityCommandStatus.accepted);
+      expect(accepted.value.publicResult['roomCode'], 'ABC123');
+      expect(accepted.value.publicResult['actorPlayerId'], 'player-host');
+      expect(duplicate.value.status, api.AuthorityCommandStatus.duplicate);
+      expect(duplicate.value.publicResult['roomCode'], 'ABC123');
+      expect(materialCalls, 2);
+      expect(store.roomEntryWriteCount, 1);
+      final persisted =
+          service.FirstPlayablePersistenceCodec.encodeRoomEntryDecision(
+            store.lastAcceptedRoomEntryDecision!,
+          );
+      final entry = persisted['roomEntry']! as Map<String, Object?>;
+      final receipt = persisted['receipt']! as Map<String, Object?>;
+      expect(jsonEncode(entry), isNot(contains('ABC123')));
+      expect(jsonEncode(entry), isNot(contains('roomCode')));
+      expect(jsonEncode(receipt), isNot(contains('ABC123')));
+      expect(jsonEncode(receipt), isNot(contains('roomCode')));
+      final publicRoom = entry['publicRoom']! as Map<String, Object?>;
+      final privateRoom = entry['privateRoom']! as Map<String, Object?>;
+      expect(entry['codeHash'], 'a' * 64);
+      expect(publicRoom, isNot(contains('memberUidByPlayerId')));
+      expect(privateRoom['memberUidByPlayerId'], <String, Object?>{
+        'player-host': 'uid-p1',
+      });
+    },
+  );
+
+  test(
+    'JoinRoom updates public/private membership once and rejects collision',
+    () async {
+      final store = _MemoryStore(
+        state: syntheticRollState(),
+        catalog: syntheticRollCatalog(),
+        privateRng: syntheticRollPrivateState(),
+        seedRoomEntry: true,
+      );
+      final executor = service.FirstPlayableAuthorityExecutor(
+        store: store,
+        roomEntryMaterialFactory: (command, receivedAt) async =>
+            service.FirstPlayableRoomEntryMaterial(
+              kind: service.FirstPlayableRoomEntryKind.join,
+              roomCode: command.payload['roomCode']! as String,
+              codeHash: command.payload['roomCode'] == 'ABC123'
+                  ? 'b' * 64
+                  : 'c' * 64,
+              playerId: 'player-joined',
+            ),
+      );
+      final request = _roomEntryRequest(
+        commandId: 'cmd-join-room',
+        type: RoomCommandType.joinRoom,
+      );
+
+      final accepted = await executor.executeCommand(
+        context: context,
+        identity: firebase_identity.VerifiedIdentity(
+          uid: 'uid-p2',
+          authTime: identity.authTime,
+        ),
+        request: request,
+      );
+      final duplicate = await executor.executeCommand(
+        context: context,
+        identity: firebase_identity.VerifiedIdentity(
+          uid: 'uid-p2',
+          authTime: identity.authTime,
+        ),
+        request: request,
+      );
+      final collision = await executor.executeCommand(
+        context: context,
+        identity: firebase_identity.VerifiedIdentity(
+          uid: 'uid-p2',
+          authTime: identity.authTime,
+        ),
+        request: _roomEntryRequest(
+          commandId: 'cmd-join-room',
+          type: RoomCommandType.joinRoom,
+          roomCode: 'ZZZ999',
+        ),
+      );
+
+      expect(accepted.value.status, api.AuthorityCommandStatus.accepted);
+      expect(accepted.value.versionAfter, 2);
+      expect(accepted.value.publicResult['actorPlayerId'], 'player-joined');
+      expect(duplicate.value.status, api.AuthorityCommandStatus.duplicate);
+      expect(collision.outcome, observability.AuthorityOutcome.collision);
+      expect(store.roomEntryMembers, hasLength(2));
+      expect(store.roomEntryWriteCount, 1);
+    },
+  );
+
+  test(
+    'JoinRoom expired locator rejects without changing membership',
+    () async {
+      final store = _MemoryStore(
+        state: syntheticRollState(),
+        catalog: syntheticRollCatalog(),
+        privateRng: syntheticRollPrivateState(),
+        seedRoomEntry: true,
+        roomEntryExpiresAt: context.requestReceivedAt,
+      );
+      final executor = service.FirstPlayableAuthorityExecutor(
+        store: store,
+        roomEntryMaterialFactory: (command, receivedAt) async =>
+            service.FirstPlayableRoomEntryMaterial(
+              kind: service.FirstPlayableRoomEntryKind.join,
+              roomCode: 'ABC123',
+              codeHash: 'b' * 64,
+              playerId: 'player-expired',
+            ),
+      );
+
+      final result = await executor.executeCommand(
+        context: context,
+        identity: firebase_identity.VerifiedIdentity(
+          uid: 'uid-p2',
+          authTime: identity.authTime,
+        ),
+        request: _roomEntryRequest(
+          commandId: 'cmd-join-expired',
+          type: RoomCommandType.joinRoom,
+        ),
+      );
+
+      expect(result.value.status, api.AuthorityCommandStatus.rejected);
+      expect(result.value.errorCode, 'roomUnavailable');
+      expect(store.roomEntryMembers, hasLength(1));
+      expect(
+        store.roomEntryWriteCount,
+        1,
+        reason: 'safe rejection receipt only',
+      );
+    },
+  );
 
   test(
     'SetReady is atomic, public-only, duplicate-safe and collision-safe',
@@ -403,6 +580,24 @@ api.AuthorityCommandRequest _roomRequest({
   ),
 );
 
+api.AuthorityCommandRequest _roomEntryRequest({
+  required String commandId,
+  required RoomCommandType type,
+  String roomCode = 'ABC123',
+}) => api.AuthorityCommandRequest.room(
+  RoomCommand(
+    commandId: commandId,
+    schemaVersion: 1,
+    clientInstanceId: 'client-room-entry-1',
+    type: type,
+    payload: type == RoomCommandType.createRoom
+        ? const <String, Object?>{
+            'presetDraft': <String, Object?>{'presetId': 'express'},
+          }
+        : <String, Object?>{'roomCode': roomCode},
+  ),
+);
+
 final class _MemoryStore implements service.FirstPlayableAuthorityStore {
   _MemoryStore({
     required this.state,
@@ -410,6 +605,8 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
     required this.privateRng,
     List<service.ReadyRoomMember>? roomMembers,
     this.retryRoomCallback = false,
+    bool seedRoomEntry = false,
+    DateTime? roomEntryExpiresAt,
   }) : roomMembers =
            roomMembers ??
            const <service.ReadyRoomMember>[
@@ -425,21 +622,44 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
                kind: PlayerKind.human,
                ready: true,
              ),
-           ];
+           ],
+       roomEntryCodeHash = seedRoomEntry ? 'b' * 64 : null,
+       roomEntryRoomId = seedRoomEntry ? 'room-entry-vp0' : null,
+       roomEntryExpiresAt =
+           roomEntryExpiresAt ?? DateTime.parse('2026-08-25T03:00:00.000Z'),
+       roomEntryMembers = seedRoomEntry
+           ? <service.ReadyRoomMember>[
+               const service.ReadyRoomMember(
+                 uid: 'uid-p1',
+                 playerId: 'player-host',
+                 kind: PlayerKind.human,
+                 ready: false,
+               ),
+             ]
+           : <service.ReadyRoomMember>[];
 
   PublicGameState state;
   final RulesCatalog catalog;
   service.AuthorityPrivateRngSnapshot? privateRng;
   service.StoredAuthorityCommandReceipt? receipt;
   service.StoredAuthorityCommandReceipt? roomReceipt;
+  service.StoredAuthorityCommandReceipt? roomEntryReceipt;
   List<service.ReadyRoomMember> roomMembers;
+  String? roomEntryCodeHash;
+  String? roomEntryRoomId;
+  DateTime roomEntryExpiresAt;
+  List<service.ReadyRoomMember> roomEntryMembers;
   final bool retryRoomCallback;
   var roomVersion = 12;
   var roomStatus = 'open';
   var roomCallbackCount = 0;
   var roomWriteCount = 0;
+  var roomEntryWriteCount = 0;
   service.ReadyStartPlan? startPlan;
   service.FirstPlayableRoomTransactionDecision? lastRoomDecision;
+  service.FirstPlayableRoomEntryTransactionDecision? lastRoomEntryDecision;
+  service.FirstPlayableRoomEntryTransactionDecision?
+  lastAcceptedRoomEntryDecision;
   service.FirstPlayableGameTransactionDecision? lastGameDecision;
   service.FirstPlayableGameTransactionDecision? lastAcceptedGameDecision;
   var writeCount = 0;
@@ -452,6 +672,64 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
         privateRng: privateRng,
         storedReceipt: receipt,
       );
+
+  @override
+  Future<service.FirstPlayableRoomEntryTransactionResult> transactRoomEntry({
+    required service.FirstPlayableRoomEntryKind kind,
+    required String codeHash,
+    String? roomId,
+    required String commandId,
+    required service.FirstPlayableRoomEntryTransactionCallback evaluate,
+  }) async {
+    service.FirstPlayableRoomEntryRoomView? room;
+    if (roomEntryRoomId != null && roomEntryCodeHash == codeHash) {
+      room = service.FirstPlayableRoomEntryRoomView(
+        roomId: roomEntryRoomId!,
+        roomVersion: roomEntryMembers.length,
+        status: 'open',
+        hostUid: roomEntryMembers.first.uid,
+        presetId: 'express',
+        members: roomEntryMembers,
+        catalog: catalog,
+      );
+    }
+    final decision = evaluate(
+      service.FirstPlayableRoomEntryTransactionView(
+        locator: roomEntryRoomId != null && roomEntryCodeHash == codeHash
+            ? service.FirstPlayableRoomLocatorView(
+                roomId: roomEntryRoomId!,
+                expiresAt: roomEntryExpiresAt,
+              )
+            : null,
+        room: room,
+        storedReceipt: commandId == roomEntryReceipt?.receipt.commandId
+            ? roomEntryReceipt
+            : null,
+      ),
+    );
+    lastRoomEntryDecision = decision;
+    if (decision.mutation != null) {
+      final mutation = decision.mutation!;
+      roomEntryCodeHash = mutation.codeHash;
+      roomEntryRoomId = mutation.roomId;
+      roomEntryMembers = mutation.membersAfter;
+      roomEntryExpiresAt = mutation.expiresAt ?? roomEntryExpiresAt;
+      lastAcceptedRoomEntryDecision = decision;
+    }
+    if (decision.receiptToPersist != null) {
+      roomEntryReceipt = decision.receiptToPersist;
+      roomEntryWriteCount += 1;
+    }
+    return service.FirstPlayableRoomEntryTransactionResult(
+      decision: decision,
+      metrics: ingress.AuthorityExecutionMetrics(
+        firestoreReadCount: 4,
+        firestoreWriteCount: decision.receiptToPersist == null ? 0 : 4,
+        schemaVersion: 1,
+        stateVersion: decision.reply.versionAfter,
+      ),
+    );
+  }
 
   @override
   Future<service.FirstPlayableGameReadResult> readGame({
