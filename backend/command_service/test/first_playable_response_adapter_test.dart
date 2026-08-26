@@ -1,8 +1,10 @@
 import 'package:board_backend_api/backend_api.dart' as api;
 import 'package:board_command_service/command_service.dart' as service;
+import 'package:board_game_core/game_core.dart';
 import 'package:test/test.dart';
 
 import 'support/synthetic_buy_auction_fixture.dart';
+import 'support/synthetic_roll_fixture.dart';
 
 void main() {
   final state = syntheticPropertyOfferState();
@@ -126,6 +128,73 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('Roll accepted response carries Engine snapshot and exact versions', () {
+    final rollState = syntheticRollState();
+    final evaluation = service.AuthorityRollMovementPlanner.evaluate(
+      command: syntheticRollCommand(),
+      authenticatedActorUid: 'uid-p1',
+      memberUidByPlayerId: const <String, String>{'p1': 'uid-p1'},
+      state: rollState,
+      catalog: syntheticRollCatalog(),
+      privateSnapshot: syntheticRollPrivateState(),
+      transitionTime: DateTime.parse('2026-08-25T02:00:00.000Z'),
+    );
+
+    final reply = service.FirstPlayableResponseAdapter.rollMovement(evaluation);
+
+    expect(reply.status, api.AuthorityCommandStatus.accepted);
+    expect(reply.versionBefore, 0);
+    expect(reply.versionAfter, 1);
+    expect(reply.snapshot!.stateVersion, 1);
+    expect(reply.publicResult['events'], isNotEmpty);
+  });
+
+  test('Buy rejection stays read-only and exposes only a safe code', () {
+    final buyState = syntheticPropertyOfferState();
+    final evaluation = service.AuthorityBuyAuctionPlanner.evaluateHuman(
+      command: syntheticOfferCommand(
+        GameCommandType.buyProperty,
+        expectedStateVersion: 99,
+      ),
+      authenticatedActorUid: 'uid-p1',
+      memberUidByPlayerId: const <String, String>{'p1': 'uid-p1'},
+      state: buyState,
+      catalog: syntheticBuyAuctionCatalog(),
+      requestReceivedAt: syntheticBuyAuctionTime,
+    );
+
+    final reply = service.FirstPlayableResponseAdapter.buyAuction(evaluation);
+
+    expect(reply.status, api.AuthorityCommandStatus.rejected);
+    expect(reply.versionBefore, buyState.header.stateVersion);
+    expect(reply.versionAfter, buyState.header.stateVersion);
+    expect(reply.errorCode, 'staleVersion');
+    expect(reply.snapshot, isNull);
+  });
+
+  test('duplicate receipt replays result without a second snapshot', () {
+    final receipt = service.DurableCommandReceipt(
+      commandId: 'cmd-buy-1',
+      inputHashVersion: 1,
+      inputHash: identity.inputHash,
+      publicResult: const <String, Object?>{
+        'commandId': 'cmd-buy-1',
+        'status': 'accepted',
+        'stateVersionBefore': 1,
+        'stateVersionAfter': 2,
+        'events': <Object?>[],
+      },
+    );
+
+    final reply = service.FirstPlayableResponseAdapter.duplicate(receipt);
+
+    expect(reply.status, api.AuthorityCommandStatus.duplicate);
+    expect(reply.versionBefore, 1);
+    expect(reply.versionAfter, 2);
+    expect(reply.snapshot, isNull);
+    expect(reply.publicResult, receipt.publicResult);
   });
 }
 

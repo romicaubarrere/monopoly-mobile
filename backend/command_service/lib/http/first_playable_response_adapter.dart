@@ -1,6 +1,8 @@
 import 'package:board_backend_api/backend_api.dart' as api;
 
+import '../buy_auction_planner.dart';
 import '../reconnect_planner.dart' as planner;
+import '../roll_movement_planner.dart';
 
 /// Maps the durable reconnect planner to the exact public contract consumed by
 /// Flutter.
@@ -9,6 +11,89 @@ import '../reconnect_planner.dart' as planner;
 /// This adapter only translates its already-decided outcome; it never derives
 /// versions, command identities, or gameplay results from client input.
 abstract final class FirstPlayableResponseAdapter {
+  static api.AuthorityCommandReply rollMovement(
+    AuthorityRollMovementEvaluation evaluation,
+  ) => switch (evaluation) {
+    AuthorityRollMovementAccepted(:final plan) => api.AuthorityCommandReply(
+      commandId: plan.enginePlan.commandId,
+      status: api.AuthorityCommandStatus.accepted,
+      versionBefore: plan.enginePlan.stateVersionBefore,
+      versionAfter: plan.enginePlan.stateVersionAfter,
+      publicResult: plan.safeResultSummary,
+      snapshot: api.AuthorityPublicSnapshot(plan.stateAfter.toJson()),
+    ),
+    AuthorityRollMovementRejected(:final rejection) =>
+      api.AuthorityCommandReply(
+        commandId: rejection.commandId,
+        status: api.AuthorityCommandStatus.rejected,
+        versionBefore: rejection.stateVersionBefore,
+        versionAfter: rejection.stateVersionAfter,
+        errorCode: rejection.errorCode.wireValue,
+        publicResult: rejection.toPublicJson(),
+      ),
+  };
+
+  static api.AuthorityCommandReply buyAuction(
+    AuthorityBuyAuctionEvaluation evaluation,
+  ) => switch (evaluation) {
+    AuthorityBuyAuctionAccepted(:final plan) => api.AuthorityCommandReply(
+      commandId: plan.enginePlan.commandId,
+      status: api.AuthorityCommandStatus.accepted,
+      versionBefore: plan.enginePlan.stateVersionBefore,
+      versionAfter: plan.enginePlan.stateVersionAfter,
+      publicResult: plan.safeResultSummary,
+      snapshot: api.AuthorityPublicSnapshot(plan.stateAfter.toJson()),
+    ),
+    AuthorityBuyAuctionRejected(:final rejection) => api.AuthorityCommandReply(
+      commandId: rejection.commandId,
+      status: api.AuthorityCommandStatus.rejected,
+      versionBefore: rejection.stateVersionBefore,
+      versionAfter: rejection.stateVersionAfter,
+      errorCode: rejection.errorCode.wireValue,
+      publicResult: rejection.toPublicJson(),
+    ),
+    AuthorityBuyAuctionNoOp(:final reason) =>
+      throw AuthorityBuyAuctionViolation('nonCommandEvaluation:$reason'),
+  };
+
+  /// Replays a persisted command result without re-invoking Engine or RNG.
+  ///
+  /// Historical receipts need not retain a full snapshot: Flutter converges
+  /// through the public snapshot stream/reconnect when Authority has advanced
+  /// beyond this command's [versionAfter].
+  static api.AuthorityCommandReply duplicate(
+    planner.DurableCommandReceipt receipt,
+  ) {
+    final result = receipt.publicResult;
+    final commandId = result['commandId'];
+    final versionBefore = result['stateVersionBefore'];
+    final versionAfter = result['stateVersionAfter'];
+    if (commandId != receipt.commandId ||
+        versionBefore is! int ||
+        versionAfter is! int) {
+      throw const planner.AuthorityReconnectViolation(
+        'invalidDurableCommandResult',
+      );
+    }
+    final originalStatus = result['status'];
+    final errorCode = result['errorCode'];
+    if ((originalStatus != 'accepted' && originalStatus != 'rejected') ||
+        originalStatus == 'rejected' &&
+            (errorCode is! String || errorCode.isEmpty)) {
+      throw const planner.AuthorityReconnectViolation(
+        'invalidDurableCommandResult',
+      );
+    }
+    return api.AuthorityCommandReply(
+      commandId: receipt.commandId,
+      status: api.AuthorityCommandStatus.duplicate,
+      versionBefore: versionBefore,
+      versionAfter: versionAfter,
+      errorCode: errorCode as String?,
+      publicResult: result,
+    );
+  }
+
   static api.AuthorityReconnectReply reconnect({
     required planner.AuthorityReconnectPlan plan,
     required api.AuthorityReconnectRequest request,
