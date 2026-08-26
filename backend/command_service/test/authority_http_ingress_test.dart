@@ -115,7 +115,7 @@ final class _Executor implements AuthorityHttpExecutor {
   AuthorityCommandRequest? command;
 
   @override
-  Future<AuthorityExecutionResult<Map<String, Object?>>> executeCommand({
+  Future<AuthorityExecutionResult<AuthorityCommandReply>> executeCommand({
     required IngressContext context,
     required VerifiedIdentity identity,
     required AuthorityCommandRequest request,
@@ -123,36 +123,36 @@ final class _Executor implements AuthorityHttpExecutor {
     uid = identity.uid;
     receivedAt = context.requestReceivedAt;
     command = request;
-    return AuthorityExecutionResult<Map<String, Object?>>(
-      value: <String, Object?>{
-        'commandId': request.commandId,
-        'status': 'accepted',
-        'versionBefore': 0,
-        'versionAfter': 1,
-        'publicResult': const <String, Object?>{'stateVersionAfter': 1},
-        'snapshot': _snapshot(),
-      },
+    return AuthorityExecutionResult<AuthorityCommandReply>(
+      value: AuthorityCommandReply(
+        commandId: request.commandId,
+        status: AuthorityCommandStatus.accepted,
+        versionBefore: 0,
+        versionAfter: 1,
+        publicResult: const <String, Object?>{'stateVersionAfter': 1},
+        snapshot: AuthorityPublicSnapshot(_snapshot()),
+      ),
       outcome: AuthorityOutcome.success,
       reason: AuthorityReason.none,
     );
   }
 
   @override
-  Future<Map<String, Object?>> readPublicGame({
+  Future<AuthorityPublicSnapshot> readPublicGame({
     required IngressContext context,
     required VerifiedIdentity identity,
     required String gameId,
-  }) async => _snapshot();
+  }) async => AuthorityPublicSnapshot(_snapshot());
 
   @override
-  Future<Map<String, Object?>> reconnect({
+  Future<AuthorityReconnectReply> reconnect({
     required IngressContext context,
     required VerifiedIdentity identity,
     required AuthorityReconnectRequest request,
-  }) async => <String, Object?>{
-    'disposition': 'upToDate',
-    'snapshot': _snapshot(),
-  };
+  }) async => AuthorityReconnectReply(
+    disposition: ReconnectDisposition.upToDate,
+    snapshot: AuthorityPublicSnapshot(_snapshot()),
+  );
 }
 
 final class _SignatureVerifier implements IdTokenSignatureVerifier {

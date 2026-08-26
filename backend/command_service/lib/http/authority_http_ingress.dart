@@ -12,19 +12,19 @@ import '../security/membership_authorizer.dart';
 /// Implementations must authorize membership and delegate gameplay transitions
 /// to the existing Engine planners/persistence. The HTTP layer owns no rules.
 abstract interface class AuthorityHttpExecutor {
-  Future<AuthorityExecutionResult<Map<String, Object?>>> executeCommand({
+  Future<AuthorityExecutionResult<AuthorityCommandReply>> executeCommand({
     required IngressContext context,
     required VerifiedIdentity identity,
     required AuthorityCommandRequest request,
   });
 
-  Future<Map<String, Object?>> reconnect({
+  Future<AuthorityReconnectReply> reconnect({
     required IngressContext context,
     required VerifiedIdentity identity,
     required AuthorityReconnectRequest request,
   });
 
-  Future<Map<String, Object?>> readPublicGame({
+  Future<AuthorityPublicSnapshot> readPublicGame({
     required IngressContext context,
     required VerifiedIdentity identity,
     required String gameId,
@@ -79,7 +79,7 @@ final class AuthorityHttpIngress {
         await _writeJson(
           request.response,
           HttpStatus.ok,
-          validatedAuthorityPublicWireObject(result),
+          validatedAuthorityPublicWireObject(result.toWireJson()),
         );
         return;
       }
@@ -97,7 +97,7 @@ final class AuthorityHttpIngress {
         await _writeJson(
           request.response,
           HttpStatus.ok,
-          validatedAuthorityPublicWireObject(result),
+          validatedAuthorityPublicWireObject(result.toWireJson()),
         );
         return;
       }
@@ -133,7 +133,7 @@ final class AuthorityHttpIngress {
     final expectedVersion = request.family == AuthorityCommandFamily.game
         ? request.command['expectedStateVersion']! as int
         : (request.command['expectedRoomVersion'] as int? ?? 0);
-    final result = await _commandIngress.handle<Map<String, Object?>>(
+    final result = await _commandIngress.handle<AuthorityCommandReply>(
       ingressContext: context,
       command: IngressCommandEnvelope(
         kind: request.family == AuthorityCommandFamily.game
@@ -152,7 +152,7 @@ final class AuthorityHttpIngress {
     await _writeJson(
       httpRequest.response,
       HttpStatus.ok,
-      validatedAuthorityPublicWireObject(result),
+      validatedAuthorityPublicWireObject(result.toWireJson()),
     );
   }
 

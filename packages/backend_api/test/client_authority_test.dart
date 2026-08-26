@@ -185,6 +185,14 @@ void main() {
       );
 
       expect(accepted.snapshot!.stateVersion, 3);
+      expect(accepted.toWireJson(), <String, Object?>{
+        'commandId': 'cmd-roll-1',
+        'status': 'accepted',
+        'versionBefore': 2,
+        'versionAfter': 3,
+        'publicResult': const <String, Object?>{},
+        'snapshot': _snapshotJson(3),
+      });
       expect(rejected.errorCode, 'notCurrentTurn');
       expect(
         () => AuthorityCommandReply(
@@ -249,6 +257,12 @@ void main() {
         CommandResolutionAction.useDurableResult,
       );
       expect(reply.snapshot.stateVersion, 9);
+      final wire = reply.toWireJson();
+      expect(wire['disposition'], 'uncertainConfirmed');
+      expect(
+        (wire['commandResolution']! as Map<String, Object?>)['identity'],
+        request.uncertainIdentity.toWireJson(),
+      );
     });
 
     test('reconnect dispositions fail closed on mismatched actions', () {

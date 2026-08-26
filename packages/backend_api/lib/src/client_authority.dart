@@ -167,6 +167,8 @@ final class AuthorityPublicSnapshot {
   int get stateVersion => snapshot['stateVersion']! as int;
   String get gameId => snapshot['gameId']! as String;
 
+  Map<String, Object?> toWireJson() => snapshot;
+
   String toCanonicalJson() => SemanticFingerprintV1.canonicalJson(snapshot);
 }
 
@@ -213,6 +215,16 @@ final class AuthorityCommandReply {
   final String? errorCode;
   final Map<String, Object?> publicResult;
   final AuthorityPublicSnapshot? snapshot;
+
+  Map<String, Object?> toWireJson() => <String, Object?>{
+    'commandId': commandId,
+    'status': status.wireValue,
+    'versionBefore': versionBefore,
+    'versionAfter': versionAfter,
+    if (errorCode != null) 'errorCode': errorCode,
+    'publicResult': publicResult,
+    if (snapshot != null) 'snapshot': snapshot!.toWireJson(),
+  };
 }
 
 final class UncertainCommandIdentity {
@@ -370,6 +382,13 @@ final class ReconnectCommandResolution {
   final CommandResolutionAction action;
   final Map<String, Object?>? publicResult;
   final String? errorCode;
+
+  Map<String, Object?> toWireJson() => <String, Object?>{
+    'identity': identity.toWireJson(),
+    'action': action.wireValue,
+    if (publicResult != null) 'publicResult': publicResult,
+    if (errorCode != null) 'errorCode': errorCode,
+  };
 }
 
 final class AuthorityReconnectReply {
@@ -399,6 +418,13 @@ final class AuthorityReconnectReply {
   final ReconnectDisposition disposition;
   final AuthorityPublicSnapshot snapshot;
   final ReconnectCommandResolution? commandResolution;
+
+  Map<String, Object?> toWireJson() => <String, Object?>{
+    'disposition': disposition.wireValue,
+    'snapshot': snapshot.toWireJson(),
+    if (commandResolution != null)
+      'commandResolution': commandResolution!.toWireJson(),
+  };
 }
 
 /// Port implemented by HTTP/Firebase infrastructure and consumed by Flutter.
