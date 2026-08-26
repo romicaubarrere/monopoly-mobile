@@ -55,6 +55,15 @@ abstract interface class FirstPlayableConfirmedContext {
   String get propertyDecisionId;
   String get propertyId;
   String get auctionId;
+
+  /// Applies only an ACK/duplicate result already validated by the session.
+  void applyCommandReply(
+    AuthorityCommandRequest request,
+    AuthorityCommandReply reply,
+  );
+
+  /// Replaces confirmed game context from Authority's public snapshot.
+  void replacePublicSnapshot(AuthorityPublicSnapshot snapshot);
 }
 
 /// Resolves a UI intent to one canonical request using confirmed context only.
@@ -135,6 +144,14 @@ final class ConfirmedFirstPlayableRequestResolver {
     FirstPlayableAuthorityAction.reconnect =>
       throw const ClientAuthorityContractViolation('reconnectIsNotACommand'),
   };
+
+  void applyCommandReply(
+    AuthorityCommandRequest request,
+    AuthorityCommandReply reply,
+  ) => _context.applyCommandReply(request, reply);
+
+  void replacePublicSnapshot(AuthorityPublicSnapshot snapshot) =>
+      _context.replacePublicSnapshot(snapshot);
 }
 
 /// Concrete adapter between Direction B actions and the accepted session port.
@@ -160,6 +177,9 @@ final class SessionFirstPlayableAuthorityBinding
   }) async {
     if (action == FirstPlayableAuthorityAction.reconnect) {
       final reply = await _session.reconnect(_requests.reconnectGameId);
+      if (reply != null) {
+        _requests.replacePublicSnapshot(reply.snapshot);
+      }
       if (reply?.disposition == ReconnectDisposition.uncertainRejected) {
         return const FirstPlayableAuthorityResult(
           outcome: FirstPlayableAuthorityOutcome.rejected,
@@ -170,15 +190,15 @@ final class SessionFirstPlayableAuthorityBinding
     }
 
     try {
-      final reply = await _session.send(
-        _requests.commandFor(action, input: input),
-      );
+      final request = _requests.commandFor(action, input: input);
+      final reply = await _session.send(request);
       if (reply?.status == AuthorityCommandStatus.rejected) {
         return FirstPlayableAuthorityResult(
           outcome: FirstPlayableAuthorityOutcome.rejected,
           safeErrorCode: reply!.errorCode,
         );
       }
+      if (reply != null) _requests.applyCommandReply(request, reply);
       return _fromSession();
     } on ClientAuthorityContractViolation catch (error) {
       return FirstPlayableAuthorityResult(

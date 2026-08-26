@@ -128,6 +128,12 @@ final class _Fixture {
 
 final class _Context implements FirstPlayableConfirmedContext {
   @override
+  void applyCommandReply(
+    AuthorityCommandRequest request,
+    AuthorityCommandReply reply,
+  ) {}
+
+  @override
   String get actorPlayerId => 'player-1';
 
   @override
@@ -150,6 +156,9 @@ final class _Context implements FirstPlayableConfirmedContext {
 
   @override
   int get stateVersion => 12;
+
+  @override
+  void replacePublicSnapshot(AuthorityPublicSnapshot snapshot) {}
 }
 
 final class _Ids implements AuthorityCommandIdSource {
