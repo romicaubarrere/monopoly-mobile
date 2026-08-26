@@ -44,11 +44,11 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
-      expect(find.textContaining('40 posiciones sintéticas'), findsOneWidget);
+      expect(find.textContaining('PLACEHOLDER según DEC-065'), findsOneWidget);
     },
   );
 
-  testWidgets('theme exposes semantic Imprenta barrial colors', (tester) async {
+  testWidgets('theme exposes the semantic Direction B palette', (tester) async {
     await tester.pumpWidget(
       MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
     );
@@ -58,6 +58,6 @@ void main() {
 
     expect(theme.scaffoldBackgroundColor, AppPalette.canvas);
     expect(theme.colorScheme.primary, AppPalette.primary);
-    expect(theme.colorScheme.secondary, AppPalette.info);
+    expect(theme.colorScheme.secondary, AppPalette.coral);
   });
 }

@@ -5,26 +5,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('Home exposes the approved almacen visual hierarchy', (
+  testWidgets('Home exposes the approved Direction B hierarchy', (
     tester,
   ) async {
     await tester.pumpWidget(
       MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
     );
 
-    expect(find.text('EL TABLERO'), findsOneWidget);
-    expect(find.text('DE ROMINA'), findsOneWidget);
-    expect(find.text('Mesa chica.\nRivalidad grande.'), findsOneWidget);
+    expect(find.text('LA VUELTA'), findsOneWidget);
+    expect(find.text('Una vuelta más.\nUna historia nueva.'), findsOneWidget);
     expect(find.text('Crear partida'), findsOneWidget);
     expect(find.text('Unirse con código'), findsOneWidget);
     expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label == 'Cartel principal del juego',
+      find.bySemanticsLabel(
+        'MANÍ. Perra clara, cruza labradora, orejas canela. Ilustración pendiente de foto fuente.',
       ),
       findsOneWidget,
     );
+    expect(find.textContaining('ALMACÉN'), findsNothing);
   });
 
   testWidgets('Home keeps the DEC-065 boundary explicit', (tester) async {
@@ -32,11 +30,10 @@ void main() {
       MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
     );
 
-    expect(find.textContaining('40 posiciones sintéticas'), findsOneWidget);
-    expect(find.text('datos de muestra'), findsOneWidget);
+    expect(find.textContaining('PLACEHOLDER según DEC-065'), findsOneWidget);
   });
 
-  testWidgets('Almacen Home remains usable at 360dp and 130 percent text', (
+  testWidgets('Direction B Home remains usable at 360dp and 130% text', (
     tester,
   ) async {
     await tester.pumpWidget(

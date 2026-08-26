@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'design_system/app_theme.dart';
-import 'ui/home_screen.dart';
+import 'ui/first_playable/first_playable_app.dart';
 
 void main() {
   runApp(const BoardGameApp());
@@ -14,9 +14,9 @@ class BoardGameApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Board Game',
+      title: 'La Vuelta',
       theme: AppTheme.light,
-      home: const HomeScreen(),
+      home: const FirstPlayableApp(),
     );
   }
 }
