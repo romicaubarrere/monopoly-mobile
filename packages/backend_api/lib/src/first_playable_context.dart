@@ -11,10 +11,7 @@ import 'first_playable_binding.dart';
 /// does not infer turn legality, prices, ownership, movement, or auction rules.
 final class FirstPlayableAuthorityContext
     implements FirstPlayableConfirmedContext {
-  FirstPlayableAuthorityContext({String? actorPlayerId})
-    : _actorPlayerId = actorPlayerId == null
-          ? null
-          : _requiredIdentifier(actorPlayerId, 'invalidActorPlayerId');
+  FirstPlayableAuthorityContext();
 
   String? _actorPlayerId;
   String? _roomId;

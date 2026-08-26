@@ -62,7 +62,7 @@ void main() {
   });
 
   test('later room ACK cannot replace confirmed actor membership', () {
-    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final context = _confirmedContext();
     final request = _roomRequest(
       commandId: 'cmd-ready-membership',
       type: RoomCommandType.setReady,
@@ -89,7 +89,7 @@ void main() {
   });
 
   test('room ACK supplies the next confirmed room version', () {
-    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final context = _confirmedContext();
     final request = _roomRequest(
       commandId: 'cmd-ready-1',
       type: RoomCommandType.setReady,
@@ -115,7 +115,7 @@ void main() {
   });
 
   test('StartGame summary supplies game id and initial state version', () {
-    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final context = _confirmedContext();
     final request = _roomRequest(
       commandId: 'cmd-start-1',
       type: RoomCommandType.startGame,
@@ -143,7 +143,7 @@ void main() {
   });
 
   test('public replacement supplies property and auction identifiers', () {
-    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final context = _confirmedContext();
 
     context.replacePublicSnapshot(_snapshot(1, propertyOffer: true));
     expect(context.propertyDecisionId, 'decision-1');
@@ -162,7 +162,7 @@ void main() {
   });
 
   test('game ACK clears consumed decision and advances exact version', () {
-    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final context = _confirmedContext();
     context.replacePublicSnapshot(_snapshot(1, propertyOffer: true));
     final request = AuthorityCommandRequest.game(
       GameCommand(
@@ -203,7 +203,7 @@ void main() {
   });
 
   test('stale snapshots cannot roll confirmed context backward', () {
-    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final context = _confirmedContext();
     context.replacePublicSnapshot(_snapshot(3, auction: true));
     context.replacePublicSnapshot(_snapshot(2, propertyOffer: true));
 
@@ -212,7 +212,7 @@ void main() {
   });
 
   test('mismatched room and game material fails closed', () {
-    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final context = _confirmedContext();
     context.replacePublicSnapshot(_snapshot(1));
 
     expect(
@@ -227,7 +227,7 @@ void main() {
   });
 
   test('different snapshot content at one version fails closed', () {
-    final context = FirstPlayableAuthorityContext(actorPlayerId: 'player-1');
+    final context = _confirmedContext();
     context.replacePublicSnapshot(_snapshot(2));
 
     expect(
@@ -235,6 +235,29 @@ void main() {
       throwsA(_violation('snapshotVersionCollision')),
     );
   });
+}
+
+FirstPlayableAuthorityContext _confirmedContext() {
+  final context = FirstPlayableAuthorityContext();
+  final request = _roomEntryRequest(
+    commandId: 'cmd-confirm-membership',
+    type: RoomCommandType.createRoom,
+  );
+  context.applyCommandReply(
+    request,
+    AuthorityCommandReply(
+      commandId: request.commandId,
+      status: AuthorityCommandStatus.accepted,
+      versionBefore: 0,
+      versionAfter: 1,
+      publicResult: const <String, Object?>{
+        'roomId': 'room-1',
+        'roomVersion': 1,
+        'actorPlayerId': 'player-1',
+      },
+    ),
+  );
+  return context;
 }
 
 AuthorityCommandRequest _roomRequest({
