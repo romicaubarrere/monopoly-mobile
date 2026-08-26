@@ -1,6 +1,6 @@
 import 'package:board_mobile/design_system/app_theme.dart';
 import 'package:board_mobile/design_system/tokens.dart';
-import 'package:board_mobile/ui/home_screen.dart';
+import 'package:board_mobile/ui/first_playable/first_playable_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,86 +12,83 @@ void main() {
     Size(430, 932),
   ];
 
+  const checkpoints = <FirstPlayableStep>[
+    FirstPlayableStep.home,
+    FirstPlayableStep.createRoom,
+    FirstPlayableStep.lobby,
+    FirstPlayableStep.board,
+    FirstPlayableStep.propertyOffer,
+    FirstPlayableStep.auction,
+    FirstPlayableStep.reconnect,
+  ];
+
   for (final viewport in viewports) {
-    testWidgets(
-      'home shell renders at ${viewport.width.toInt()}dp with 130% text scale',
-      (tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: AppTheme.light,
-            home: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(
-                width: viewport.width,
-                height: viewport.height,
-                child: MediaQuery(
-                  data: MediaQueryData(
-                    size: viewport,
-                    textScaler: const TextScaler.linear(1.3),
-                  ),
-                  child: const HomeScreen(),
+    for (final checkpoint in checkpoints) {
+      testWidgets(
+        '${checkpoint.name} renders at ${viewport.width.toInt()}dp and 130%',
+        (tester) async {
+          await tester.binding.setSurfaceSize(viewport);
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: AppTheme.light,
+              home: MediaQuery(
+                data: MediaQueryData(
+                  size: viewport,
+                  textScaler: const TextScaler.linear(1.3),
+                  disableAnimations: true,
                 ),
+                child: FirstPlayableApp(initialStep: checkpoint),
               ),
             ),
-          ),
-        );
+          );
+          await tester.pump();
 
-        expect(tester.takeException(), isNull);
-        expect(find.text('Crear partida'), findsOneWidget);
-        expect(find.text('Unirse con código'), findsOneWidget);
-        expect(find.textContaining('40 posiciones sintéticas'), findsOneWidget);
-
-        final createSize = tester.getSize(
-          find.widgetWithText(FilledButton, 'Crear partida'),
-        );
-        final joinSize = tester.getSize(
-          find.widgetWithText(OutlinedButton, 'Unirse con código'),
-        );
-
-        expect(
-          createSize.height,
-          greaterThanOrEqualTo(AppSizes.minTouchTarget),
-        );
-        expect(joinSize.height, greaterThanOrEqualTo(AppSizes.minTouchTarget));
-      },
-    );
+          expect(tester.takeException(), isNull);
+          expect(find.byType(Scaffold), findsOneWidget);
+        },
+      );
+    }
   }
 
-  testWidgets('board preview exposes one structural semantics container', (
+  testWidgets('vertical board exposes one structural semantics summary', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
 
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const FirstPlayableApp(initialStep: FirstPlayableStep.board),
+      ),
     );
-    await tester.scrollUntilVisible(find.text('BOARD COMO CONTEXTO'), 300);
-    await tester.pumpAndSettle();
 
     expect(
       find.bySemanticsLabel(
-        'Tablero estructural de demostración, 40 casilleros sintéticos',
+        'Tablero vertical de 40 posiciones PLACEHOLDER. Ficha en la posición 1.',
       ),
       findsOneWidget,
     );
-    expect(find.bySemanticsLabel('Casillero sintético 1'), findsNothing);
+    expect(find.bySemanticsLabel('Casillero PLACEHOLDER 1'), findsNothing);
 
     semantics.dispose();
   });
 
-  testWidgets('disabled roll keeps an explicit visible reason', (tester) async {
+  testWidgets('primary actions meet the 44dp minimum touch target', (
+    tester,
+  ) async {
     await tester.pumpWidget(
-      MaterialApp(theme: AppTheme.light, home: const HomeScreen()),
+      MaterialApp(theme: AppTheme.light, home: const FirstPlayableApp()),
     );
 
-    final roll = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Tirar dados'),
+    final createSize = tester.getSize(
+      find.widgetWithText(FilledButton, 'Crear partida'),
     );
-
-    expect(roll.onPressed, isNull);
-    expect(
-      find.text('Disponible cuando exista una partida confirmada.'),
-      findsOneWidget,
+    final joinSize = tester.getSize(
+      find.widgetWithText(OutlinedButton, 'Unirse con código'),
     );
+    expect(createSize.height, greaterThanOrEqualTo(AppSizes.minTouchTarget));
+    expect(joinSize.height, greaterThanOrEqualTo(AppSizes.minTouchTarget));
   });
 }
