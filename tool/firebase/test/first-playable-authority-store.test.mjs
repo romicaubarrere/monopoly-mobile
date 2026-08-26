@@ -62,13 +62,15 @@ function receipt({ commandId, actorUid, inputHash, before, after, result }) {
   };
 }
 
-function replayOrCollision(storedReceipt, actorUid, inputHash) {
+function replayOrCollision(storedReceipt, actorUid, inputHash, family) {
   if (storedReceipt == null) return null;
   const duplicate =
     storedReceipt.actorUid === actorUid &&
     storedReceipt.inputHashVersion === 1 &&
     storedReceipt.inputHash === inputHash;
   return {
+    schemaVersion: 1,
+    family,
     reply: duplicate
       ? duplicateReply(storedReceipt)
       : { status: 'collision', errorCode: 'commandIdCollision' },
@@ -124,7 +126,7 @@ test('Ready/Start persists room, public game, private membership and receipt ato
   });
 
   const evaluate = ({ room: current, storedReceipt }) => {
-    const replay = replayOrCollision(storedReceipt, actorUid, inputHash);
+    const replay = replayOrCollision(storedReceipt, actorUid, inputHash, 'room');
     if (replay != null) return replay;
     assert.equal(current.roomVersion, 12);
     const publicState = {
@@ -141,6 +143,8 @@ test('Ready/Start persists room, public game, private membership and receipt ato
       stateVersionAfter: 0,
     };
     return {
+      schemaVersion: 1,
+      family: 'room',
       reply: { status: 'accepted', result },
       roomPatch: {
         status: 'active',
@@ -221,7 +225,7 @@ test('Roll, Buy and reconnect converge through one adapter without a second RNG 
   const rollCommandId = rollFixture.operation.commandId;
   const rollHash = 'roll-semantic-fingerprint-v1';
   const rollEvaluate = ({ publicGame, privateGame, storedReceipt }) => {
-    const replay = replayOrCollision(storedReceipt, 'uid-1', rollHash);
+    const replay = replayOrCollision(storedReceipt, 'uid-1', rollHash, 'game');
     if (replay != null) return replay;
     assert.equal(privateGame.memberUidByPlayerId.p1, 'uid-1');
     assert.equal(publicGame.stateVersion, 0);
@@ -239,6 +243,8 @@ test('Roll, Buy and reconnect converge through one adapter without a second RNG 
       events: plan.events,
     };
     return {
+      schemaVersion: 1,
+      family: 'game',
       reply: { status: 'accepted', result },
       publicPatch: { stateVersion: 1, publicState },
       privatePatch: { streamCounters: plan.successorCounters },
@@ -272,6 +278,7 @@ test('Roll, Buy and reconnect converge through one adapter without a second RNG 
       storedReceipt,
       'uid-1',
       buy.inputHashMarker,
+      'game',
     );
     if (replay != null) return replay;
     assert.equal(privateGame.memberUidByPlayerId.p1, 'uid-1');
@@ -281,6 +288,8 @@ test('Roll, Buy and reconnect converge through one adapter without a second RNG 
       buy.stateProjection,
     );
     return {
+      schemaVersion: 1,
+      family: 'game',
       reply: { status: 'accepted', result: buy.resultSummary },
       publicPatch: { stateVersion: 2, publicState },
       receipt: receipt({
@@ -335,6 +344,8 @@ test('adapter rejects private authority fields before a public write', async () 
       gameId,
       commandId,
       evaluate: () => ({
+        schemaVersion: 1,
+        family: 'game',
         reply: { status: 'accepted' },
         publicPatch: { memberUidByPlayerId: { p1: 'uid-1' } },
         receipt: receipt({

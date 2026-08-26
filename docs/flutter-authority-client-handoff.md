@@ -38,6 +38,20 @@ executor remains responsible for membership and for composing the accepted
 Engine planners with durable Firestore transactions; no game rule exists in
 the HTTP layer.
 
+## Authority → Firestore decision contract
+
+`FirstPlayablePersistenceCodec` is the single versioned projection between the
+Dart executor and the Firestore transaction adapter. Every decision carries
+`schemaVersion=1`, its `room` or `game` family, the typed public reply and only
+the patches/receipt allowed for that disposition. The adapter rejects a family
+or schema mismatch before any write.
+
+StartGame carries `memberUidByPlayerId` only inside the private `gameSecrets`
+document and derives the public `memberUids` membership index from the same
+atomic decision. The adapter fails closed if either side is missing or the two
+sets disagree. The public game document and Flutter snapshot never contain the
+direct mapping, seed, RNG counters or future deck order.
+
 ## Minimum Flutter repository behavior
 
 1. Build one `AuthorityCommandRequest` from the canonical `RoomCommand` or

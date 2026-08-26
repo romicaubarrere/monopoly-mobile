@@ -50,6 +50,18 @@ void main() {
 
       expect(accepted.outcome, observability.AuthorityOutcome.success);
       expect(accepted.value.status, api.AuthorityCommandStatus.accepted);
+      final persistence =
+          service.FirstPlayablePersistenceCodec.encodeGameDecision(
+            store.lastAcceptedGameDecision!,
+          );
+      final publicPatch = persistence['publicPatch']! as Map<String, Object?>;
+      final privatePatch = persistence['privatePatch']! as Map<String, Object?>;
+      expect(persistence['schemaVersion'], 1);
+      expect(persistence['family'], 'game');
+      expect(publicPatch, isNot(contains('seedBytes')));
+      expect(publicPatch, isNot(contains('streamCounters')));
+      expect(privatePatch, contains('streamCounters'));
+      expect(privatePatch, isNot(contains('seedBytes')));
       expect(store.state.header.stateVersion, 1);
       expect(store.writeCount, 1);
       expect(duplicate.outcome, observability.AuthorityOutcome.duplicate);
@@ -287,6 +299,25 @@ void main() {
       expect(store.roomVersion, 13);
       expect(store.startPlan!.publicState.header.stateVersion, 0);
       expect(store.startPlan!.privateState.seed, hasLength(32));
+      expect(store.lastRoomDecision!.startMemberUidByPlayerId, <String, String>{
+        'p1': 'uid-p1',
+        'p2': 'uid-p2',
+      });
+      final persistence =
+          service.FirstPlayablePersistenceCodec.encodeRoomDecision(
+            store.lastRoomDecision!,
+          );
+      final startGame = persistence['startGame']! as Map<String, Object?>;
+      final publicGame = startGame['publicGame']! as Map<String, Object?>;
+      final privateGame = startGame['privateGame']! as Map<String, Object?>;
+      expect(persistence['schemaVersion'], 1);
+      expect(persistence['family'], 'room');
+      expect(publicGame, isNot(contains('memberUidByPlayerId')));
+      expect(publicGame, isNot(contains('seedBytes')));
+      expect(privateGame['memberUidByPlayerId'], <String, String>{
+        'p1': 'uid-p1',
+        'p2': 'uid-p2',
+      });
       expect(store.roomWriteCount, 1);
     },
   );
@@ -408,6 +439,9 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
   var roomCallbackCount = 0;
   var roomWriteCount = 0;
   service.ReadyStartPlan? startPlan;
+  service.FirstPlayableRoomTransactionDecision? lastRoomDecision;
+  service.FirstPlayableGameTransactionDecision? lastGameDecision;
+  service.FirstPlayableGameTransactionDecision? lastAcceptedGameDecision;
   var writeCount = 0;
 
   service.FirstPlayableGameTransactionView get _view =>
@@ -471,6 +505,7 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
       decision = evaluate(view());
       roomCallbackCount += 1;
     }
+    lastRoomDecision = decision;
     if (decision.membersAfter != null) {
       roomMembers = decision.membersAfter!;
       roomVersion = decision.reply.versionAfter;
@@ -504,6 +539,10 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
   }) async {
     _requireGame(gameId);
     final decision = evaluate(_view);
+    lastGameDecision = decision;
+    if (decision.reply.status == api.AuthorityCommandStatus.accepted) {
+      lastAcceptedGameDecision = decision;
+    }
     var writes = 0;
     if (decision.publicStateAfter != null) {
       state = decision.publicStateAfter!;

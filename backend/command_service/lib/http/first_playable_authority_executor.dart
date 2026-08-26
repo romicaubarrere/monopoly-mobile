@@ -202,17 +202,37 @@ final class FirstPlayableRoomTransactionDecision {
     required this.reason,
     this.membersAfter,
     this.startPlan,
+    Map<String, String>? startMemberUidByPlayerId,
     this.receiptToPersist,
-  }) {
+  }) : startMemberUidByPlayerId = startMemberUidByPlayerId == null
+           ? null
+           : Map.unmodifiable(startMemberUidByPlayerId) {
     final accepted = reply.status == api.AuthorityCommandStatus.accepted;
     final replay = reply.status == api.AuthorityCommandStatus.duplicate;
     final mutationCount =
         (membersAfter == null ? 0 : 1) + (startPlan == null ? 0 : 1);
+    final startPlayerIds = startPlan?.publicState.players
+        .map((player) => player.playerId)
+        .toSet();
     if (accepted != (mutationCount == 1) ||
         accepted && receiptToPersist == null ||
         replay && receiptToPersist != null ||
         replay && mutationCount != 0 ||
-        !accepted && mutationCount != 0) {
+        !accepted && mutationCount != 0 ||
+        (startPlan == null) != (this.startMemberUidByPlayerId == null) ||
+        this.startMemberUidByPlayerId != null &&
+            (this.startMemberUidByPlayerId!.entries.any(
+                  (entry) => entry.key.isEmpty || entry.value.isEmpty,
+                ) ||
+                this.startMemberUidByPlayerId!.keys
+                    .toSet()
+                    .difference(startPlayerIds!)
+                    .isNotEmpty ||
+                startPlayerIds
+                    .difference(this.startMemberUidByPlayerId!.keys.toSet())
+                    .isNotEmpty ||
+                this.startMemberUidByPlayerId!.values.toSet().length !=
+                    this.startMemberUidByPlayerId!.length)) {
       throw const FirstPlayableAuthorityExecutorViolation(
         'invalidRoomTransactionDecision',
       );
@@ -224,6 +244,11 @@ final class FirstPlayableRoomTransactionDecision {
   final AuthorityReason reason;
   final List<ReadyRoomMember>? membersAfter;
   final ReadyStartPlan? startPlan;
+
+  /// Authority-private membership mapping required to materialize gameSecrets
+  /// during StartGame. It deliberately travels with the atomic decision and is
+  /// never included in the public reply or public game document.
+  final Map<String, String>? startMemberUidByPlayerId;
   final StoredAuthorityCommandReceipt? receiptToPersist;
 }
 
@@ -641,6 +666,9 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         request: request,
         reply: reply,
         startPlan: plan,
+        startMemberUidByPlayerId: <String, String>{
+          for (final member in view.members) member.playerId: member.uid,
+        },
       );
     } on ReadyStartViolation catch (error) {
       return _persistableRoomDecision(
@@ -658,6 +686,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     AuthorityReason reason = AuthorityReason.none,
     List<ReadyRoomMember>? membersAfter,
     ReadyStartPlan? startPlan,
+    Map<String, String>? startMemberUidByPlayerId,
   }) => FirstPlayableRoomTransactionDecision(
     reply: reply,
     outcome: reply.status == api.AuthorityCommandStatus.accepted
@@ -668,6 +697,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     reason: reason,
     membersAfter: membersAfter,
     startPlan: startPlan,
+    startMemberUidByPlayerId: startMemberUidByPlayerId,
     receiptToPersist: StoredAuthorityCommandReceipt(
       actorUid: actorUid,
       receipt: reconnect_planner.DurableCommandReceipt(

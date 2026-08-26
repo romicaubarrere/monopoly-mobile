@@ -44,6 +44,9 @@ function assertReceipt(receipt, commandId) {
 
 function assertDecision(decision, commandId, family) {
   assertObject(decision, 'invalidAuthorityDecision');
+  if (decision.schemaVersion !== 1 || decision.family !== family) {
+    throw new Error('authorityDecisionContractMismatch');
+  }
   assertObject(decision.reply, 'invalidAuthorityReply');
   const status = decision.reply.status;
   const hasMutation = family === 'room'
@@ -116,6 +119,21 @@ export class FirstPlayableAuthorityFirestoreStore {
           const { gameId, publicGame, privateGame } = decision.startGame;
           if (!gameId || publicGame == null || privateGame == null) {
             throw new Error('invalidStartGameDocuments');
+          }
+          assertObject(
+            privateGame.memberUidByPlayerId,
+            'missingPrivateMemberMapping',
+          );
+          if (
+            !Array.isArray(publicGame.memberUids) ||
+            publicGame.memberUids.length === 0 ||
+            Object.keys(privateGame.memberUidByPlayerId).length !==
+              publicGame.memberUids.length ||
+            !Object.values(privateGame.memberUidByPlayerId).every((uid) =>
+              publicGame.memberUids.includes(uid),
+            )
+          ) {
+            throw new Error('invalidPrivateMemberMapping');
           }
           assertPublicOnly(publicGame);
           tx.set(this.doc(this.db, 'games', gameId), publicGame);

@@ -55,9 +55,15 @@ test('accepted game decision persists public/private state and receipt once', as
   );
   const evaluate = ({ storedReceipt }) => {
     if (storedReceipt != null) {
-      return { reply: duplicateReply(storedReceipt) };
+      return {
+        schemaVersion: 1,
+        family: 'game',
+        reply: duplicateReply(storedReceipt),
+      };
     }
     return {
+      schemaVersion: 1,
+      family: 'game',
       reply: { status: 'accepted', stateVersion: 1 },
       publicPatch: {
         stateVersion: 1,
@@ -107,6 +113,8 @@ test('public/private guard fails closed before persisting a leaking decision', a
       gameId: 'game-1',
       commandId: 'cmd-leak',
       evaluate: () => ({
+        schemaVersion: 1,
+        family: 'game',
         reply: { status: 'accepted' },
         publicPatch: { seedBytes: [1, 2, 3] },
         receipt: receipt('cmd-leak'),
@@ -119,4 +127,38 @@ test('public/private guard fails closed before persisting a leaking decision', a
     fake.documents.has('games/game-1/commands/cmd-leak'),
     false,
   );
+});
+
+test('StartGame fails closed when the Dart decision omits private membership', async () => {
+  const fake = fakeFirestore({
+    'rooms/room-1': { roomVersion: 1, memberUids: ['uid-1'] },
+  });
+  const store = new FirstPlayableAuthorityFirestoreStore(fake.db, fake.api);
+
+  await assert.rejects(
+    store.transactRoom({
+      roomId: 'room-1',
+      commandId: 'cmd-start',
+      evaluate: () => ({
+        schemaVersion: 1,
+        family: 'room',
+        reply: { status: 'accepted' },
+        roomPatch: { status: 'active', gameId: 'game-1', roomVersion: 2 },
+        startGame: {
+          gameId: 'game-1',
+          publicGame: {
+            stateVersion: 0,
+            memberUids: ['uid-1'],
+            publicState: { stateVersion: 0 },
+          },
+          privateGame: { seedBytes: Array(32).fill(7) },
+        },
+        receipt: receipt('cmd-start'),
+      }),
+    }),
+    /missingPrivateMemberMapping/,
+  );
+  assert.equal(fake.documents.has('games/game-1'), false);
+  assert.equal(fake.documents.has('gameSecrets/game-1'), false);
+  assert.equal(fake.documents.has('roomCommands/cmd-start'), false);
 });
