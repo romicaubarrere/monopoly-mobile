@@ -44,18 +44,26 @@ final class AuthorityCommandRequest {
   AuthorityCommandRequest._({
     required this.family,
     required Map<String, Object?> command,
+    required this._roomCommand,
+    required this._gameCommand,
   }) : command = _immutableJson(command),
        inputHashVersion = ProtocolFoundation.inputHashVersion,
        inputHash = SemanticFingerprintV1.sha256Hex(
          _semanticMaterial(family, command),
        ) {
     _validateCommand(family, this.command);
+    if ((family == AuthorityCommandFamily.room) != (_roomCommand != null) ||
+        (family == AuthorityCommandFamily.game) != (_gameCommand != null)) {
+      throw const ClientAuthorityContractViolation('commandFamilyMismatch');
+    }
   }
 
   factory AuthorityCommandRequest.room(RoomCommand command) =>
       AuthorityCommandRequest._(
         family: AuthorityCommandFamily.room,
         command: command.toJson(),
+        roomCommand: command,
+        gameCommand: null,
       );
 
   /// Builds the client wire envelope from Engine's canonical GameCommand.
@@ -67,6 +75,8 @@ final class AuthorityCommandRequest {
       AuthorityCommandRequest._(
         family: AuthorityCommandFamily.game,
         command: command.toJson(),
+        roomCommand: null,
+        gameCommand: command,
       );
 
   /// Decodes the exact public wire envelope at Authority ingress.
@@ -114,10 +124,36 @@ final class AuthorityCommandRequest {
 
   final AuthorityCommandFamily family;
   final Map<String, Object?> command;
+  final RoomCommand? _roomCommand;
+  final GameCommand? _gameCommand;
   final int inputHashVersion;
   final String inputHash;
 
   String get commandId => command['commandId']! as String;
+
+  /// Returns the already validated canonical room command.
+  ///
+  /// Authority executors use this instead of decoding [command] again and
+  /// accidentally maintaining a second wire schema.
+  RoomCommand get asRoomCommand {
+    final value = _roomCommand;
+    if (family != AuthorityCommandFamily.room || value == null) {
+      throw const ClientAuthorityContractViolation('commandFamilyMismatch');
+    }
+    return value;
+  }
+
+  /// Returns the already validated canonical game command.
+  ///
+  /// The Engine receives this exact object, while [command] remains the
+  /// immutable transport representation used for hashing and diagnostics.
+  GameCommand get asGameCommand {
+    final value = _gameCommand;
+    if (family != AuthorityCommandFamily.game || value == null) {
+      throw const ClientAuthorityContractViolation('commandFamilyMismatch');
+    }
+    return value;
+  }
 
   Map<String, Object?> toWireJson() => <String, Object?>{
     'family': family.wireValue,

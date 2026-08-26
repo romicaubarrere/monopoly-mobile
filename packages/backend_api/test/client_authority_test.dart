@@ -21,6 +21,8 @@ void main() {
       final retry = AuthorityCommandRequest.room(command);
 
       expect(first.command, command.toJson());
+      expect(first.asRoomCommand, same(command));
+      expect(first.asRoomCommand.toJson(), first.command);
       expect(first.inputHashVersion, 1);
       expect(first.inputHash, retry.inputHash);
       expect(first.toCanonicalWireJson(), retry.toCanonicalWireJson());
@@ -55,6 +57,7 @@ void main() {
       );
 
       expect(first.inputHash, sameSemantic.inputHash);
+      expect(first.asGameCommand.toJson(), first.command);
       expect(first.inputHash, hasLength(64));
       expect(
         first.toCanonicalWireJson(),
@@ -103,8 +106,14 @@ void main() {
       final wire = request.toWireJson();
 
       expect(
-        AuthorityCommandRequest.fromWireJson(wire).inputHash,
-        request.inputHash,
+        AuthorityCommandRequest.fromWireJson(wire),
+        isA<AuthorityCommandRequest>()
+            .having((value) => value.inputHash, 'inputHash', request.inputHash)
+            .having(
+              (value) => value.asGameCommand.toJson(),
+              'validated game command',
+              request.command,
+            ),
       );
       expect(
         () => AuthorityCommandRequest.fromWireJson(<String, Object?>{
@@ -122,6 +131,47 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('typed accessors fail closed across command families', () {
+      final roomRequest = AuthorityCommandRequest.room(
+        RoomCommand(
+          commandId: 'cmd-ready-family-1',
+          schemaVersion: 1,
+          expectedRoomVersion: 7,
+          clientInstanceId: 'client-a',
+          type: RoomCommandType.setReady,
+          payload: const <String, Object?>{'roomId': 'room-1', 'ready': true},
+        ),
+      );
+      final gameRequest = AuthorityCommandRequest.game(
+        GameCommand(
+          commandId: 'cmd-roll-family-1',
+          schemaVersion: 1,
+          expectedStateVersion: 4,
+          clientInstanceId: 'client-a',
+          gameId: 'game-1',
+          actorPlayerId: 'player-1',
+          type: GameCommandType.rollDice,
+          payload: const <String, Object?>{},
+        ),
+      );
+
+      for (final accessWrongFamily in <Object? Function()>[
+        () => roomRequest.asGameCommand,
+        () => gameRequest.asRoomCommand,
+      ]) {
+        expect(
+          accessWrongFamily,
+          throwsA(
+            isA<ClientAuthorityContractViolation>().having(
+              (error) => error.code,
+              'code',
+              'commandFamilyMismatch',
+            ),
+          ),
+        );
+      }
     });
   });
 
