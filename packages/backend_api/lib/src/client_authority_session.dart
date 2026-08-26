@@ -50,11 +50,7 @@ final class AuthorityClientSession {
     required PendingAuthorityCommandStore pendingStore,
   }) : this._(gateway, snapshots, pendingStore);
 
-  AuthorityClientSession._(
-    this._gateway,
-    this._snapshots,
-    this._pendingStore,
-  );
+  AuthorityClientSession._(this._gateway, this._snapshots, this._pendingStore);
 
   final CommandGateway _gateway;
   final AuthoritySnapshotRepository _snapshots;

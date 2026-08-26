@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:board_backend_api/backend_api.dart';
 
 import '../../design_system/tokens.dart';
 import '../../design_system/visual_components.dart';
@@ -22,6 +23,7 @@ class FirstPlayableApp extends StatefulWidget {
     super.key,
     this.initialStep = FirstPlayableStep.home,
     this.onIntent,
+    this.authority,
   });
 
   final FirstPlayableStep initialStep;
@@ -29,6 +31,10 @@ class FirstPlayableApp extends StatefulWidget {
   /// Emits only presentation intent identifiers. A production adapter owns
   /// command construction, authority calls and confirmed snapshots.
   final ValueChanged<String>? onIntent;
+
+  /// When present, authoritative actions advance presentation only after an
+  /// accepted ACK. Null keeps the existing preview/golden harness isolated.
+  final FirstPlayableAuthorityBinding? authority;
 
   @override
   State<FirstPlayableApp> createState() => _FirstPlayableAppState();
@@ -39,6 +45,7 @@ class _FirstPlayableAppState extends State<FirstPlayableApp> {
   bool _ready = false;
   bool _rolled = false;
   bool _recovered = false;
+  bool _busy = false;
   final _roomCodeController = TextEditingController(text: 'ABC123');
   final _bidController = TextEditingController(text: 'PLACEHOLDER');
 
@@ -60,79 +67,177 @@ class _FirstPlayableAppState extends State<FirstPlayableApp> {
     if (then != null) setState(() => _step = then);
   }
 
+  Future<void> _perform(
+    String intentId,
+    FirstPlayableAuthorityAction action, {
+    String? input,
+    VoidCallback? onAccepted,
+  }) async {
+    if (_busy) return;
+    widget.onIntent?.call(intentId);
+    final authority = widget.authority;
+    if (authority == null) {
+      onAccepted?.call();
+      return;
+    }
+    setState(() => _busy = true);
+    late final FirstPlayableAuthorityResult result;
+    try {
+      result = await authority.perform(action, input: input);
+    } on Object {
+      result = const FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.blocked,
+        safeErrorCode: 'authorityBindingUnavailable',
+      );
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (result.accepted) {
+      onAccepted?.call();
+      return;
+    }
+    final code =
+        result.safeErrorCode ??
+        switch (result.outcome) {
+          FirstPlayableAuthorityOutcome.rejected => 'commandRejected',
+          FirstPlayableAuthorityOutcome.uncertain => 'commandOutcomeUncertain',
+          FirstPlayableAuthorityOutcome.blocked => 'commandBlocked',
+          FirstPlayableAuthorityOutcome.accepted => 'commandAccepted',
+        };
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Authority · $code')));
+  }
+
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    return AnimatedSwitcher(
-      duration: reduceMotion ? Duration.zero : AppMotion.page,
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      child: switch (_step) {
-        FirstPlayableStep.home => HomeScreen(
-          key: const ValueKey('fp-home'),
-          onCreateRoom: () =>
-              _emit('open-create-room', then: FirstPlayableStep.createRoom),
-          onJoinRoom: () =>
-              _emit('open-join-room', then: FirstPlayableStep.joinRoom),
-        ),
-        FirstPlayableStep.createRoom => _CreateRoomB(
-          key: const ValueKey('fp-create'),
-          onBack: () => setState(() => _step = FirstPlayableStep.home),
-          onCreate: () => _emit('create-room', then: FirstPlayableStep.lobby),
-        ),
-        FirstPlayableStep.joinRoom => _JoinRoomB(
-          key: const ValueKey('fp-join'),
-          controller: _roomCodeController,
-          onBack: () => setState(() => _step = FirstPlayableStep.home),
-          onJoin: () => _emit('join-room', then: FirstPlayableStep.lobby),
-        ),
-        FirstPlayableStep.lobby => _LobbyB(
-          key: const ValueKey('fp-lobby'),
-          isReady: _ready,
-          onReady: () {
-            _emit('set-ready');
-            setState(() => _ready = true);
+    return Stack(
+      children: [
+        AnimatedSwitcher(
+          duration: reduceMotion ? Duration.zero : AppMotion.page,
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: switch (_step) {
+            FirstPlayableStep.home => HomeScreen(
+              key: const ValueKey('fp-home'),
+              onCreateRoom: () =>
+                  _emit('open-create-room', then: FirstPlayableStep.createRoom),
+              onJoinRoom: () =>
+                  _emit('open-join-room', then: FirstPlayableStep.joinRoom),
+            ),
+            FirstPlayableStep.createRoom => _CreateRoomB(
+              key: const ValueKey('fp-create'),
+              onBack: () => setState(() => _step = FirstPlayableStep.home),
+              onCreate: () => _perform(
+                'create-room',
+                FirstPlayableAuthorityAction.createRoom,
+                onAccepted: () =>
+                    setState(() => _step = FirstPlayableStep.lobby),
+              ),
+            ),
+            FirstPlayableStep.joinRoom => _JoinRoomB(
+              key: const ValueKey('fp-join'),
+              controller: _roomCodeController,
+              onBack: () => setState(() => _step = FirstPlayableStep.home),
+              onJoin: () => _perform(
+                'join-room',
+                FirstPlayableAuthorityAction.joinRoom,
+                input: _roomCodeController.text,
+                onAccepted: () =>
+                    setState(() => _step = FirstPlayableStep.lobby),
+              ),
+            ),
+            FirstPlayableStep.lobby => _LobbyB(
+              key: const ValueKey('fp-lobby'),
+              isReady: _ready,
+              onReady: () {
+                _perform(
+                  'set-ready',
+                  FirstPlayableAuthorityAction.setReady,
+                  onAccepted: () => setState(() => _ready = true),
+                );
+              },
+              onStart: _ready
+                  ? () => _perform(
+                      'start-game',
+                      FirstPlayableAuthorityAction.startGame,
+                      onAccepted: () =>
+                          setState(() => _step = FirstPlayableStep.board),
+                    )
+                  : null,
+            ),
+            FirstPlayableStep.board => _BoardB(
+              key: const ValueKey('fp-board'),
+              rolled: _rolled,
+              onRoll: () {
+                _perform(
+                  'roll',
+                  FirstPlayableAuthorityAction.roll,
+                  onAccepted: () => setState(() => _rolled = true),
+                );
+              },
+              onOffer: _rolled
+                  ? () =>
+                        setState(() => _step = FirstPlayableStep.propertyOffer)
+                  : null,
+            ),
+            FirstPlayableStep.propertyOffer => _PropertyOfferB(
+              key: const ValueKey('fp-property'),
+              onBuy: () => _perform(
+                'buy-property',
+                FirstPlayableAuthorityAction.buyProperty,
+                onAccepted: () =>
+                    setState(() => _step = FirstPlayableStep.reconnect),
+              ),
+              onDecline: () => _perform(
+                'decline-property',
+                FirstPlayableAuthorityAction.declineProperty,
+                onAccepted: () =>
+                    setState(() => _step = FirstPlayableStep.auction),
+              ),
+            ),
+            FirstPlayableStep.auction => _AuctionB(
+              key: const ValueKey('fp-auction'),
+              controller: _bidController,
+              onBid: () => _perform(
+                'place-bid',
+                FirstPlayableAuthorityAction.placeBid,
+                input: _bidController.text,
+              ),
+              onPass: () => _perform(
+                'pass-auction',
+                FirstPlayableAuthorityAction.passAuction,
+                onAccepted: () =>
+                    setState(() => _step = FirstPlayableStep.reconnect),
+              ),
+            ),
+            FirstPlayableStep.reconnect => _ReconnectB(
+              key: const ValueKey('fp-reconnect'),
+              recovered: _recovered,
+              onRetry: () {
+                _perform(
+                  'retry-reconnect',
+                  FirstPlayableAuthorityAction.reconnect,
+                  onAccepted: () => setState(() => _recovered = true),
+                );
+              },
+              onReturn: _recovered
+                  ? () =>
+                        _emit('return-to-board', then: FirstPlayableStep.board)
+                  : null,
+            ),
           },
-          onStart: _ready
-              ? () => _emit('start-game', then: FirstPlayableStep.board)
-              : null,
         ),
-        FirstPlayableStep.board => _BoardB(
-          key: const ValueKey('fp-board'),
-          rolled: _rolled,
-          onRoll: () {
-            _emit('roll');
-            setState(() => _rolled = true);
-          },
-          onOffer: _rolled
-              ? () => setState(() => _step = FirstPlayableStep.propertyOffer)
-              : null,
-        ),
-        FirstPlayableStep.propertyOffer => _PropertyOfferB(
-          key: const ValueKey('fp-property'),
-          onBuy: () => _emit('buy-property', then: FirstPlayableStep.reconnect),
-          onDecline: () =>
-              _emit('decline-property', then: FirstPlayableStep.auction),
-        ),
-        FirstPlayableStep.auction => _AuctionB(
-          key: const ValueKey('fp-auction'),
-          controller: _bidController,
-          onBid: () => _emit('place-bid'),
-          onPass: () =>
-              _emit('pass-auction', then: FirstPlayableStep.reconnect),
-        ),
-        FirstPlayableStep.reconnect => _ReconnectB(
-          key: const ValueKey('fp-reconnect'),
-          recovered: _recovered,
-          onRetry: () {
-            _emit('retry-reconnect');
-            setState(() => _recovered = true);
-          },
-          onReturn: _recovered
-              ? () => _emit('return-to-board', then: FirstPlayableStep.board)
-              : null,
-        ),
-      },
+        if (_busy)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: LinearProgressIndicator(
+              key: ValueKey('fp-authority-pending'),
+            ),
+          ),
+      ],
     );
   }
 }
