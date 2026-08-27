@@ -59,6 +59,15 @@ command receipt together. Plaintext room codes are rejected from every
 persistent document. Accepted public and private membership sets must agree;
 duplicate/collision decisions perform zero writes.
 
+Create also freezes the server-selected `rulesVersion` in the public room.
+`PinnedFirstPlayableRulesCatalogRepository` owns the active immutable catalog
+for new rooms and resolves only that exact persisted version for Join,
+Ready/Start and gameplay. It verifies the persisted board identity and complete
+`ResolvedPresetConfig` before invoking Engine. Unknown versions, unknown
+presets, duplicate registry entries or mutated frozen config fail closed.
+Flutter supplies only `presetId`; it never supplies catalog JSON or version
+selection.
+
 `FirstPlayableAuthorityMaterialFactory` derives room/player/game identifiers,
 the six-character room code, SHA-256 locator hash and Start seed with an
 infrastructure-private HMAC key that is separate from game RNG state. It must
@@ -133,8 +142,10 @@ The minimum server-side binding still required is therefore:
 1. a Dart-compatible implementation of `FirstPlayableAuthorityStore` (or an
    explicitly specified same-runtime boundary) that preserves the existing
    versioned decision codec and atomic Firestore transactions;
-2. a server-owned `RulesCatalog` resolver keyed by the frozen rules version and
-   preset persisted for the room/game; Flutter must never supply that catalog.
+2. a canonical server bundle to register at bootstrap. The current
+   `RulesCatalog & PresetConfig Specification v0.1` defines shape and
+   invariants but explicitly does not freeze the final board, economy or card
+   values, so this branch does not invent production catalog content.
 
 Production Firebase ID-token verification is now concrete:
 `GoogleFirebaseIdTokenSignatureVerifier.live()` validates RS256 signatures with
@@ -167,5 +178,5 @@ membership, and an authenticated loopback HTTP round trip from
 Emulator Suite passes 57/57 tests on this branch, including the concrete
 transaction adapter, rules, idempotency/lost-ACK, reconnect and public/private
 guards. The remaining vertical gap is binding the Dart HTTP runtime to that
-durable store and resolving the frozen server-side rules catalog, then executing
+durable store, registering a promoted canonical catalog bundle, then executing
 the flow from Flutter and collecting Tier-1 device evidence.

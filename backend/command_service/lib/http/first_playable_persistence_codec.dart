@@ -42,6 +42,7 @@ abstract final class FirstPlayablePersistenceCodec {
               member.uid: member.ready,
           },
           'presetId': mutation.presetId,
+          'frozenRulesVersion': mutation.rulesVersion,
         },
         'privateRoom': <String, Object?>{
           'schemaVersion': schemaVersion,

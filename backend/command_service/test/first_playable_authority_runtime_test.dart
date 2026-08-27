@@ -25,6 +25,10 @@ void main() {
           now: () => DateTime.utc(2026, 8, 26, 12, 30),
         ),
         store: store,
+        rulesCatalogRepository: PinnedFirstPlayableRulesCatalogRepository(
+          activeRulesVersion: syntheticRollCatalog().rulesVersion,
+          catalogs: <RulesCatalog>[syntheticRollCatalog()],
+        ),
         observability: BestEffortAuthorityObservability(logs),
         now: () => DateTime.utc(2026, 8, 26, 12, 30),
       );
@@ -81,7 +85,6 @@ final class _RuntimeStore implements FirstPlayableAuthorityStore {
   FirstPlayableGameTransactionView _view({String? commandId}) =>
       FirstPlayableGameTransactionView(
         publicState: state,
-        catalog: syntheticRollCatalog(),
         memberUidByPlayerId: const <String, String>{'p1': 'uid-p1'},
         privateRng: privateRng,
         storedReceipt: commandId == receipt?.receipt.commandId ? receipt : null,

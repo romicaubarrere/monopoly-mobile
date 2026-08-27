@@ -43,10 +43,7 @@ PublicGameState syntheticRollState({
       roomId: 'room-vp0',
       status: GameStatus.active,
     ),
-    presetConfig: const <String, Object?>{
-      'presetId': 'express',
-      'mandatoryDecisionSeconds': 12,
-    },
+    presetConfig: syntheticRollCatalog().resolvePreset('express', 2).toJson(),
     roundState: const <String, Object?>{'round': 1},
     turnState: <String, Object?>{
       'turnNumber': 1,

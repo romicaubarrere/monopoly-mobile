@@ -57,13 +57,9 @@ PublicGameState syntheticPropertyOfferState({int p1Cash = 2000}) {
       roomId: 'room-vp0',
       status: GameStatus.active,
     ),
-    presetConfig: const <String, Object?>{
-      'presetId': 'express',
-      'auctionPolicy': <String, Object?>{'minimumIncrement': 10},
-      'mandatoryDecisionSeconds': 12,
-      'auctionBidSeconds': 6,
-      'auctionHardCapSeconds': 45,
-    },
+    presetConfig: syntheticBuyAuctionCatalog()
+        .resolvePreset('express', 2)
+        .toJson(),
     roundState: const <String, Object?>{'round': 1},
     turnState: const <String, Object?>{
       'turnNumber': 1,

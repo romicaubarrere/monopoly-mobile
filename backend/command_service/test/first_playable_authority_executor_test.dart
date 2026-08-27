@@ -16,6 +16,13 @@ import 'package:test/test.dart';
 import 'support/synthetic_buy_auction_fixture.dart';
 import 'support/synthetic_roll_fixture.dart';
 
+service.FirstPlayableRulesCatalogRepository _catalogRepository(
+  RulesCatalog catalog,
+) => service.PinnedFirstPlayableRulesCatalogRepository(
+  activeRulesVersion: catalog.rulesVersion,
+  catalogs: <RulesCatalog>[catalog],
+);
+
 void main() {
   final context = ingress.IngressContext(
     requestReceivedAt: DateTime.parse('2026-08-25T02:00:00.000Z'),
@@ -33,7 +40,10 @@ void main() {
         catalog: syntheticRollCatalog(),
         privateRng: syntheticRollPrivateState(),
       );
-      final executor = service.FirstPlayableAuthorityExecutor(store: store);
+      final executor = service.FirstPlayableAuthorityExecutor(
+        store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
+      );
       final request = api.AuthorityCommandRequest.game(syntheticRollCommand());
 
       final accepted = await executor.executeCommand(
@@ -81,7 +91,10 @@ void main() {
         catalog: syntheticRollCatalog(),
         privateRng: syntheticRollPrivateState(),
       );
-      final executor = service.FirstPlayableAuthorityExecutor(store: store);
+      final executor = service.FirstPlayableAuthorityExecutor(
+        store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
+      );
       await executor.executeCommand(
         context: context,
         identity: identity,
@@ -121,7 +134,10 @@ void main() {
       catalog: syntheticBuyAuctionCatalog(),
       privateRng: privateRng,
     );
-    final executor = service.FirstPlayableAuthorityExecutor(store: store);
+    final executor = service.FirstPlayableAuthorityExecutor(
+      store: store,
+      rulesCatalogRepository: _catalogRepository(store.catalog),
+    );
 
     final result = await executor.executeCommand(
       context: ingress.IngressContext(
@@ -146,7 +162,10 @@ void main() {
       catalog: syntheticRollCatalog(),
       privateRng: syntheticRollPrivateState(),
     );
-    final executor = service.FirstPlayableAuthorityExecutor(store: store);
+    final executor = service.FirstPlayableAuthorityExecutor(
+      store: store,
+      rulesCatalogRepository: _catalogRepository(store.catalog),
+    );
     final command = api.AuthorityCommandRequest.game(syntheticRollCommand());
     await executor.executeCommand(
       context: context,
@@ -179,7 +198,10 @@ void main() {
       catalog: syntheticRollCatalog(),
       privateRng: syntheticRollPrivateState(),
     );
-    final executor = service.FirstPlayableAuthorityExecutor(store: store);
+    final executor = service.FirstPlayableAuthorityExecutor(
+      store: store,
+      rulesCatalogRepository: _catalogRepository(store.catalog),
+    );
 
     expect(
       () => executor.readPublicGame(
@@ -205,6 +227,7 @@ void main() {
       var materialCalls = 0;
       final executor = service.FirstPlayableAuthorityExecutor(
         store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
         roomEntryMaterialFactory: (command, receivedAt) async {
           materialCalls += 1;
           return service.FirstPlayableRoomEntryMaterial(
@@ -253,6 +276,7 @@ void main() {
       final publicRoom = entry['publicRoom']! as Map<String, Object?>;
       final privateRoom = entry['privateRoom']! as Map<String, Object?>;
       expect(entry['codeHash'], 'a' * 64);
+      expect(publicRoom['frozenRulesVersion'], store.catalog.rulesVersion);
       expect(publicRoom, isNot(contains('memberUidByPlayerId')));
       expect(privateRoom['memberUidByPlayerId'], <String, Object?>{
         'player-host': 'uid-p1',
@@ -271,6 +295,7 @@ void main() {
       );
       final executor = service.FirstPlayableAuthorityExecutor(
         store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
         roomEntryMaterialFactory: (command, receivedAt) async =>
             service.FirstPlayableRoomEntryMaterial(
               kind: service.FirstPlayableRoomEntryKind.join,
@@ -337,6 +362,7 @@ void main() {
       );
       final executor = service.FirstPlayableAuthorityExecutor(
         store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
         roomEntryMaterialFactory: (command, receivedAt) async =>
             service.FirstPlayableRoomEntryMaterial(
               kind: service.FirstPlayableRoomEntryKind.join,
@@ -391,7 +417,10 @@ void main() {
           ),
         ],
       );
-      final executor = service.FirstPlayableAuthorityExecutor(store: store);
+      final executor = service.FirstPlayableAuthorityExecutor(
+        store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
+      );
       final command = _roomRequest(
         commandId: 'cmd-ready-1',
         type: RoomCommandType.setReady,
@@ -449,6 +478,7 @@ void main() {
       );
       final executor = service.FirstPlayableAuthorityExecutor(
         store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
         startMaterialFactory: (command) async {
           materialCalls += 1;
           return service.FirstPlayableStartMaterial(
@@ -523,6 +553,7 @@ void main() {
       );
       final executor = service.FirstPlayableAuthorityExecutor(
         store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
         startMaterialFactory: (command) async =>
             service.FirstPlayableStartMaterial(
               gameId: 'game-must-not-persist',
@@ -667,7 +698,6 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
   service.FirstPlayableGameTransactionView get _view =>
       service.FirstPlayableGameTransactionView(
         publicState: state,
-        catalog: catalog,
         memberUidByPlayerId: const <String, String>{'p1': 'uid-p1'},
         privateRng: privateRng,
         storedReceipt: receipt,
@@ -689,8 +719,8 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
         status: 'open',
         hostUid: roomEntryMembers.first.uid,
         presetId: 'express',
+        rulesVersion: catalog.rulesVersion,
         members: roomEntryMembers,
-        catalog: catalog,
       );
     }
     final decision = evaluate(
@@ -740,7 +770,6 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
     return service.FirstPlayableGameReadResult(
       view: service.FirstPlayableGameTransactionView(
         publicState: state,
-        catalog: catalog,
         memberUidByPlayerId: const <String, String>{'p1': 'uid-p1'},
         privateRng: privateRng,
         storedReceipt: commandId == receipt?.receipt.commandId ? receipt : null,
@@ -771,8 +800,8 @@ final class _MemoryStore implements service.FirstPlayableAuthorityStore {
           status: roomStatus,
           hostUid: 'uid-p1',
           presetId: 'express',
+          rulesVersion: catalog.rulesVersion,
           members: roomMembers,
-          catalog: catalog,
           storedReceipt: commandId == roomReceipt?.receipt.commandId
               ? roomReceipt
               : null,

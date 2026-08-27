@@ -13,6 +13,7 @@ import '../security/firebase_identity_verifier.dart';
 import '../security/membership_authorizer.dart';
 import 'authority_http_ingress.dart';
 import 'first_playable_response_adapter.dart';
+import 'first_playable_rules_catalog_repository.dart';
 
 final class FirstPlayableAuthorityExecutorViolation implements Exception {
   const FirstPlayableAuthorityExecutorViolation(this.code);
@@ -52,16 +53,10 @@ final class StoredAuthorityCommandReceipt {
 final class FirstPlayableGameTransactionView {
   FirstPlayableGameTransactionView({
     required this.publicState,
-    required this.catalog,
     required Map<String, String> memberUidByPlayerId,
     required this.privateRng,
     this.storedReceipt,
   }) : memberUidByPlayerId = Map.unmodifiable(memberUidByPlayerId) {
-    if (publicState.header.rulesVersion != catalog.rulesVersion) {
-      throw const FirstPlayableAuthorityExecutorViolation(
-        'rulesCatalogVersionMismatch',
-      );
-    }
     if (this.memberUidByPlayerId.entries.any(
       (entry) => entry.key.isEmpty || entry.value.isEmpty,
     )) {
@@ -76,7 +71,6 @@ final class FirstPlayableGameTransactionView {
   }
 
   final PublicGameState publicState;
-  final RulesCatalog catalog;
   final Map<String, String> memberUidByPlayerId;
   final AuthorityPrivateRngSnapshot? privateRng;
   final StoredAuthorityCommandReceipt? storedReceipt;
@@ -221,8 +215,8 @@ final class FirstPlayableRoomEntryRoomView {
     required this.status,
     required this.hostUid,
     required this.presetId,
+    required this.rulesVersion,
     required List<ReadyRoomMember> members,
-    required this.catalog,
   }) : members = List<ReadyRoomMember>.unmodifiable(members) {
     final memberUids = this.members.map((member) => member.uid).toList();
     final playerIds = this.members.map((member) => member.playerId).toList();
@@ -231,6 +225,7 @@ final class FirstPlayableRoomEntryRoomView {
         status.isEmpty ||
         hostUid.isEmpty ||
         presetId.isEmpty ||
+        rulesVersion.isEmpty ||
         this.members.isEmpty ||
         this.members.any(
           (member) => member.uid.isEmpty || member.playerId.isEmpty,
@@ -249,8 +244,8 @@ final class FirstPlayableRoomEntryRoomView {
   final String status;
   final String hostUid;
   final String presetId;
+  final String rulesVersion;
   final List<ReadyRoomMember> members;
-  final RulesCatalog catalog;
 }
 
 final class FirstPlayableRoomEntryTransactionView {
@@ -276,6 +271,7 @@ final class FirstPlayableRoomEntryMutation {
     required this.roomVersion,
     required this.hostUid,
     required this.presetId,
+    required this.rulesVersion,
     required List<ReadyRoomMember> membersAfter,
     this.updatedAt,
     this.expiresAt,
@@ -290,6 +286,7 @@ final class FirstPlayableRoomEntryMutation {
         roomVersion != this.membersAfter.length ||
         hostUid.isEmpty ||
         presetId.isEmpty ||
+        rulesVersion.isEmpty ||
         this.membersAfter.isEmpty ||
         memberUids.toSet().length != memberUids.length ||
         playerIds.toSet().length != playerIds.length ||
@@ -308,6 +305,7 @@ final class FirstPlayableRoomEntryMutation {
   final int roomVersion;
   final String hostUid;
   final String presetId;
+  final String rulesVersion;
   final List<ReadyRoomMember> membersAfter;
   final DateTime? updatedAt;
   final DateTime? expiresAt;
@@ -365,8 +363,8 @@ final class FirstPlayableRoomTransactionView {
     required this.status,
     required this.hostUid,
     required this.presetId,
+    required this.rulesVersion,
     required List<ReadyRoomMember> members,
-    required this.catalog,
     this.storedReceipt,
   }) : members = List<ReadyRoomMember>.unmodifiable(members) {
     final memberUids = members.map((member) => member.uid).toList();
@@ -376,6 +374,7 @@ final class FirstPlayableRoomTransactionView {
         status.isEmpty ||
         hostUid.isEmpty ||
         presetId.isEmpty ||
+        rulesVersion.isEmpty ||
         members.isEmpty ||
         members.any(
           (member) => member.uid.isEmpty || member.playerId.isEmpty,
@@ -391,8 +390,8 @@ final class FirstPlayableRoomTransactionView {
   final String status;
   final String hostUid;
   final String presetId;
+  final String rulesVersion;
   final List<ReadyRoomMember> members;
-  final RulesCatalog catalog;
   final StoredAuthorityCommandReceipt? storedReceipt;
 }
 
@@ -524,17 +523,21 @@ abstract interface class FirstPlayableAuthorityStore {
 final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
   const FirstPlayableAuthorityExecutor({
     required FirstPlayableAuthorityStore store,
+    required FirstPlayableRulesCatalogRepository rulesCatalogRepository,
     FirstPlayableStartMaterialFactory? startMaterialFactory,
     FirstPlayableRoomEntryMaterialFactory? roomEntryMaterialFactory,
   }) : // Public named parameters cannot initialize private fields directly.
        // ignore: prefer_initializing_formals
        _store = store,
        // ignore: prefer_initializing_formals
+       _rulesCatalogRepository = rulesCatalogRepository,
+       // ignore: prefer_initializing_formals
        _startMaterialFactory = startMaterialFactory,
        // ignore: prefer_initializing_formals
        _roomEntryMaterialFactory = roomEntryMaterialFactory;
 
   final FirstPlayableAuthorityStore _store;
+  final FirstPlayableRulesCatalogRepository _rulesCatalogRepository;
   final FirstPlayableStartMaterialFactory? _startMaterialFactory;
   final FirstPlayableRoomEntryMaterialFactory? _roomEntryMaterialFactory;
 
@@ -555,13 +558,19 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     final transaction = await _store.transactGame(
       gameId: command.gameId,
       commandId: command.commandId,
-      evaluate: (view) => _evaluateGameCommand(
-        context: context,
-        actorUid: identity.uid,
-        request: request,
-        command: command,
-        view: view,
-      ),
+      evaluate: (view) {
+        final catalog = _rulesCatalogRepository.catalogForGame(
+          view.publicState,
+        );
+        return _evaluateGameCommand(
+          context: context,
+          actorUid: identity.uid,
+          request: request,
+          command: command,
+          view: view,
+          catalog: catalog,
+        );
+      },
     );
     final decision = transaction.decision;
     return AuthorityExecutionResult<api.AuthorityCommandReply>(
@@ -601,14 +610,21 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     final transaction = await _store.transactRoom(
       roomId: roomId,
       commandId: command.commandId,
-      evaluate: (view) => _evaluateRoomCommand(
-        context: context,
-        actorUid: identity.uid,
-        request: request,
-        command: command,
-        view: view,
-        startMaterial: startMaterial,
-      ),
+      evaluate: (view) {
+        final catalog = _rulesCatalogRepository.catalogForRoom(
+          rulesVersion: view.rulesVersion,
+          presetId: view.presetId,
+        );
+        return _evaluateRoomCommand(
+          context: context,
+          actorUid: identity.uid,
+          request: request,
+          command: command,
+          view: view,
+          catalog: catalog,
+          startMaterial: startMaterial,
+        );
+      },
     );
     final decision = transaction.decision;
     return AuthorityExecutionResult<api.AuthorityCommandReply>(
@@ -655,6 +671,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         command: command,
         material: material,
         view: view,
+        rulesCatalogRepository: _rulesCatalogRepository,
       ),
     );
     final decision = transaction.decision;
@@ -686,6 +703,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       gameId: request.gameId,
       commandId: request.uncertainCommand?.commandId,
     );
+    _rulesCatalogRepository.catalogForGame(read.view.publicState);
     final playerId = _requirePlayerId(read.view, identity.uid);
     final uncertain = request.uncertainCommand;
     final stored = read.view.storedReceipt;
@@ -724,6 +742,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required String gameId,
   }) async {
     final read = await _store.readGame(gameId: gameId);
+    _rulesCatalogRepository.catalogForGame(read.view.publicState);
     _requirePlayerId(read.view, identity.uid);
     return api.AuthorityPublicSnapshot(read.view.publicState.toJson());
   }
@@ -734,6 +753,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required api.AuthorityCommandRequest request,
     required GameCommand command,
     required FirstPlayableGameTransactionView view,
+    required RulesCatalog catalog,
   }) {
     final prior = view.storedReceipt;
     if (prior != null) {
@@ -776,6 +796,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         actorUid: actorUid,
         command: command,
         view: view,
+        catalog: catalog,
       ),
       GameCommandType.buyProperty ||
       GameCommandType.declineProperty ||
@@ -785,6 +806,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         actorUid: actorUid,
         command: command,
         view: view,
+        catalog: catalog,
       ),
       _ => throw FirstPlayableAuthorityExecutorViolation(
         'unsupportedGameCommand:${command.type.wireValue}',
@@ -803,6 +825,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required api.AuthorityCommandRequest request,
     required RoomCommand command,
     required FirstPlayableRoomTransactionView view,
+    required RulesCatalog catalog,
     required FirstPlayableStartMaterial? startMaterial,
   }) {
     final prior = view.storedReceipt;
@@ -849,6 +872,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         command: command,
         view: view,
         startMaterial: startMaterial!,
+        catalog: catalog,
       ),
       _ => throw FirstPlayableAuthorityExecutorViolation(
         'unsupportedRoomCommand:${command.type.wireValue}',
@@ -863,6 +887,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required RoomCommand command,
     required FirstPlayableRoomEntryMaterial material,
     required FirstPlayableRoomEntryTransactionView view,
+    required FirstPlayableRulesCatalogRepository rulesCatalogRepository,
   }) {
     final prior = view.storedReceipt;
     if (prior != null) {
@@ -903,6 +928,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         command: command,
         material: material,
         view: view,
+        rulesCatalogRepository: rulesCatalogRepository,
       ),
       FirstPlayableRoomEntryKind.join => _evaluateJoinRoom(
         context: context,
@@ -911,6 +937,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         command: command,
         material: material,
         view: view,
+        rulesCatalogRepository: rulesCatalogRepository,
       ),
     };
   }
@@ -922,6 +949,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required RoomCommand command,
     required FirstPlayableRoomEntryMaterial material,
     required FirstPlayableRoomEntryTransactionView view,
+    required FirstPlayableRulesCatalogRepository rulesCatalogRepository,
   }) {
     final locator = view.locator;
     if (locator != null &&
@@ -962,6 +990,21 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         ready: false,
       ),
     ];
+    final catalog = rulesCatalogRepository.catalogForNewRoom(
+      presetId: presetId,
+    );
+    try {
+      catalog.resolvePreset(presetId, members.length);
+    } on RulesCatalogViolation {
+      return _persistableRoomEntryRejection(
+        actorUid: actorUid,
+        request: request,
+        command: command,
+        material: material,
+        version: 0,
+        errorCode: 'invalidPresetDraft',
+      );
+    }
     final mutation = FirstPlayableRoomEntryMutation(
       kind: material.kind,
       codeHash: material.codeHash,
@@ -969,6 +1012,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       roomVersion: 1,
       hostUid: actorUid,
       presetId: presetId,
+      rulesVersion: catalog.rulesVersion,
       membersAfter: members,
       updatedAt: context.requestReceivedAt,
       expiresAt: expiresAt,
@@ -991,6 +1035,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required RoomCommand command,
     required FirstPlayableRoomEntryMaterial material,
     required FirstPlayableRoomEntryTransactionView view,
+    required FirstPlayableRulesCatalogRepository rulesCatalogRepository,
   }) {
     final locator = view.locator;
     final room = view.room;
@@ -1027,8 +1072,12 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         ready: false,
       ),
     ];
+    final catalog = rulesCatalogRepository.catalogForRoom(
+      rulesVersion: room.rulesVersion,
+      presetId: room.presetId,
+    );
     try {
-      room.catalog.resolvePreset(room.presetId, members.length);
+      catalog.resolvePreset(room.presetId, members.length);
     } on RulesCatalogViolation {
       return _persistableRoomEntryRejection(
         actorUid: actorUid,
@@ -1046,6 +1095,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       roomVersion: room.roomVersion + 1,
       hostUid: room.hostUid,
       presetId: room.presetId,
+      rulesVersion: room.rulesVersion,
       membersAfter: members,
     );
     return _persistableRoomEntryAccepted(
@@ -1228,6 +1278,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required RoomCommand command,
     required FirstPlayableRoomTransactionView view,
     required FirstPlayableStartMaterial startMaterial,
+    required RulesCatalog catalog,
   }) {
     try {
       final plan = ReadyStartPlanner.plan(
@@ -1237,7 +1288,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         gameId: startMaterial.gameId,
         presetId: view.presetId,
         members: view.members,
-        catalog: view.catalog,
+        catalog: catalog,
         secureSeed: startMaterial.seed,
       );
       final publicResult = <String, Object?>{
@@ -1353,6 +1404,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required String actorUid,
     required GameCommand command,
     required FirstPlayableGameTransactionView view,
+    required RulesCatalog catalog,
   }) {
     final privateRng = view.privateRng;
     if (privateRng == null) {
@@ -1365,7 +1417,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       authenticatedActorUid: actorUid,
       memberUidByPlayerId: view.memberUidByPlayerId,
       state: view.publicState,
-      catalog: view.catalog,
+      catalog: catalog,
       privateSnapshot: privateRng,
       transitionTime: context.requestReceivedAt,
     );
@@ -1385,13 +1437,14 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     required String actorUid,
     required GameCommand command,
     required FirstPlayableGameTransactionView view,
+    required RulesCatalog catalog,
   }) {
     final evaluation = AuthorityBuyAuctionPlanner.evaluateHuman(
       command: command,
       authenticatedActorUid: actorUid,
       memberUidByPlayerId: view.memberUidByPlayerId,
       state: view.publicState,
-      catalog: view.catalog,
+      catalog: catalog,
       requestReceivedAt: context.requestReceivedAt,
     );
     final reply = FirstPlayableResponseAdapter.buyAuction(evaluation);

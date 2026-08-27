@@ -6,6 +6,7 @@ import '../security/firebase_identity_verifier.dart';
 import 'authority_http_ingress.dart';
 import 'first_playable_authority_executor.dart';
 import 'first_playable_authority_material_factory.dart';
+import 'first_playable_rules_catalog_repository.dart';
 
 /// Composition root for the live Flutter -> HTTP -> Authority vertical slice.
 ///
@@ -16,6 +17,7 @@ final class FirstPlayableAuthorityRuntime {
   factory FirstPlayableAuthorityRuntime.withEnvironmentMaterials({
     required AuthorityIdentityVerifier identityVerifier,
     required FirstPlayableAuthorityStore store,
+    required FirstPlayableRulesCatalogRepository rulesCatalogRepository,
     required BestEffortAuthorityObservability observability,
     required Duration roomCodeTtl,
     Map<String, String>? environment,
@@ -24,6 +26,7 @@ final class FirstPlayableAuthorityRuntime {
     return FirstPlayableAuthorityRuntime.withHmacMaterials(
       identityVerifier: identityVerifier,
       store: store,
+      rulesCatalogRepository: rulesCatalogRepository,
       observability: observability,
       materialFactory: FirstPlayableAuthorityMaterialFactory.fromEnvironment(
         environment: environment ?? Platform.environment,
@@ -36,12 +39,14 @@ final class FirstPlayableAuthorityRuntime {
   FirstPlayableAuthorityRuntime.withHmacMaterials({
     required AuthorityIdentityVerifier identityVerifier,
     required FirstPlayableAuthorityStore store,
+    required FirstPlayableRulesCatalogRepository rulesCatalogRepository,
     required BestEffortAuthorityObservability observability,
     required FirstPlayableAuthorityMaterialFactory materialFactory,
     DateTime Function()? now,
   }) : this(
          identityVerifier: identityVerifier,
          store: store,
+         rulesCatalogRepository: rulesCatalogRepository,
          observability: observability,
          startMaterialFactory: materialFactory.startGame,
          roomEntryMaterialFactory: materialFactory.roomEntry,
@@ -51,6 +56,7 @@ final class FirstPlayableAuthorityRuntime {
   FirstPlayableAuthorityRuntime({
     required AuthorityIdentityVerifier identityVerifier,
     required FirstPlayableAuthorityStore store,
+    required FirstPlayableRulesCatalogRepository rulesCatalogRepository,
     required BestEffortAuthorityObservability observability,
     FirstPlayableStartMaterialFactory? startMaterialFactory,
     FirstPlayableRoomEntryMaterialFactory? roomEntryMaterialFactory,
@@ -60,6 +66,7 @@ final class FirstPlayableAuthorityRuntime {
          commandIngress: CommandIngress(observability: observability, now: now),
          executor: FirstPlayableAuthorityExecutor(
            store: store,
+           rulesCatalogRepository: rulesCatalogRepository,
            startMaterialFactory: startMaterialFactory,
            roomEntryMaterialFactory: roomEntryMaterialFactory,
          ),
