@@ -47,9 +47,21 @@ void main() {
         startMaterialFactory: _startMaterial,
         now: () => DateTime.utc(2026, 8, 27, 5),
       );
-      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      server.listen(runtime.handle);
-      final baseUri = Uri.parse('http://127.0.0.1:${server.port}');
+      await expectLater(
+        FirstPlayableAuthorityServer.bind(runtime: runtime, host: '0.0.0.0'),
+        throwsA(
+          isA<FirstPlayableAuthorityServerViolation>().having(
+            (error) => error.code,
+            'code',
+            'emulatorListenerMustBeNumericLoopback',
+          ),
+        ),
+      );
+      final server = await FirstPlayableAuthorityServer.bind(
+        runtime: runtime,
+        port: 0,
+      );
+      final baseUri = server.baseUri;
       final hostTransport = HttpAuthorityWireTransport(
         baseUri: baseUri,
         idTokenProvider: () async => hostToken,

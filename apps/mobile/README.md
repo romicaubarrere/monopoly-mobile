@@ -6,19 +6,51 @@ The default entrypoint is fail-closed: it shows a configuration error instead
 of silently running the non-authoritative preview when Firebase or Authority
 configuration is absent.
 
-## Emulator run
+## Android Emulator run
 
-Start Firebase Auth/Firestore and the Authority HTTP service, then expose their
-ports to the connected Android device with `adb reverse`. Run Flutter with these
-compile-time values:
+The repository includes a loopback-only Authority server for the local Android
+Tier-1 chain. It uses the same synthetic catalog as the VP0 Emulator tests; it
+is not a production catalog and does not define or promote DEC-065.
 
-- `AUTHORITY_BASE_URL` (loopback HTTP for Emulator or production HTTPS)
-- `FIREBASE_API_KEY`
-- `FIREBASE_APP_ID`
-- `FIREBASE_MESSAGING_SENDER_ID`
-- `FIREBASE_PROJECT_ID`
-- `FIRST_PLAYABLE_PRESET_ID`
-- `FIREBASE_AUTH_EMULATOR_HOST` and `FIREBASE_AUTH_EMULATOR_PORT` for Emulator
+From the repository root, start Firebase Auth and Firestore:
+
+```sh
+npx firebase emulators:start --only auth,firestore \
+  --project demo-board-game-local
+```
+
+In another terminal, start Authority. The HMAC key is ephemeral and remains in
+the server process environment:
+
+```sh
+export GCLOUD_PROJECT=demo-board-game-local
+export FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+export FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+export FIRST_PLAYABLE_AUTHORITY_HMAC_KEY_BASE64="$(openssl rand -base64 32)"
+dart run backend/command_service/tool/first_playable_authority_emulator_server.dart
+```
+
+Expose only the two ports consumed by the Android app:
+
+```sh
+adb reverse tcp:8787 tcp:8787
+adb reverse tcp:9099 tcp:9099
+```
+
+Then run Flutter with local demo Firebase values and the synthetic `express`
+preset:
+
+```sh
+flutter run -d android \
+  --dart-define=AUTHORITY_BASE_URL=http://127.0.0.1:8787 \
+  --dart-define=FIREBASE_API_KEY=demo-api-key \
+  --dart-define=FIREBASE_APP_ID=1:000000000000:android:demo \
+  --dart-define=FIREBASE_MESSAGING_SENDER_ID=000000000000 \
+  --dart-define=FIREBASE_PROJECT_ID=demo-board-game-local \
+  --dart-define=FIRST_PLAYABLE_PRESET_ID=express \
+  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1 \
+  --dart-define=FIREBASE_AUTH_EMULATOR_PORT=9099
+```
 
 Never commit production Firebase configuration or Authority credentials.
 Firebase Auth owns anonymous identity and ID-token refresh. SharedPreferences

@@ -6,6 +6,7 @@ export 'http/authority_http_ingress.dart';
 export 'http/first_playable_authority_executor.dart';
 export 'http/first_playable_response_adapter.dart';
 export 'http/first_playable_authority_runtime.dart';
+export 'http/first_playable_authority_server.dart';
 export 'http/first_playable_firestore_rest_store.dart';
 export 'http/first_playable_persistence_codec.dart';
 export 'http/first_playable_authority_material_factory.dart';

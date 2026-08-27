@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:board_backend_api/backend_api.dart';
@@ -32,10 +31,22 @@ void main() {
         observability: BestEffortAuthorityObservability(logs),
         now: () => DateTime.utc(2026, 8, 26, 12, 30),
       );
-      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      server.listen(runtime.handle);
+      await expectLater(
+        FirstPlayableAuthorityServer.bind(runtime: runtime, host: '0.0.0.0'),
+        throwsA(
+          isA<FirstPlayableAuthorityServerViolation>().having(
+            (error) => error.code,
+            'code',
+            'emulatorListenerMustBeNumericLoopback',
+          ),
+        ),
+      );
+      final server = await FirstPlayableAuthorityServer.bind(
+        runtime: runtime,
+        port: 0,
+      );
       final transport = HttpAuthorityWireTransport(
-        baseUri: Uri.parse('http://127.0.0.1:${server.port}'),
+        baseUri: server.baseUri,
         idTokenProvider: () async => _token(),
       );
       addTearDown(() async {
