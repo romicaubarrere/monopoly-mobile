@@ -71,10 +71,20 @@ Future<void> main() async {
     }),
   );
 
-  await Future.any<void>(<Future<void>>[
-    ProcessSignal.sigint.watch().first.then((_) {}),
-    ProcessSignal.sigterm.watch().first.then((_) {}),
-  ]);
+  final termination = Completer<void>();
+  void requestTermination(ProcessSignal _) {
+    if (!termination.isCompleted) termination.complete();
+  }
+
+  final interruptSubscription = ProcessSignal.sigint.watch().listen(
+    requestTermination,
+  );
+  final terminateSubscription = ProcessSignal.sigterm.watch().listen(
+    requestTermination,
+  );
+  await termination.future;
+  await interruptSubscription.cancel();
+  await terminateSubscription.cancel();
   await server.close(force: true);
 }
 
