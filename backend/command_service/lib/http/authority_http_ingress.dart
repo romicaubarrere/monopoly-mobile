@@ -29,6 +29,12 @@ abstract interface class AuthorityHttpExecutor {
     required VerifiedIdentity identity,
     required String gameId,
   });
+
+  Future<AuthorityPublicRoomSnapshot> readPublicRoom({
+    required IngressContext context,
+    required VerifiedIdentity identity,
+    required String roomId,
+  });
 }
 
 /// Minimal authenticated network ingress used by Flutter and local emulators.
@@ -93,6 +99,24 @@ final class AuthorityHttpIngress {
           context: context,
           identity: identity,
           gameId: path[3],
+        );
+        await _writeJson(
+          request.response,
+          HttpStatus.ok,
+          validatedAuthorityPublicWireObject(result.toWireJson()),
+        );
+        return;
+      }
+      if (request.method == 'GET' &&
+          path.length == 4 &&
+          path[0] == 'v1' &&
+          path[1] == 'authority' &&
+          path[2] == 'rooms' &&
+          path[3].isNotEmpty) {
+        final result = await _executor.readPublicRoom(
+          context: context,
+          identity: identity,
+          roomId: path[3],
         );
         await _writeJson(
           request.response,

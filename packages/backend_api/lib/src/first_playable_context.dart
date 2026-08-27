@@ -19,6 +19,7 @@ final class FirstPlayableAuthorityContext
   String? _gameId;
   int? _stateVersion;
   String? _snapshotCanonicalJson;
+  String? _roomSnapshotCanonicalJson;
   String? _propertyDecisionId;
   String? _propertyId;
   String? _auctionId;
@@ -131,6 +132,39 @@ final class FirstPlayableAuthorityContext
     _propertyDecisionId = nextPropertyDecisionId;
     _propertyId = nextPropertyId;
     _auctionId = nextAuctionId;
+  }
+
+  @override
+  void replacePublicRoomSnapshot(AuthorityPublicRoomSnapshot snapshot) {
+    final value = snapshot.snapshot;
+    final nextRoomId = snapshot.roomId;
+    if (_roomId != null && _roomId != nextRoomId) {
+      throw const ClientAuthorityContractViolation('roomSnapshotMismatch');
+    }
+    if (_roomVersion != null && snapshot.roomVersion < _roomVersion!) return;
+    final canonicalJson = snapshot.toCanonicalJson();
+    if (_roomVersion == snapshot.roomVersion &&
+        _roomSnapshotCanonicalJson != null &&
+        _roomSnapshotCanonicalJson != canonicalJson) {
+      throw const ClientAuthorityContractViolation(
+        'roomSnapshotVersionCollision',
+      );
+    }
+    final members = value['members']! as List<Object?>;
+    final actor = _actorPlayerId;
+    if (actor == null || value['actorPlayerId'] != actor) {
+      throw const ClientAuthorityContractViolation('roomSnapshotActorMismatch');
+    }
+    if (!members.whereType<Map<String, Object?>>().any(
+      (member) => member['playerId'] == actor,
+    )) {
+      throw const ClientAuthorityContractViolation('roomSnapshotActorMissing');
+    }
+    _roomId = nextRoomId;
+    _roomVersion = snapshot.roomVersion;
+    _roomSnapshotCanonicalJson = canonicalJson;
+    final nextGameId = _identifier(value['gameId']);
+    if (nextGameId != null) _gameId = nextGameId;
   }
 
   void _applyRoomReply(

@@ -133,6 +133,16 @@ final class FirstPlayableGameReadResult {
   final AuthorityExecutionMetrics metrics;
 }
 
+final class FirstPlayableRoomReadResult {
+  const FirstPlayableRoomReadResult({
+    required this.view,
+    this.metrics = const AuthorityExecutionMetrics(),
+  });
+
+  final FirstPlayableRoomTransactionView view;
+  final AuthorityExecutionMetrics metrics;
+}
+
 /// Authority-private material generated once before Firestore retries StartGame.
 final class FirstPlayableStartMaterial {
   FirstPlayableStartMaterial({required this.gameId, required List<int> seed})
@@ -515,6 +525,14 @@ abstract interface class FirstPlayableAuthorityStore {
   });
 }
 
+/// Optional read port required by Flutter lobby synchronization.
+///
+/// It is separate from the mutation port so existing planner/unit fakes need
+/// not pretend to provide a durable public-room read.
+abstract interface class FirstPlayableRoomSnapshotStore {
+  Future<FirstPlayableRoomReadResult> readRoom({required String roomId});
+}
+
 /// Concrete VP0 composition behind [AuthorityHttpIngress].
 ///
 /// Rules remain in Engine planners. This class owns only authentication scope,
@@ -745,6 +763,50 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     _rulesCatalogRepository.catalogForGame(read.view.publicState);
     _requirePlayerId(read.view, identity.uid);
     return api.AuthorityPublicSnapshot(read.view.publicState.toJson());
+  }
+
+  @override
+  Future<api.AuthorityPublicRoomSnapshot> readPublicRoom({
+    required IngressContext context,
+    required VerifiedIdentity identity,
+    required String roomId,
+  }) async {
+    final store = _store is FirstPlayableRoomSnapshotStore
+        ? _store as FirstPlayableRoomSnapshotStore
+        : throw const FirstPlayableAuthorityExecutorViolation(
+            'roomSnapshotStoreUnavailable',
+          );
+    final read = await store.readRoom(roomId: roomId);
+    _rulesCatalogRepository.catalogForRoom(
+      rulesVersion: read.view.rulesVersion,
+      presetId: read.view.presetId,
+    );
+    final actor = read.view.members.singleWhere(
+      (member) => member.uid == identity.uid,
+      orElse: () =>
+          throw const MembershipAuthorizationException('notRoomMember'),
+    );
+    final hostPlayerId = read.view.members
+        .singleWhere((member) => member.uid == read.view.hostUid)
+        .playerId;
+    return api.AuthorityPublicRoomSnapshot(<String, Object?>{
+      'schemaVersion': 1,
+      'roomId': read.view.roomId,
+      'roomVersion': read.view.roomVersion,
+      'status': read.view.status,
+      'hostPlayerId': hostPlayerId,
+      'actorPlayerId': actor.playerId,
+      'presetId': read.view.presetId,
+      'rulesVersion': read.view.rulesVersion,
+      'members': <Object?>[
+        for (final member in read.view.members)
+          <String, Object?>{
+            'playerId': member.playerId,
+            'kind': member.kind.name,
+            'ready': member.ready,
+          },
+      ],
+    });
   }
 
   static FirstPlayableGameTransactionDecision _evaluateGameCommand({

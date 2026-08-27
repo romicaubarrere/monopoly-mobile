@@ -159,6 +159,9 @@ final class _Context implements FirstPlayableConfirmedContext {
 
   @override
   void replacePublicSnapshot(AuthorityPublicSnapshot snapshot) {}
+
+  @override
+  void replacePublicRoomSnapshot(AuthorityPublicRoomSnapshot snapshot) {}
 }
 
 final class _Ids implements AuthorityCommandIdSource {

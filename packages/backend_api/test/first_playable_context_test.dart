@@ -114,6 +114,69 @@ void main() {
     expect(context.roomVersion, 5);
   });
 
+  test('public room snapshot advances version after another actor Ready', () {
+    final context = _confirmedContext();
+
+    context.replacePublicRoomSnapshot(
+      AuthorityPublicRoomSnapshot(const <String, Object?>{
+        'schemaVersion': 1,
+        'roomId': 'room-1',
+        'roomVersion': 7,
+        'status': 'open',
+        'hostPlayerId': 'player-1',
+        'actorPlayerId': 'player-1',
+        'presetId': 'express',
+        'rulesVersion': 'synthetic-rules-vp0',
+        'members': <Object?>[
+          <String, Object?>{
+            'playerId': 'player-1',
+            'kind': 'human',
+            'ready': true,
+          },
+          <String, Object?>{
+            'playerId': 'player-2',
+            'kind': 'human',
+            'ready': true,
+          },
+        ],
+      }),
+    );
+
+    expect(context.roomVersion, 7);
+  });
+
+  test('public room snapshot cannot replace confirmed actor', () {
+    final context = _confirmedContext();
+
+    expect(
+      () => context.replacePublicRoomSnapshot(
+        AuthorityPublicRoomSnapshot(const <String, Object?>{
+          'schemaVersion': 1,
+          'roomId': 'room-1',
+          'roomVersion': 7,
+          'status': 'open',
+          'hostPlayerId': 'player-1',
+          'actorPlayerId': 'player-2',
+          'presetId': 'express',
+          'rulesVersion': 'synthetic-rules-vp0',
+          'members': <Object?>[
+            <String, Object?>{
+              'playerId': 'player-1',
+              'kind': 'human',
+              'ready': true,
+            },
+            <String, Object?>{
+              'playerId': 'player-2',
+              'kind': 'human',
+              'ready': true,
+            },
+          ],
+        }),
+      ),
+      throwsA(_violation('roomSnapshotActorMismatch')),
+    );
+  });
+
   test('StartGame summary supplies game id and initial state version', () {
     final context = _confirmedContext();
     final request = _roomRequest(

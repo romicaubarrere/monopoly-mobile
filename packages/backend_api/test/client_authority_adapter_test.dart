@@ -47,6 +47,42 @@ void main() {
     );
   });
 
+  test('room snapshots replace lobby version without UID material', () async {
+    final transport = _Transport();
+    final client = WireAuthorityClient(transport);
+
+    final snapshot = await client.watchRoom('room-1').first;
+    expect(snapshot.roomVersion, 4);
+
+    transport.privateRoomSnapshot = true;
+    expect(
+      client.watchRoom('room-1').first,
+      throwsA(
+        isA<ClientAuthorityContractViolation>().having(
+          (error) => error.code,
+          'code',
+          'privateMaterialForbidden',
+        ),
+      ),
+    );
+  });
+
+  test('room snapshots reject inconsistent public membership', () async {
+    final transport = _Transport()..inconsistentRoomSnapshot = true;
+    final client = WireAuthorityClient(transport);
+
+    expect(
+      client.watchRoom('room-1').first,
+      throwsA(
+        isA<ClientAuthorityContractViolation>().having(
+          (error) => error.code,
+          'code',
+          'inconsistentRoomSnapshotMembership',
+        ),
+      ),
+    );
+  });
+
   test(
     'reconnect carries identity only and decodes exact retry action',
     () async {
@@ -84,6 +120,8 @@ final class _Transport implements AuthorityWireTransport {
   Map<String, Object?>? lastCommand;
   Map<String, Object?>? lastReconnect;
   bool privateSnapshot = false;
+  bool privateRoomSnapshot = false;
+  bool inconsistentRoomSnapshot = false;
 
   @override
   Future<Map<String, Object?>> sendCommand(Map<String, Object?> request) async {
@@ -119,6 +157,29 @@ final class _Transport implements AuthorityWireTransport {
   Stream<Map<String, Object?>> watchPublicGame(String gameId) async* {
     final snapshot = _snapshot(3);
     if (privateSnapshot) snapshot['seedBytes'] = 'forbidden';
+    yield snapshot;
+  }
+
+  @override
+  Stream<Map<String, Object?>> watchPublicRoom(String roomId) async* {
+    final snapshot = <String, Object?>{
+      'schemaVersion': 1,
+      'roomId': roomId,
+      'roomVersion': 4,
+      'status': 'open',
+      'hostPlayerId': inconsistentRoomSnapshot ? 'player-missing' : 'player-1',
+      'actorPlayerId': 'player-1',
+      'presetId': 'express',
+      'rulesVersion': 'synthetic-rules-vp0',
+      'members': const <Object?>[
+        <String, Object?>{
+          'playerId': 'player-1',
+          'kind': 'human',
+          'ready': true,
+        },
+      ],
+    };
+    if (privateRoomSnapshot) snapshot['memberUids'] = <Object?>['uid-1'];
     yield snapshot;
   }
 }

@@ -208,6 +208,89 @@ final class AuthorityPublicSnapshot {
   String toCanonicalJson() => SemanticFingerprintV1.canonicalJson(snapshot);
 }
 
+/// Complete public lobby snapshot received from Authority.
+///
+/// Flutter replaces its confirmed room context with this value before issuing
+/// Ready/Start commands. Membership is expressed only with Authority-owned
+/// player IDs; Firebase UIDs and private mappings are rejected recursively.
+final class AuthorityPublicRoomSnapshot {
+  AuthorityPublicRoomSnapshot(Map<String, Object?> snapshot)
+    : snapshot = _immutableJson(snapshot) {
+    final schemaVersion = this.snapshot['schemaVersion'];
+    final roomVersion = this.snapshot['roomVersion'];
+    final roomId = this.snapshot['roomId'];
+    final status = this.snapshot['status'];
+    final hostPlayerId = this.snapshot['hostPlayerId'];
+    final actorPlayerId = this.snapshot['actorPlayerId'];
+    final presetId = this.snapshot['presetId'];
+    final rulesVersion = this.snapshot['rulesVersion'];
+    final members = this.snapshot['members'];
+    if (schemaVersion != 1) {
+      throw const ClientAuthorityContractViolation(
+        'unsupportedRoomSnapshotSchemaVersion',
+      );
+    }
+    if (roomVersion is! int || roomVersion < 1) {
+      throw const ClientAuthorityContractViolation(
+        'invalidRoomSnapshotVersion',
+      );
+    }
+    if (roomId is! String || roomId.isEmpty) {
+      throw const ClientAuthorityContractViolation('invalidRoomSnapshotRoomId');
+    }
+    if (status is! String ||
+        status.isEmpty ||
+        hostPlayerId is! String ||
+        hostPlayerId.isEmpty ||
+        actorPlayerId is! String ||
+        actorPlayerId.isEmpty ||
+        presetId is! String ||
+        presetId.isEmpty ||
+        rulesVersion is! String ||
+        rulesVersion.isEmpty) {
+      throw const ClientAuthorityContractViolation(
+        'invalidRoomSnapshotMetadata',
+      );
+    }
+    if (members is! List<Object?> ||
+        members.isEmpty ||
+        members.any((member) {
+          if (member is! Map<String, Object?>) return true;
+          final playerId = member['playerId'];
+          return playerId is! String ||
+              playerId.isEmpty ||
+              member['ready'] is! bool ||
+              member['kind'] is! String;
+        })) {
+      throw const ClientAuthorityContractViolation(
+        'invalidRoomSnapshotMembers',
+      );
+    }
+    final playerIds = members
+        .whereType<Map<String, Object?>>()
+        .map((member) => member['playerId']! as String)
+        .toList(growable: false);
+    if (playerIds.toSet().length != playerIds.length ||
+        !playerIds.contains(hostPlayerId) ||
+        !playerIds.contains(actorPlayerId)) {
+      throw const ClientAuthorityContractViolation(
+        'inconsistentRoomSnapshotMembership',
+      );
+    }
+    _rejectPrivateMaterial(this.snapshot);
+  }
+
+  final Map<String, Object?> snapshot;
+
+  int get schemaVersion => snapshot['schemaVersion']! as int;
+  int get roomVersion => snapshot['roomVersion']! as int;
+  String get roomId => snapshot['roomId']! as String;
+
+  Map<String, Object?> toWireJson() => snapshot;
+
+  String toCanonicalJson() => SemanticFingerprintV1.canonicalJson(snapshot);
+}
+
 /// Safe command outcome returned to Flutter.
 ///
 /// Accepted results advance exactly once; rejections do not mutate; duplicates
@@ -479,6 +562,11 @@ abstract interface class AuthoritySnapshotRepository {
   Stream<AuthorityPublicSnapshot> watchGame(String gameId);
 
   Future<AuthorityReconnectReply> reconnect(AuthorityReconnectRequest request);
+}
+
+/// Flutter repository port for authoritative public lobby replacement.
+abstract interface class AuthorityRoomSnapshotRepository {
+  Stream<AuthorityPublicRoomSnapshot> watchRoom(String roomId);
 }
 
 Map<String, Object?> _semanticMaterial(

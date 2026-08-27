@@ -11,8 +11,9 @@ It does not define UI, Firebase configuration, or gameplay rules.
   state. Depending on these pure-Dart contracts does not run gameplay logic in
   Flutter.
 - `board_backend_api` owns the Flutter-facing Authority ports and public wire
-  wrappers: `CommandGateway`, `AuthoritySnapshotRepository`, command request,
-  command reply, snapshot, and reconnect identity/result.
+  wrappers: `CommandGateway`, `AuthoritySnapshotRepository`,
+  `AuthorityRoomSnapshotRepository`, command request, command reply, room/game
+  snapshots, and reconnect identity/result.
 - `board_command_service` remains server-side. Flutter must never import its
   planners.
 - Engine remains the only owner of command legality, dice, movement, cash,
@@ -29,7 +30,8 @@ Authenticated UID is never accepted in a command body.
   recomputable semantic fingerprint.
 - `POST /v1/authority/reconnect` sends the observed version and, when needed,
   only the uncertain command identity.
-- `GET /v1/authority/games/{gameId}` reads replacement public snapshots.
+- `GET /v1/authority/rooms/{roomId}` reads replacement public lobby snapshots.
+- `GET /v1/authority/games/{gameId}` reads replacement public game snapshots.
 
 `AuthorityHttpIngress` verifies the Firebase identity, decodes the same
 `board_backend_api` wire contracts, captures `requestReceivedAt` once, and
@@ -99,27 +101,33 @@ with zero writes.
 3. Store the request as uncertain before sending it.
 4. Call `CommandGateway.send` without applying authoritative state
    optimistically.
-5. On ACK, use the public result and replace cached state with the returned or
-   streamed `AuthorityPublicSnapshot`.
-6. On transport ambiguity, keep the same request. Reconnect with only
+5. After Create/Join, poll `AuthorityPublicRoomSnapshot` so a Ready change from
+   another actor advances the confirmed `roomVersion` before Start. The room
+   snapshot contains only player IDs, kinds and readiness; Flutter never maps
+   or receives Firebase UIDs.
+6. On ACK, use the public result and replace cached game state with the returned
+   or streamed `AuthorityPublicSnapshot`.
+7. On transport ambiguity, keep the same request. Reconnect with only
    `commandId + inputHashVersion + inputHash` and the observed state version.
-7. `useDurableResult` resolves the prior command. `retrySameCommand` resends the
+8. `useDurableResult` resolves the prior command. `retrySameCommand` resends the
    byte-identical request. `failClosed` surfaces the safe error and never mints
    a replacement command ID.
-8. Every reconnect snapshot replaces the cache completely. Client snapshot
+9. Every reconnect snapshot replaces the cache completely. Client snapshot
    upload or merge is intentionally absent from the API.
 
 ## Public/private boundary
 
-The public snapshot may include `rngVersion` and `rngCommitment`. It rejects
-tokens, UID fields, seeds, counters, private deck state, and future deck order at
-any depth. The concrete adapter must preserve the same rule and must never read
-`gameSecrets` into Flutter.
+The public game snapshot may include `rngVersion` and `rngCommitment`. The
+public room snapshot exposes Authority player IDs and readiness, never UID
+membership. Both reject tokens, UID fields, seeds, counters, private deck state,
+and future deck order at any depth. The concrete adapter must preserve the same
+rule and must never read `roomSecrets` or `gameSecrets` into Flutter.
 
 ## Capability mapping
 
-- Ready/Start: send canonical `RoomCommand` requests and switch to the returned
-  `gameId`/public snapshot.
+- Ready/Start: replace lobby context from the authenticated room snapshot,
+  send canonical `RoomCommand` with its confirmed version, then switch to the
+  returned `gameId`/public game snapshot.
 - Roll/movement: send `RollDice` with `expectedStateVersion`; render only after
   the Authority result/snapshot advances once.
 - Buy/Decline/Auction: send the Engine command type/payload from the current

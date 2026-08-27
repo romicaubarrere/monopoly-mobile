@@ -96,7 +96,7 @@ final class FirstPlayableFirestoreRestConfig {
 /// only [FirstPlayablePersistenceCodec] decisions. Engine rules, identities and
 /// private material stay in the Dart Authority process.
 final class FirstPlayableFirestoreRestStore
-    implements FirstPlayableAuthorityStore {
+    implements FirstPlayableAuthorityStore, FirstPlayableRoomSnapshotStore {
   FirstPlayableFirestoreRestStore({
     required FirstPlayableFirestoreRestConfig config,
     HttpClient? httpClient,
@@ -303,6 +303,37 @@ final class FirstPlayableFirestoreRestStore
           attempt: 0,
           schemaVersion: view.publicState.header.schemaVersion,
           stateVersion: view.publicState.header.stateVersion,
+        ),
+      );
+    } on Object {
+      await transaction.rollbackBestEffort();
+      rethrow;
+    }
+  }
+
+  @override
+  Future<FirstPlayableRoomReadResult> readRoom({required String roomId}) async {
+    _requirePathSegment(roomId, 'invalidRoomId');
+    final transaction = await _beginTransaction(readOnly: true);
+    try {
+      final publicPath = 'rooms/$roomId';
+      final privatePath = 'roomSecrets/$roomId';
+      final read = await transaction.batchGet(<String>[
+        publicPath,
+        privatePath,
+      ]);
+      final view = _decodeRoomTransaction(
+        read[publicPath],
+        read[privatePath],
+        null,
+      );
+      await transaction.rollback();
+      return FirstPlayableRoomReadResult(
+        view: view,
+        metrics: transaction.metrics(
+          attempt: 0,
+          schemaVersion: FirstPlayablePersistenceCodec.schemaVersion,
+          stateVersion: view.roomVersion,
         ),
       );
     } on Object {

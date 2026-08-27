@@ -67,6 +67,18 @@ final class HttpAuthorityWireTransport implements AuthorityWireTransport {
     }
   }
 
+  @override
+  Stream<Map<String, Object?>> watchPublicRoom(String roomId) async* {
+    if (roomId.isEmpty || roomId.contains('/')) {
+      throw const AuthorityTransportException('invalidRoomId');
+    }
+    final path = '/v1/authority/rooms/${Uri.encodeComponent(roomId)}';
+    while (true) {
+      yield await _request('GET', path);
+      await Future<void>.delayed(_snapshotPollInterval);
+    }
+  }
+
   void close({bool force = false}) => _httpClient.close(force: force);
 
   Future<Map<String, Object?>> _request(

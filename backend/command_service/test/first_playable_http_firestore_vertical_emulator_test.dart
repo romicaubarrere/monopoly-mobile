@@ -25,6 +25,7 @@ void main() {
     () async {
       final hostToken = await _anonymousIdToken(authHost!);
       final guestToken = await _anonymousIdToken(authHost);
+      final outsiderToken = await _anonymousIdToken(authHost);
       final store = FirstPlayableFirestoreRestStore(
         config: FirstPlayableFirestoreRestConfig.emulator(
           projectId: projectId,
@@ -57,19 +58,35 @@ void main() {
         baseUri: baseUri,
         idTokenProvider: () async => guestToken,
       );
+      final outsiderTransport = HttpAuthorityWireTransport(
+        baseUri: baseUri,
+        idTokenProvider: () async => outsiderToken,
+      );
       addTearDown(() async {
         hostTransport.close(force: true);
         guestTransport.close(force: true);
+        outsiderTransport.close(force: true);
         await server.close(force: true);
       });
       final host = WireAuthorityClient(hostTransport);
       final guest = WireAuthorityClient(guestTransport);
+      final outsider = WireAuthorityClient(outsiderTransport);
 
       final buyGame = await _startGame(
         prefix: 'buy',
         roomCode: 'BUY001',
         host: host,
         guest: guest,
+      );
+      await expectLater(
+        outsider.watchRoom('buy-room').first,
+        throwsA(
+          isA<AuthorityTransportException>().having(
+            (error) => error.code,
+            'code',
+            'actorForbidden',
+          ),
+        ),
       );
       final buyRoll = await _rollToProperty(
         game: buyGame,
@@ -233,11 +250,14 @@ Future<_StartedGame> _startGame({
     ),
   );
   expect(guestReady.status, AuthorityCommandStatus.accepted);
+  final hostRoomSnapshot = await host.watchRoom(roomId).first;
+  expect(hostRoomSnapshot.roomVersion, guestReady.versionAfter);
+  expect(jsonEncode(hostRoomSnapshot.toWireJson()), isNot(contains('uid')));
   final started = await host.send(
     _roomCommand(
       commandId: '$prefix-start',
       roomId: roomId,
-      expectedVersion: guestReady.versionAfter,
+      expectedVersion: hostRoomSnapshot.roomVersion,
       type: RoomCommandType.startGame,
     ),
   );

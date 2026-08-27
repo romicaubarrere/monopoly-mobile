@@ -59,11 +59,14 @@ void main() {
         AuthorityReconnectRequest(gameId: 'game-1', observedStateVersion: 1),
       );
       final watched = await client.watchGame('game-1').first;
+      final room = await client.watchRoom('room-1').first;
 
       expect(reply.status, AuthorityCommandStatus.accepted);
       expect(reply.snapshot!.stateVersion, 1);
       expect(reconnect.disposition, ReconnectDisposition.upToDate);
       expect(watched.stateVersion, 1);
+      expect(room.roomVersion, 2);
+      expect(jsonEncode(room.toWireJson()), isNot(contains('uid')));
       expect(executor.uid, 'uid-synthetic-1');
       expect(executor.command!.inputHash, command.inputHash);
       expect(executor.command!.command, isNot(contains('uid')));
@@ -145,6 +148,13 @@ final class _Executor implements AuthorityHttpExecutor {
   }) async => AuthorityPublicSnapshot(_snapshot());
 
   @override
+  Future<AuthorityPublicRoomSnapshot> readPublicRoom({
+    required IngressContext context,
+    required VerifiedIdentity identity,
+    required String roomId,
+  }) async => AuthorityPublicRoomSnapshot(_roomSnapshot());
+
+  @override
   Future<AuthorityReconnectReply> reconnect({
     required IngressContext context,
     required VerifiedIdentity identity,
@@ -184,4 +194,18 @@ Map<String, Object?> _snapshot() => <String, Object?>{
     'phase': 'awaitingRoll',
     'currentPlayerId': 'player-1',
   },
+};
+
+Map<String, Object?> _roomSnapshot() => const <String, Object?>{
+  'schemaVersion': 1,
+  'roomId': 'room-1',
+  'roomVersion': 2,
+  'status': 'open',
+  'hostPlayerId': 'player-1',
+  'actorPlayerId': 'player-1',
+  'presetId': 'express',
+  'rulesVersion': 'synthetic-rules-vp0',
+  'members': <Object?>[
+    <String, Object?>{'playerId': 'player-1', 'kind': 'human', 'ready': true},
+  ],
 };

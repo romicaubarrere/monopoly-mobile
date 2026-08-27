@@ -64,6 +64,9 @@ abstract interface class FirstPlayableConfirmedContext {
 
   /// Replaces confirmed game context from Authority's public snapshot.
   void replacePublicSnapshot(AuthorityPublicSnapshot snapshot);
+
+  /// Replaces lobby version/readiness from an authenticated Authority read.
+  void replacePublicRoomSnapshot(AuthorityPublicRoomSnapshot snapshot);
 }
 
 /// Resolves a UI intent to one canonical request using confirmed context only.
@@ -152,6 +155,9 @@ final class ConfirmedFirstPlayableRequestResolver {
 
   void replacePublicSnapshot(AuthorityPublicSnapshot snapshot) =>
       _context.replacePublicSnapshot(snapshot);
+
+  void replacePublicRoomSnapshot(AuthorityPublicRoomSnapshot snapshot) =>
+      _context.replacePublicRoomSnapshot(snapshot);
 }
 
 /// Concrete adapter between Direction B actions and the accepted session port.

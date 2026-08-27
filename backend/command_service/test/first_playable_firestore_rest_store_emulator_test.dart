@@ -192,6 +192,11 @@ void main() {
         },
       );
 
+      final roomRead = await store.readRoom(roomId: roomId);
+      expect(roomRead.view.roomVersion, 3);
+      expect(roomRead.view.members.every((member) => member.ready), isTrue);
+      expect(roomRead.metrics.firestoreWriteCount, 0);
+
       final startPlan = ReadyStartPlanner.plan(
         command: RoomCommand(
           commandId: 'cmd-start-rest',

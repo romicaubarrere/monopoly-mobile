@@ -214,4 +214,8 @@ final class _ReconnectTransport implements api.AuthorityWireTransport {
   @override
   Stream<Map<String, Object?>> watchPublicGame(String gameId) =>
       const Stream<Map<String, Object?>>.empty();
+
+  @override
+  Stream<Map<String, Object?>> watchPublicRoom(String roomId) =>
+      const Stream<Map<String, Object?>>.empty();
 }

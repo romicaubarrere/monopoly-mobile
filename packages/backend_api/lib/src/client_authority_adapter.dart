@@ -10,6 +10,8 @@ abstract interface class AuthorityWireTransport {
   Future<Map<String, Object?>> reconnect(Map<String, Object?> request);
 
   Stream<Map<String, Object?>> watchPublicGame(String gameId);
+
+  Stream<Map<String, Object?>> watchPublicRoom(String roomId);
 }
 
 /// Concrete adapter behind the Flutter-facing Authority ports.
@@ -17,7 +19,10 @@ abstract interface class AuthorityWireTransport {
 /// It preserves command identity byte-for-byte, converts wire data into the
 /// privacy-validating public models, and never exposes a client state upload.
 final class WireAuthorityClient
-    implements CommandGateway, AuthoritySnapshotRepository {
+    implements
+        CommandGateway,
+        AuthoritySnapshotRepository,
+        AuthorityRoomSnapshotRepository {
   const WireAuthorityClient(this._transport);
 
   final AuthorityWireTransport _transport;
@@ -34,6 +39,16 @@ final class WireAuthorityClient
       throw const ClientAuthorityContractViolation('invalidSnapshotGameId');
     }
     return _transport.watchPublicGame(gameId).map(AuthorityPublicSnapshot.new);
+  }
+
+  @override
+  Stream<AuthorityPublicRoomSnapshot> watchRoom(String roomId) {
+    if (roomId.isEmpty) {
+      throw const ClientAuthorityContractViolation('invalidRoomSnapshotRoomId');
+    }
+    return _transport
+        .watchPublicRoom(roomId)
+        .map(AuthorityPublicRoomSnapshot.new);
   }
 
   @override
