@@ -8,9 +8,11 @@ void main() {
     'composition consumes remote snapshots before the next command',
     () async {
       final transport = _Transport();
+      final locatorStore = _LocatorStore();
       final client = FirstPlayableAuthorityClient.withTransport(
         transport: transport,
         pendingStore: _PendingStore(),
+        sessionLocatorStore: locatorStore,
         commandIds: _Ids(),
         clientInstanceId: 'client-1',
         presetId: 'synthetic-vp0',
@@ -32,6 +34,7 @@ void main() {
       expect(started.accepted, isTrue, reason: started.safeErrorCode);
       expect(transport.watchedGameId, 'game-1');
 
+      await Future<void>.delayed(Duration.zero);
       transport.gameSnapshots.add(_gameSnapshot(4));
       await Future<void>.delayed(Duration.zero);
 
@@ -40,6 +43,7 @@ void main() {
         isTrue,
       );
       expect(transport.lastCommand!['expectedStateVersion'], 4);
+      expect(locatorStore.value!.gameId, 'game-1');
     },
   );
 
@@ -48,6 +52,7 @@ void main() {
     final client = FirstPlayableAuthorityClient.withTransport(
       transport: transport,
       pendingStore: _PendingStore(),
+      sessionLocatorStore: _LocatorStore(),
       commandIds: _Ids(),
       clientInstanceId: 'client-1',
       presetId: 'express',
@@ -61,6 +66,44 @@ void main() {
     });
     expect(transport.lastCommand, isNot(contains('rulesVersion')));
   });
+
+  test(
+    'composition restores context from authenticated public reads',
+    () async {
+      final transport = _Transport();
+      final locatorStore = _LocatorStore();
+      final first = FirstPlayableAuthorityClient.withTransport(
+        transport: transport,
+        pendingStore: _PendingStore(),
+        sessionLocatorStore: locatorStore,
+        commandIds: _Ids(),
+        clientInstanceId: 'client-1',
+        presetId: 'synthetic-vp0',
+      );
+      await first.perform(FirstPlayableAuthorityAction.createRoom);
+      await first.perform(FirstPlayableAuthorityAction.setReady);
+      await first.perform(FirstPlayableAuthorityAction.startGame);
+      await first.close();
+
+      transport.currentGameSnapshot = _gameSnapshot(7);
+      final restored = FirstPlayableAuthorityClient.withTransport(
+        transport: transport,
+        pendingStore: _PendingStore(),
+        sessionLocatorStore: locatorStore,
+        commandIds: _Ids(),
+        clientInstanceId: 'client-1',
+        presetId: 'synthetic-vp0',
+      );
+      addTearDown(restored.close);
+
+      final result = await restored.restore();
+      expect(result.accepted, isTrue, reason: result.safeErrorCode);
+      await restored.perform(FirstPlayableAuthorityAction.roll);
+
+      expect(transport.lastCommand!['expectedStateVersion'], 7);
+      expect(transport.lastCommand!['actorPlayerId'], 'player-1');
+    },
+  );
 }
 
 final class _Transport implements AuthorityWireTransport {
@@ -68,6 +111,7 @@ final class _Transport implements AuthorityWireTransport {
       StreamController<Map<String, Object?>>.broadcast(sync: true);
   Map<String, Object?>? lastCommand;
   String? watchedGameId;
+  Map<String, Object?> currentGameSnapshot = _gameSnapshot(1);
 
   @override
   Future<Map<String, Object?>> sendCommand(Map<String, Object?> request) async {
@@ -127,9 +171,10 @@ final class _Transport implements AuthorityWireTransport {
       throw UnimplementedError();
 
   @override
-  Stream<Map<String, Object?>> watchPublicGame(String gameId) {
+  Stream<Map<String, Object?>> watchPublicGame(String gameId) async* {
     watchedGameId = gameId;
-    return gameSnapshots.stream;
+    yield currentGameSnapshot;
+    yield* gameSnapshots.stream;
   }
 
   @override
@@ -152,6 +197,17 @@ final class _Transport implements AuthorityWireTransport {
       ],
     };
   }
+}
+
+final class _LocatorStore implements FirstPlayableSessionLocatorStore {
+  FirstPlayableSessionLocator? value;
+
+  @override
+  Future<FirstPlayableSessionLocator?> load() async => value;
+
+  @override
+  Future<void> save(FirstPlayableSessionLocator locator) async =>
+      value = locator;
 }
 
 final class _PendingStore implements PendingAuthorityCommandStore {

@@ -129,6 +129,19 @@ final class AuthorityClientSession {
   AuthoritySessionState get state => _state;
   Stream<AuthoritySessionState> get states => _states.stream;
 
+  /// Restores a snapshot already authenticated and validated by the wire port.
+  void restorePublicSnapshot(AuthorityPublicSnapshot snapshot) {
+    final current = _state.snapshot;
+    if (current != null && snapshot.stateVersion < current.stateVersion) return;
+    _publish(
+      AuthoritySessionState(
+        status: AuthoritySessionStatus.confirmed,
+        snapshot: snapshot,
+        pendingCommand: _state.pendingCommand,
+      ),
+    );
+  }
+
   Future<AuthorityCommandReply?> send(AuthorityCommandRequest request) async {
     late final AuthorityCommandRequest? existing;
     try {

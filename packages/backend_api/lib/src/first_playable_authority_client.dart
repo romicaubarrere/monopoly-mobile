@@ -7,6 +7,7 @@ import 'client_authority_session.dart';
 import 'first_playable_binding.dart';
 import 'first_playable_commands.dart';
 import 'first_playable_context.dart';
+import 'first_playable_session_locator.dart';
 import 'http_authority_transport.dart';
 
 /// Flutter-facing composition root for the VP0 Authority vertical.
@@ -20,12 +21,14 @@ final class FirstPlayableAuthorityClient
   factory FirstPlayableAuthorityClient.withTransport({
     required AuthorityWireTransport transport,
     required PendingAuthorityCommandStore pendingStore,
+    required FirstPlayableSessionLocatorStore sessionLocatorStore,
     required AuthorityCommandIdSource commandIds,
     required String clientInstanceId,
     required String presetId,
   }) => _compose(
     transport: transport,
     pendingStore: pendingStore,
+    sessionLocatorStore: sessionLocatorStore,
     commandIds: commandIds,
     clientInstanceId: clientInstanceId,
     presetId: presetId,
@@ -35,6 +38,7 @@ final class FirstPlayableAuthorityClient
     required Uri baseUri,
     required AuthorityIdTokenProvider idTokenProvider,
     required PendingAuthorityCommandStore pendingStore,
+    required FirstPlayableSessionLocatorStore sessionLocatorStore,
     required AuthorityCommandIdSource commandIds,
     required String clientInstanceId,
     required String presetId,
@@ -50,6 +54,7 @@ final class FirstPlayableAuthorityClient
     return _compose(
       transport: transport,
       pendingStore: pendingStore,
+      sessionLocatorStore: sessionLocatorStore,
       commandIds: commandIds,
       clientInstanceId: clientInstanceId,
       presetId: presetId,
@@ -60,6 +65,8 @@ final class FirstPlayableAuthorityClient
   FirstPlayableAuthorityClient._(
     this._session,
     this._context,
+    this._snapshots,
+    this._sessionLocatorStore,
     this._binding,
     this._closeTransport,
   ) {
@@ -68,6 +75,8 @@ final class FirstPlayableAuthorityClient
 
   final AuthorityClientSession _session;
   final FirstPlayableAuthorityContext _context;
+  final WireAuthorityClient _snapshots;
+  final FirstPlayableSessionLocatorStore _sessionLocatorStore;
   final SessionFirstPlayableAuthorityBinding _binding;
   final void Function({bool force})? _closeTransport;
   late final StreamSubscription<AuthoritySessionState> _stateSubscription;
@@ -99,7 +108,43 @@ final class FirstPlayableAuthorityClient
     if (startsGame || resumesGame) {
       _watchConfirmedGame();
     }
+    if (result.accepted) await _saveConfirmedLocator();
     return result;
+  }
+
+  /// Restores public context after process death from authenticated snapshots.
+  Future<FirstPlayableAuthorityResult> restore() async {
+    try {
+      final locator = await _sessionLocatorStore.load();
+      if (locator == null) {
+        return const FirstPlayableAuthorityResult(
+          outcome: FirstPlayableAuthorityOutcome.blocked,
+          safeErrorCode: 'confirmedSessionUnavailable',
+        );
+      }
+      final roomSnapshot = await _snapshots.watchRoom(locator.roomId).first;
+      _context.restorePublicRoomSnapshot(roomSnapshot);
+      final gameId = locator.gameId;
+      if (gameId != null) {
+        final gameSnapshot = await _snapshots.watchGame(gameId).first;
+        _context.replacePublicSnapshot(gameSnapshot);
+        _session.restorePublicSnapshot(gameSnapshot);
+        _watchConfirmedGame();
+      }
+      return const FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.accepted,
+      );
+    } on ClientAuthorityContractViolation catch (error) {
+      return FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.blocked,
+        safeErrorCode: error.code,
+      );
+    } on Object {
+      return const FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.blocked,
+        safeErrorCode: 'sessionRestoreUnavailable',
+      );
+    }
   }
 
   Future<void> close({bool forceTransport = false}) async {
@@ -130,11 +175,31 @@ final class FirstPlayableAuthorityClient
       _snapshotContractErrorCode = error.code;
     }
   }
+
+  Future<void> _saveConfirmedLocator() async {
+    try {
+      final roomId = _context.roomId;
+      String? gameId;
+      try {
+        gameId = _context.gameId;
+      } on ClientAuthorityContractViolation {
+        // A confirmed lobby legitimately has no game yet.
+      }
+      await _sessionLocatorStore.save(
+        FirstPlayableSessionLocator(roomId: roomId, gameId: gameId),
+      );
+    } on ClientAuthorityContractViolation catch (error) {
+      _snapshotContractErrorCode = error.code;
+    } on Object {
+      _snapshotContractErrorCode = 'sessionLocatorStoreUnavailable';
+    }
+  }
 }
 
 FirstPlayableAuthorityClient _compose({
   required AuthorityWireTransport transport,
   required PendingAuthorityCommandStore pendingStore,
+  required FirstPlayableSessionLocatorStore sessionLocatorStore,
   required AuthorityCommandIdSource commandIds,
   required String clientInstanceId,
   required String presetId,
@@ -161,6 +226,8 @@ FirstPlayableAuthorityClient _compose({
   return FirstPlayableAuthorityClient._(
     session,
     context,
+    wireClient,
+    sessionLocatorStore,
     SessionFirstPlayableAuthorityBinding(
       session: session,
       requests: requests,

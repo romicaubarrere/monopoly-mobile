@@ -24,6 +24,27 @@ final class FirstPlayableAuthorityContext
   String? _propertyId;
   String? _auctionId;
 
+  /// Establishes actor membership only from an authenticated public room read.
+  ///
+  /// Device persistence never supplies actor identity. The snapshot wrapper has
+  /// already rejected private material and inconsistent public membership.
+  void restorePublicRoomSnapshot(AuthorityPublicRoomSnapshot snapshot) {
+    if (_actorPlayerId == null) {
+      final actor = _identifier(snapshot.snapshot['actorPlayerId']);
+      final members = snapshot.snapshot['members']! as List<Object?>;
+      if (actor == null ||
+          !members.whereType<Map<String, Object?>>().any(
+            (member) => member['playerId'] == actor,
+          )) {
+        throw const ClientAuthorityContractViolation(
+          'roomSnapshotActorMissing',
+        );
+      }
+      _actorPlayerId = actor;
+    }
+    replacePublicRoomSnapshot(snapshot);
+  }
+
   @override
   String get actorPlayerId =>
       _requiredIdentifier(_actorPlayerId, 'confirmedActorUnavailable');
