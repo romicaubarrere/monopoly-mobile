@@ -116,13 +116,19 @@ with zero writes.
    a replacement command ID.
 9. Every reconnect snapshot replaces the cache completely. Client snapshot
    upload or merge is intentionally absent from the API.
+10. If the pending-command repository cannot read or durably write, block
+    before transport with `pendingCommandStoreUnavailable`. Canonically corrupt
+    data preserves `pendingCommandCorrupt`; reconnect does not contact Authority
+    until the durable identity can be restored safely.
 
 
 `JsonPendingAuthorityCommandStore` is the minimum lost-ACK persistence adapter.
 Flutter supplies one atomic device key-value read/write pair; the backend API
 package owns canonical serialization, strict restoration, the 64 KiB bound and
 command-aware clear. Corrupt, non-canonical or mismatched persisted data fails
-closed, so process restart cannot silently replace the uncertain command.
+closed, so process restart cannot silently replace the uncertain command. The
+session converts repository read/write failures into a blocked safe state before
+network mutation; it does not leak storage exceptions into Flutter presentation.
 
 ## Public/private boundary
 

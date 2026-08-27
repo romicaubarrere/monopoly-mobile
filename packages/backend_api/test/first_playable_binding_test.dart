@@ -85,6 +85,18 @@ void main() {
     expect(fixture.store.value, isNull);
   });
 
+  test('pending store fault blocks reconnect without transport', () async {
+    final fixture = _Fixture()..store.failLoad = true;
+
+    final result = await fixture.binding.perform(
+      FirstPlayableAuthorityAction.reconnect,
+    );
+
+    expect(result.outcome, FirstPlayableAuthorityOutcome.blocked);
+    expect(result.safeErrorCode, 'pendingCommandStoreUnavailable');
+    expect(fixture.gateway.reconnects, 0);
+  });
+
   test('resolver uses confirmed decision and auction identifiers', () {
     final fixture = _Fixture();
 
@@ -205,6 +217,7 @@ final class _Ids implements AuthorityCommandIdSource {
 
 final class _PendingStore implements PendingAuthorityCommandStore {
   AuthorityCommandRequest? value;
+  bool failLoad = false;
 
   @override
   Future<void> clear(String commandId) async {
@@ -212,7 +225,10 @@ final class _PendingStore implements PendingAuthorityCommandStore {
   }
 
   @override
-  Future<AuthorityCommandRequest?> load() async => value;
+  Future<AuthorityCommandRequest?> load() async {
+    if (failLoad) throw StateError('device storage unavailable');
+    return value;
+  }
 
   @override
   Future<void> save(AuthorityCommandRequest request) async => value = request;
@@ -230,6 +246,7 @@ final class _Gateway
   bool failRoomSnapshot = false;
   int roomSnapshotVersion = 6;
   int roomReads = 0;
+  int reconnects = 0;
 
   @override
   Future<AuthorityCommandReply> send(AuthorityCommandRequest request) async {
@@ -261,6 +278,7 @@ final class _Gateway
   Future<AuthorityReconnectReply> reconnect(
     AuthorityReconnectRequest request,
   ) async {
+    reconnects += 1;
     final pending = request.uncertainCommand!;
     return AuthorityReconnectReply(
       disposition: reconnectRejected

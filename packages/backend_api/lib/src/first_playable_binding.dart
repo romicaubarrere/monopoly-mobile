@@ -189,17 +189,29 @@ final class SessionFirstPlayableAuthorityBinding
     String? input,
   }) async {
     if (action == FirstPlayableAuthorityAction.reconnect) {
-      final reply = await _session.reconnect(_requests.reconnectGameId);
-      if (reply != null) {
-        _requests.replacePublicSnapshot(reply.snapshot);
-      }
-      if (reply?.disposition == ReconnectDisposition.uncertainRejected) {
+      try {
+        final reply = await _session.reconnect(_requests.reconnectGameId);
+        if (reply != null) {
+          _requests.replacePublicSnapshot(reply.snapshot);
+        }
+        if (reply?.disposition == ReconnectDisposition.uncertainRejected) {
+          return const FirstPlayableAuthorityResult(
+            outcome: FirstPlayableAuthorityOutcome.rejected,
+            safeErrorCode: 'durableCommandRejected',
+          );
+        }
+        return _fromSession();
+      } on ClientAuthorityContractViolation catch (error) {
+        return FirstPlayableAuthorityResult(
+          outcome: FirstPlayableAuthorityOutcome.blocked,
+          safeErrorCode: error.code,
+        );
+      } on Object {
         return const FirstPlayableAuthorityResult(
-          outcome: FirstPlayableAuthorityOutcome.rejected,
-          safeErrorCode: 'durableCommandRejected',
+          outcome: FirstPlayableAuthorityOutcome.blocked,
+          safeErrorCode: 'reconnectUnavailable',
         );
       }
-      return _fromSession();
     }
 
     if (action == FirstPlayableAuthorityAction.startGame) {

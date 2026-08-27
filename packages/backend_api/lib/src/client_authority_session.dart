@@ -130,7 +130,16 @@ final class AuthorityClientSession {
   Stream<AuthoritySessionState> get states => _states.stream;
 
   Future<AuthorityCommandReply?> send(AuthorityCommandRequest request) async {
-    final existing = await _pendingStore.load();
+    late final AuthorityCommandRequest? existing;
+    try {
+      existing = await _pendingStore.load();
+    } on ClientAuthorityContractViolation catch (error) {
+      _publishPendingStoreBlocked(error.code);
+      return null;
+    } on Object {
+      _publishPendingStoreBlocked('pendingCommandStoreUnavailable');
+      return null;
+    }
     if (existing != null &&
         (existing.commandId != request.commandId ||
             existing.inputHash != request.inputHash)) {
@@ -145,7 +154,15 @@ final class AuthorityClientSession {
       return null;
     }
 
-    await _pendingStore.save(request);
+    try {
+      await _pendingStore.save(request);
+    } on ClientAuthorityContractViolation catch (error) {
+      _publishPendingStoreBlocked(error.code);
+      return null;
+    } on Object {
+      _publishPendingStoreBlocked('pendingCommandStoreUnavailable');
+      return null;
+    }
     _publish(
       AuthoritySessionState(
         status: AuthoritySessionStatus.sending,
@@ -157,7 +174,16 @@ final class AuthorityClientSession {
   }
 
   Future<AuthorityReconnectReply?> reconnect(String gameId) async {
-    final pending = await _pendingStore.load();
+    late final AuthorityCommandRequest? pending;
+    try {
+      pending = await _pendingStore.load();
+    } on ClientAuthorityContractViolation catch (error) {
+      _publishPendingStoreBlocked(error.code);
+      return null;
+    } on Object {
+      _publishPendingStoreBlocked('pendingCommandStoreUnavailable');
+      return null;
+    }
     final snapshot = _state.snapshot;
     _publish(
       AuthoritySessionState(
@@ -234,6 +260,17 @@ final class AuthorityClientSession {
       );
       return null;
     }
+  }
+
+  void _publishPendingStoreBlocked(String safeErrorCode) {
+    _publish(
+      AuthoritySessionState(
+        status: AuthoritySessionStatus.blocked,
+        snapshot: _state.snapshot,
+        pendingCommand: _state.pendingCommand,
+        safeErrorCode: safeErrorCode,
+      ),
+    );
   }
 
   void watch(String gameId) {

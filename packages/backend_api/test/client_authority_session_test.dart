@@ -65,6 +65,54 @@ void main() {
     await session.close();
   });
 
+  test('pending store read failure blocks before command transport', () async {
+    final store = _PendingStore()..failLoad = true;
+    final backend = _Backend();
+    final session = AuthorityClientSession(
+      gateway: backend,
+      snapshots: backend,
+      pendingStore: store,
+    );
+
+    expect(await session.send(_request()), isNull);
+    expect(session.state.status, AuthoritySessionStatus.blocked);
+    expect(session.state.safeErrorCode, 'pendingCommandStoreUnavailable');
+    expect(backend.sent, isEmpty);
+    await session.close();
+  });
+
+  test('pending store write failure blocks before command transport', () async {
+    final store = _PendingStore()..failSave = true;
+    final backend = _Backend();
+    final session = AuthorityClientSession(
+      gateway: backend,
+      snapshots: backend,
+      pendingStore: store,
+    );
+
+    expect(await session.send(_request()), isNull);
+    expect(session.state.status, AuthoritySessionStatus.blocked);
+    expect(session.state.safeErrorCode, 'pendingCommandStoreUnavailable');
+    expect(backend.sent, isEmpty);
+    await session.close();
+  });
+
+  test('corrupt pending command blocks reconnect before transport', () async {
+    final store = _PendingStore()..corruptLoad = true;
+    final backend = _Backend();
+    final session = AuthorityClientSession(
+      gateway: backend,
+      snapshots: backend,
+      pendingStore: store,
+    );
+
+    expect(await session.reconnect('game-1'), isNull);
+    expect(session.state.status, AuthoritySessionStatus.blocked);
+    expect(session.state.safeErrorCode, 'pendingCommandCorrupt');
+    expect(backend.reconnects, 0);
+    await session.close();
+  });
+
   test('canonical JSON store survives process replacement exactly', () async {
     String? durableValue;
     final store = JsonPendingAuthorityCommandStore(
@@ -141,12 +189,24 @@ AuthorityCommandRequest _request({String commandId = 'cmd-roll-1'}) =>
 
 final class _PendingStore implements PendingAuthorityCommandStore {
   AuthorityCommandRequest? value;
+  bool failLoad = false;
+  bool failSave = false;
+  bool corruptLoad = false;
 
   @override
-  Future<void> save(AuthorityCommandRequest request) async => value = request;
+  Future<void> save(AuthorityCommandRequest request) async {
+    if (failSave) throw StateError('device storage unavailable');
+    value = request;
+  }
 
   @override
-  Future<AuthorityCommandRequest?> load() async => value;
+  Future<AuthorityCommandRequest?> load() async {
+    if (corruptLoad) {
+      throw const ClientAuthorityContractViolation('pendingCommandCorrupt');
+    }
+    if (failLoad) throw StateError('device storage unavailable');
+    return value;
+  }
 
   @override
   Future<void> clear(String commandId) async {
@@ -158,6 +218,7 @@ final class _Backend implements CommandGateway, AuthoritySnapshotRepository {
   final List<AuthorityCommandRequest> sent = <AuthorityCommandRequest>[];
   bool loseFirstAck = false;
   bool alwaysFail = false;
+  int reconnects = 0;
   AuthorityCommandRequest? pendingObservedAtSend;
 
   @override
@@ -179,14 +240,17 @@ final class _Backend implements CommandGateway, AuthoritySnapshotRepository {
   @override
   Future<AuthorityReconnectReply> reconnect(
     AuthorityReconnectRequest request,
-  ) async => AuthorityReconnectReply(
-    disposition: ReconnectDisposition.retrySameCommand,
-    snapshot: _snapshot(1),
-    commandResolution: ReconnectCommandResolution(
-      identity: request.uncertainCommand!,
-      action: CommandResolutionAction.retrySameCommand,
-    ),
-  );
+  ) async {
+    reconnects += 1;
+    return AuthorityReconnectReply(
+      disposition: ReconnectDisposition.retrySameCommand,
+      snapshot: _snapshot(1),
+      commandResolution: ReconnectCommandResolution(
+        identity: request.uncertainCommand!,
+        action: CommandResolutionAction.retrySameCommand,
+      ),
+    );
+  }
 
   @override
   Stream<AuthorityPublicSnapshot> watchGame(String gameId) =>
