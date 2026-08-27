@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 const googleSecureTokenCertificatesUrl =
     'https://www.googleapis.com/robot/v1/metadata/x509/'
@@ -18,6 +19,48 @@ final class CertificateFetchResponse {
 
 typedef SecureTokenCertificateFetcher =
     Future<CertificateFetchResponse> Function();
+
+/// Bounded HTTPS fetcher for Google's canonical Firebase Auth certificates.
+/// Loopback HTTP is accepted only to exercise the adapter against local tests.
+final class GoogleSecureTokenCertificateHttpFetcher {
+  GoogleSecureTokenCertificateHttpFetcher({HttpClient? client, Uri? endpoint})
+    : _client = client ?? HttpClient(),
+      _endpoint = endpoint ?? Uri.parse(googleSecureTokenCertificatesUrl) {
+    final address = InternetAddress.tryParse(_endpoint.host);
+    final loopback =
+        _endpoint.host == 'localhost' || address?.isLoopback == true;
+    if (_endpoint.scheme != 'https' && !loopback) {
+      throw const FormatException('firebaseCertificateEndpointMustUseHttps');
+    }
+  }
+
+  static const int _maximumResponseBytes = 1024 * 1024;
+
+  final HttpClient _client;
+  final Uri _endpoint;
+
+  Future<CertificateFetchResponse> call() async {
+    final request = await _client.getUrl(_endpoint);
+    request.followRedirects = false;
+    final response = await request.close();
+    final bytes = await response.fold<List<int>>(<int>[], (buffer, chunk) {
+      if (buffer.length + chunk.length > _maximumResponseBytes) {
+        throw const FormatException('firebaseCertificateResponseTooLarge');
+      }
+      buffer.addAll(chunk);
+      return buffer;
+    });
+    final headers = <String, String>{};
+    response.headers.forEach((name, values) {
+      headers[name] = values.join(',');
+    });
+    return CertificateFetchResponse(
+      statusCode: response.statusCode,
+      headers: Map.unmodifiable(headers),
+      body: utf8.decode(bytes),
+    );
+  }
+}
 
 final class SecureTokenCertificateException implements Exception {
   const SecureTokenCertificateException(this.code);
@@ -42,6 +85,7 @@ final class GoogleSecureTokenCertificateCache {
 
   Map<String, String> _certificates = const <String, String>{};
   DateTime? _expiresAt;
+  Future<void>? _refreshInFlight;
 
   Future<String> certificateForKid(String kid) async {
     if (kid.isEmpty) {
@@ -53,9 +97,10 @@ final class GoogleSecureTokenCertificateCache {
       if (certificate != null) {
         return certificate;
       }
+      throw const SecureTokenCertificateException('unknown_kid');
     }
 
-    await _refresh();
+    await _refreshCertificates();
     final certificate = _certificates[kid];
     if (certificate == null) {
       throw const SecureTokenCertificateException('unknown_kid');
@@ -69,6 +114,20 @@ final class GoogleSecureTokenCertificateCache {
       return false;
     }
     return _now().toUtc().isBefore(expiresAt);
+  }
+
+  Future<void> _refreshCertificates() async {
+    final existing = _refreshInFlight;
+    if (existing != null) return existing;
+    final refresh = _refresh();
+    _refreshInFlight = refresh;
+    try {
+      await refresh;
+    } finally {
+      if (identical(_refreshInFlight, refresh)) {
+        _refreshInFlight = null;
+      }
+    }
   }
 
   Future<void> _refresh() async {

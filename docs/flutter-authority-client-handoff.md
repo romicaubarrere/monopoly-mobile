@@ -135,8 +135,19 @@ The minimum server-side binding still required is therefore:
    versioned decision codec and atomic Firestore transactions;
 2. a server-owned `RulesCatalog` resolver keyed by the frozen rules version and
    preset persisted for the room/game; Flutter must never supply that catalog;
-3. a concrete Firebase ID-token signature verifier for the Dart ingress, with
-   Emulator acceptance enabled only for the configured loopback Emulator host.
+3. an explicit Emulator-only identity boundary for unsigned Auth Emulator
+   tokens, enabled only when `FIREBASE_AUTH_EMULATOR_HOST` resolves to loopback.
+   Production must never accept that path.
+
+Production Firebase ID-token verification is now concrete:
+`GoogleFirebaseIdTokenSignatureVerifier.live()` validates RS256 signatures with
+Google's secure-token certificates. Its bounded HTTPS fetcher uses the canonical
+certificate endpoint, honors `Cache-Control: max-age`, coalesces concurrent
+refreshes and fails an unknown `kid` from a fresh cache without another fetch.
+Envelope and claim checks remain in `FirebaseIdentityVerifier`, so audience,
+issuer, expiry, issue time, auth time and subject use the same injected clock and
+fail-closed error boundary. Token, signature and certificate material is never
+returned in errors or observability fields.
 
 None of these gaps changes the Flutter repository contract. Mobile continues
 to send canonical commands and consume replacement public snapshots only.
@@ -149,5 +160,6 @@ membership, and an authenticated loopback HTTP round trip from
 Emulator Suite passes 57/57 tests on this branch, including the concrete
 transaction adapter, rules, idempotency/lost-ACK, reconnect and public/private
 guards. The remaining vertical gap is binding the Dart HTTP runtime to that
-durable store and real token verification, then executing the flow from Flutter
-and collecting Tier-1 device evidence.
+durable store, resolving the frozen server-side rules catalog and isolating Auth
+Emulator identity acceptance, then executing the flow from Flutter and
+collecting Tier-1 device evidence.

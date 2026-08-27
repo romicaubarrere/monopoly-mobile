@@ -12,6 +12,7 @@ dependencies:
   board_game_core:
     path: ../../packages/game_core
   crypto: 3.0.7
+  dart_jsonwebtoken: 3.4.1
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.26.0
