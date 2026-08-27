@@ -129,23 +129,29 @@ any depth. The concrete adapter must preserve the same rule and must never read
 
 ## Verified server composition status
 
-The Firebase Emulator Suite proves the Auth bootstrap, Firestore rules and the
-transaction adapter independently. It does not yet prove the complete HTTP
-path. `FirstPlayableAuthorityRuntime` is a Dart composition root and requires a
-Dart `FirstPlayableAuthorityStore`; the only concrete Firestore adapter in this
-branch is currently the JavaScript
-`FirstPlayableAuthorityFirestoreStore`. That module cannot be injected into the
-Dart port and no process boundary between them is defined.
+`FirstPlayableFirestoreRestStore` is the executable same-runtime Dart binding
+for `FirstPlayableAuthorityStore`. It uses Firestore's canonical REST
+`beginTransaction` → `batchGet` → `commit` flow, retries only transaction
+conflicts, and calls the existing typed Authority evaluator after consistent
+reads. It applies only the versioned `FirstPlayablePersistenceCodec` decision;
+duplicate/collision decisions roll back with zero document writes. Public room
+and game documents are decoded independently from `roomSecrets`/`gameSecrets`,
+then their membership sets and envelope versions must agree before Engine or a
+snapshot can be reached.
 
-The minimum server-side binding still required is therefore:
+Production construction requires a short-lived OAuth access-token provider and
+uses only `https://firestore.googleapis.com`. Emulator construction accepts
+only a numeric loopback `FIRESTORE_EMULATOR_HOST`; its owner credential cannot
+be sent to a remote host. The real Firestore Emulator test executes Create,
+exact lost-ACK replay, Join, Ready, Start, public/private game reconstruction,
+game mutation and receipt recovery through this Dart adapter.
 
-1. a Dart-compatible implementation of `FirstPlayableAuthorityStore` (or an
-   explicitly specified same-runtime boundary) that preserves the existing
-   versioned decision codec and atomic Firestore transactions;
-2. a canonical server bundle to register at bootstrap. The current
-   `RulesCatalog & PresetConfig Specification v0.1` defines shape and
-   invariants but explicitly does not freeze the final board, economy or card
-   values, so this branch does not invent production catalog content.
+This closes the Dart↔Firestore repository gap, but does not claim the complete
+Flutter HTTP path or Tier-1 device proof. Bootstrap still needs a promoted
+canonical server catalog bundle. The current `RulesCatalog & PresetConfig
+Specification v0.1` defines shape and invariants but explicitly does not freeze
+the final board, economy or card values, so this branch does not invent
+production catalog content.
 
 Production Firebase ID-token verification is now concrete:
 `GoogleFirebaseIdTokenSignatureVerifier.live()` validates RS256 signatures with
@@ -174,9 +180,10 @@ The package tests prove canonical retry identity, semantic collision changes,
 public/private rejection, monotonic reply versions, payload-free lost-ACK
 reconciliation, replacement snapshot behavior, authoritative Create/Join
 membership, and an authenticated loopback HTTP round trip from
-`WireAuthorityClient` through the typed ingress. The complete Auth + Firestore
-Emulator Suite passes 57/57 tests on this branch, including the concrete
-transaction adapter, rules, idempotency/lost-ACK, reconnect and public/private
-guards. The remaining vertical gap is binding the Dart HTTP runtime to that
-durable store, registering a promoted canonical catalog bundle, then executing
-the flow from Flutter and collecting Tier-1 device evidence.
+`WireAuthorityClient` through the typed ingress. The established Auth +
+Firestore Emulator Suite covers the JavaScript adapter, rules,
+idempotency/lost-ACK, reconnect and public/private guards. The additional
+Dart-store Emulator integration proves the server runtime can bind directly to
+the same durable contract. The remaining vertical gap is registering a
+promoted canonical catalog bundle, then executing the complete HTTP flow from
+Flutter and collecting Tier-1 device evidence.
