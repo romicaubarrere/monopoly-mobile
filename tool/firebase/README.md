@@ -19,6 +19,6 @@ Run from repository root after installing dependencies in this directory:
 
 ```bash
 cd tool/firebase
-npm install
+npm ci --ignore-scripts --no-audit --no-fund
 npm run emulators:test
 ```

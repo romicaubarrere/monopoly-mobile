@@ -49,7 +49,7 @@ jobs:
           java -version
       - name: Install pinned emulator test dependencies
         working-directory: tool/firebase
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Auth + Firestore emulator security tests
         working-directory: tool/firebase
         run: npm run emulators:test

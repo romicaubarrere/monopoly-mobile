@@ -12,10 +12,13 @@ The repository includes a loopback-only Authority server for the local Android
 Tier-1 chain. It uses the same synthetic catalog as the VP0 Emulator tests; it
 is not a production catalog and does not define or promote DEC-065.
 
-From the repository root, start Firebase Auth and Firestore:
+From the repository root, install the lockfile-pinned Firebase tooling and start
+Auth and Firestore:
 
 ```sh
-npx firebase emulators:start --only auth,firestore \
+npm ci --prefix tool/firebase --ignore-scripts --no-audit --no-fund
+npm --prefix tool/firebase exec -- firebase emulators:start \
+  --only auth,firestore \
   --project demo-board-game-local
 ```
 
@@ -37,11 +40,13 @@ adb reverse tcp:8787 tcp:8787
 adb reverse tcp:9099 tcp:9099
 ```
 
-Then run Flutter with local demo Firebase values and the synthetic `express`
-preset:
+Use `flutter devices` to obtain the attached emulator or physical-device ID.
+Then run Flutter with that exact ID, local demo Firebase values and the
+synthetic `express` preset:
 
 ```sh
-flutter run -d android \
+flutter devices
+flutter run -d <device-id> \
   --dart-define=AUTHORITY_BASE_URL=http://127.0.0.1:8787 \
   --dart-define=FIREBASE_API_KEY=demo-api-key \
   --dart-define=FIREBASE_APP_ID=1:000000000000:android:demo \
