@@ -38,7 +38,7 @@ abstract interface class AuthorityHttpExecutor {
 /// it contains authority-private material.
 final class AuthorityHttpIngress {
   AuthorityHttpIngress({
-    required FirebaseIdentityVerifier identityVerifier,
+    required AuthorityIdentityVerifier identityVerifier,
     required CommandIngress commandIngress,
     required AuthorityHttpExecutor executor,
     DateTime Function()? now,
@@ -53,7 +53,7 @@ final class AuthorityHttpIngress {
 
   static const int _maximumRequestBytes = 1024 * 1024;
 
-  final FirebaseIdentityVerifier _identityVerifier;
+  final AuthorityIdentityVerifier _identityVerifier;
   final CommandIngress _commandIngress;
   final AuthorityHttpExecutor _executor;
   final DateTime Function() _now;

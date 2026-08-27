@@ -134,10 +134,7 @@ The minimum server-side binding still required is therefore:
    explicitly specified same-runtime boundary) that preserves the existing
    versioned decision codec and atomic Firestore transactions;
 2. a server-owned `RulesCatalog` resolver keyed by the frozen rules version and
-   preset persisted for the room/game; Flutter must never supply that catalog;
-3. an explicit Emulator-only identity boundary for unsigned Auth Emulator
-   tokens, enabled only when `FIREBASE_AUTH_EMULATOR_HOST` resolves to loopback.
-   Production must never accept that path.
+   preset persisted for the room/game; Flutter must never supply that catalog.
 
 Production Firebase ID-token verification is now concrete:
 `GoogleFirebaseIdTokenSignatureVerifier.live()` validates RS256 signatures with
@@ -148,6 +145,16 @@ Envelope and claim checks remain in `FirebaseIdentityVerifier`, so audience,
 issuer, expiry, issue time, auth time and subject use the same injected clock and
 fail-closed error boundary. Token, signature and certificate material is never
 returned in errors or observability fields.
+
+Auth Emulator identity is also concrete but remains a separate fail-closed
+boundary. `FirebaseAuthEmulatorIdentityVerifier.fromEnvironment()` accepts only
+the Emulator's unsigned `alg: none` token with an empty signature, normal
+Firebase claims, a `demo-*` project and an explicit loopback
+numeric `FIREBASE_AUTH_EMULATOR_HOST`. It rejects resource-backed project IDs,
+remote, hostname or scheme-bearing hosts, signed/keyed tokens and invalid claims. The real Auth
+Emulator smoke obtains an anonymous ID token and verifies that its subject is
+the returned local member without logging either value. Production continues
+to use the RS256 verifier and cannot accept this token shape.
 
 None of these gaps changes the Flutter repository contract. Mobile continues
 to send canonical commands and consume replacement public snapshots only.
@@ -160,6 +167,5 @@ membership, and an authenticated loopback HTTP round trip from
 Emulator Suite passes 57/57 tests on this branch, including the concrete
 transaction adapter, rules, idempotency/lost-ACK, reconnect and public/private
 guards. The remaining vertical gap is binding the Dart HTTP runtime to that
-durable store, resolving the frozen server-side rules catalog and isolating Auth
-Emulator identity acceptance, then executing the flow from Flutter and
-collecting Tier-1 device evidence.
+durable store and resolving the frozen server-side rules catalog, then executing
+the flow from Flutter and collecting Tier-1 device evidence.

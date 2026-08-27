@@ -7,7 +7,6 @@ import 'package:board_command_service/command_service.dart'
     hide ReconnectDisposition;
 import 'package:board_command_service/ingress/command_ingress.dart';
 import 'package:board_command_service/observability/authority_observability.dart';
-import 'package:board_command_service/security/firebase_identity_verifier.dart';
 import 'package:board_game_core/game_core.dart';
 import 'package:test/test.dart';
 

@@ -14,7 +14,7 @@ import 'first_playable_authority_material_factory.dart';
 /// single adapter while all gameplay remains in the canonical Engine planners.
 final class FirstPlayableAuthorityRuntime {
   factory FirstPlayableAuthorityRuntime.withEnvironmentMaterials({
-    required FirebaseIdentityVerifier identityVerifier,
+    required AuthorityIdentityVerifier identityVerifier,
     required FirstPlayableAuthorityStore store,
     required BestEffortAuthorityObservability observability,
     required Duration roomCodeTtl,
@@ -34,7 +34,7 @@ final class FirstPlayableAuthorityRuntime {
   }
 
   FirstPlayableAuthorityRuntime.withHmacMaterials({
-    required FirebaseIdentityVerifier identityVerifier,
+    required AuthorityIdentityVerifier identityVerifier,
     required FirstPlayableAuthorityStore store,
     required BestEffortAuthorityObservability observability,
     required FirstPlayableAuthorityMaterialFactory materialFactory,
@@ -49,7 +49,7 @@ final class FirstPlayableAuthorityRuntime {
        );
 
   FirstPlayableAuthorityRuntime({
-    required FirebaseIdentityVerifier identityVerifier,
+    required AuthorityIdentityVerifier identityVerifier,
     required FirstPlayableAuthorityStore store,
     required BestEffortAuthorityObservability observability,
     FirstPlayableStartMaterialFactory? startMaterialFactory,
