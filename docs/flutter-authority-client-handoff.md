@@ -101,8 +101,10 @@ with zero writes.
 3. Store the request as uncertain before sending it.
 4. Call `CommandGateway.send` without applying authoritative state
    optimistically.
-5. After Create/Join, poll `AuthorityPublicRoomSnapshot` so a Ready change from
-   another actor advances the confirmed `roomVersion` before Start. The room
+5. `SessionFirstPlayableAuthorityBinding` reads one authenticated
+   `AuthorityPublicRoomSnapshot` immediately before Start, so a Ready change
+   from another actor advances the confirmed `roomVersion` without screen code
+   or client inference. Failure blocks before any command is sent. The room
    snapshot contains only player IDs, kinds and readiness; Flutter never maps
    or receives Firebase UIDs.
 6. On ACK, use the public result and replace cached game state with the returned
@@ -125,9 +127,9 @@ rule and must never read `roomSecrets` or `gameSecrets` into Flutter.
 
 ## Capability mapping
 
-- Ready/Start: replace lobby context from the authenticated room snapshot,
-  send canonical `RoomCommand` with its confirmed version, then switch to the
-  returned `gameId`/public game snapshot.
+- Ready/Start: the binding refreshes lobby context from the authenticated room
+  snapshot before Start, sends the canonical `RoomCommand` with that confirmed
+  version, then switches to the returned `gameId`/public game snapshot.
 - Roll/movement: send `RollDice` with `expectedStateVersion`; render only after
   the Authority result/snapshot advances once.
 - Buy/Decline/Auction: send the Engine command type/payload from the current

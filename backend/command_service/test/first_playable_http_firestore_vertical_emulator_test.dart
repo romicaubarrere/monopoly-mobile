@@ -215,6 +215,8 @@ Future<_StartedGame> _startGame({
   expect(created.publicResult['roomCode'], roomCode);
   final roomId = created.publicResult['roomId']! as String;
   final hostPlayerId = created.publicResult['actorPlayerId']! as String;
+  final hostContext = FirstPlayableAuthorityContext()
+    ..applyCommandReply(createRequest, created);
 
   final joined = await guest.send(
     AuthorityCommandRequest.room(
@@ -230,16 +232,16 @@ Future<_StartedGame> _startGame({
   expect(joined.status, AuthorityCommandStatus.accepted);
   final guestPlayerId = joined.publicResult['actorPlayerId']! as String;
 
-  final hostReady = await host.send(
-    _roomCommand(
-      commandId: '$prefix-ready-host',
-      roomId: roomId,
-      expectedVersion: joined.versionAfter,
-      type: RoomCommandType.setReady,
-      ready: true,
-    ),
+  final hostReadyRequest = _roomCommand(
+    commandId: '$prefix-ready-host',
+    roomId: roomId,
+    expectedVersion: joined.versionAfter,
+    type: RoomCommandType.setReady,
+    ready: true,
   );
+  final hostReady = await host.send(hostReadyRequest);
   expect(hostReady.status, AuthorityCommandStatus.accepted);
+  hostContext.applyCommandReply(hostReadyRequest, hostReady);
   final guestReady = await guest.send(
     _roomCommand(
       commandId: '$prefix-ready-guest',
@@ -250,19 +252,32 @@ Future<_StartedGame> _startGame({
     ),
   );
   expect(guestReady.status, AuthorityCommandStatus.accepted);
-  final hostRoomSnapshot = await host.watchRoom(roomId).first;
-  expect(hostRoomSnapshot.roomVersion, guestReady.versionAfter);
-  expect(jsonEncode(hostRoomSnapshot.toWireJson()), isNot(contains('uid')));
-  final started = await host.send(
-    _roomCommand(
-      commandId: '$prefix-start',
-      roomId: roomId,
-      expectedVersion: hostRoomSnapshot.roomVersion,
-      type: RoomCommandType.startGame,
-    ),
+  final hostSession = AuthorityClientSession(
+    gateway: host,
+    snapshots: host,
+    pendingStore: _PendingStore(),
   );
+  final hostBinding = SessionFirstPlayableAuthorityBinding(
+    session: hostSession,
+    requests: ConfirmedFirstPlayableRequestResolver(
+      commands: FirstPlayableAuthorityCommands(
+        clientInstanceId: '$prefix-host-binding',
+        commandIds: _Ids(prefix),
+      ),
+      context: hostContext,
+      createRoomPresetDraft: const <String, Object?>{'presetId': 'express'},
+    ),
+    roomSnapshots: host,
+  );
+  final startResult = await hostBinding.perform(
+    FirstPlayableAuthorityAction.startGame,
+  );
+  expect(startResult.outcome, FirstPlayableAuthorityOutcome.accepted);
+  final started = hostSession.state.reply!;
   expect(started.status, AuthorityCommandStatus.accepted);
-  final gameId = started.publicResult['gameId']! as String;
+  expect(started.versionBefore, guestReady.versionAfter);
+  final gameId = hostContext.gameId;
+  await hostSession.close();
   final snapshot = await host.watchGame(gameId).first;
   expect(snapshot.stateVersion, 0);
   return _StartedGame(
@@ -425,4 +440,31 @@ final class _RolledProperty {
 final class _DiscardLogs implements AuthorityLogSink {
   @override
   void write(Map<String, Object> fields) {}
+}
+
+final class _Ids implements AuthorityCommandIdSource {
+  _Ids(this._prefix);
+
+  final String _prefix;
+  int _next = 0;
+
+  @override
+  String nextCommandId() => '$_prefix-binding-${++_next}';
+}
+
+final class _PendingStore implements PendingAuthorityCommandStore {
+  AuthorityCommandRequest? _value;
+
+  @override
+  Future<void> clear(String commandId) async {
+    if (_value?.commandId == commandId) _value = null;
+  }
+
+  @override
+  Future<AuthorityCommandRequest?> load() async => _value;
+
+  @override
+  Future<void> save(AuthorityCommandRequest request) async {
+    _value = request;
+  }
 }

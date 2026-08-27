@@ -91,6 +91,7 @@ final class ConfirmedFirstPlayableRequestResolver {
   final FirstPlayableConfirmedContext _context;
   final Map<String, Object?> _createRoomPresetDraft;
 
+  String get confirmedRoomId => _context.roomId;
   String get reconnectGameId => _context.gameId;
 
   AuthorityCommandRequest commandFor(
@@ -169,12 +170,18 @@ final class SessionFirstPlayableAuthorityBinding
   SessionFirstPlayableAuthorityBinding({
     required AuthorityClientSession session,
     required ConfirmedFirstPlayableRequestResolver requests,
-  }) : this._(session, requests);
+    required AuthorityRoomSnapshotRepository roomSnapshots,
+  }) : this._(session, requests, roomSnapshots);
 
-  SessionFirstPlayableAuthorityBinding._(this._session, this._requests);
+  SessionFirstPlayableAuthorityBinding._(
+    this._session,
+    this._requests,
+    this._roomSnapshots,
+  );
 
   final AuthorityClientSession _session;
   final ConfirmedFirstPlayableRequestResolver _requests;
+  final AuthorityRoomSnapshotRepository _roomSnapshots;
 
   @override
   Future<FirstPlayableAuthorityResult> perform(
@@ -196,6 +203,12 @@ final class SessionFirstPlayableAuthorityBinding
     }
 
     try {
+      if (action == FirstPlayableAuthorityAction.startGame) {
+        final snapshot = await _roomSnapshots
+            .watchRoom(_requests.confirmedRoomId)
+            .first;
+        _requests.replacePublicRoomSnapshot(snapshot);
+      }
       final request = _requests.commandFor(action, input: input);
       final reply = await _session.send(request);
       if (reply?.status == AuthorityCommandStatus.rejected) {
@@ -210,6 +223,11 @@ final class SessionFirstPlayableAuthorityBinding
       return FirstPlayableAuthorityResult(
         outcome: FirstPlayableAuthorityOutcome.blocked,
         safeErrorCode: error.code,
+      );
+    } on Object {
+      return const FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.blocked,
+        safeErrorCode: 'roomSnapshotUnavailable',
       );
     }
   }

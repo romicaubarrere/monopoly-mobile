@@ -16,6 +16,33 @@ void main() {
     expect(fixture.store.value, isNull);
   });
 
+  test('Start refreshes authoritative room version before sending', () async {
+    final fixture = _Fixture()..gateway.roomSnapshotVersion = 9;
+
+    final result = await fixture.binding.perform(
+      FirstPlayableAuthorityAction.startGame,
+    );
+
+    expect(result.outcome, FirstPlayableAuthorityOutcome.accepted);
+    expect(fixture.gateway.roomReads, 1);
+    expect(fixture.gateway.sent.single.command['expectedRoomVersion'], 9);
+  });
+
+  test(
+    'Start blocks before transport when lobby snapshot is unavailable',
+    () async {
+      final fixture = _Fixture()..gateway.failRoomSnapshot = true;
+
+      final result = await fixture.binding.perform(
+        FirstPlayableAuthorityAction.startGame,
+      );
+
+      expect(result.outcome, FirstPlayableAuthorityOutcome.blocked);
+      expect(result.safeErrorCode, 'roomSnapshotUnavailable');
+      expect(fixture.gateway.sent, isEmpty);
+    },
+  );
+
   test(
     'binding exposes safe rejection without optimistic acceptance',
     () async {
@@ -114,6 +141,7 @@ final class _Fixture {
     binding = SessionFirstPlayableAuthorityBinding(
       session: session,
       requests: requests,
+      roomSnapshots: gateway,
     );
   }
 
@@ -127,6 +155,8 @@ final class _Fixture {
 }
 
 final class _Context implements FirstPlayableConfirmedContext {
+  int _roomVersion = 6;
+
   @override
   void applyCommandReply(
     AuthorityCommandRequest request,
@@ -152,7 +182,7 @@ final class _Context implements FirstPlayableConfirmedContext {
   String get roomId => 'room-1';
 
   @override
-  int get roomVersion => 6;
+  int get roomVersion => _roomVersion;
 
   @override
   int get stateVersion => 12;
@@ -161,7 +191,9 @@ final class _Context implements FirstPlayableConfirmedContext {
   void replacePublicSnapshot(AuthorityPublicSnapshot snapshot) {}
 
   @override
-  void replacePublicRoomSnapshot(AuthorityPublicRoomSnapshot snapshot) {}
+  void replacePublicRoomSnapshot(AuthorityPublicRoomSnapshot snapshot) {
+    _roomVersion = snapshot.roomVersion;
+  }
 }
 
 final class _Ids implements AuthorityCommandIdSource {
@@ -186,11 +218,18 @@ final class _PendingStore implements PendingAuthorityCommandStore {
   Future<void> save(AuthorityCommandRequest request) async => value = request;
 }
 
-final class _Gateway implements CommandGateway, AuthoritySnapshotRepository {
+final class _Gateway
+    implements
+        CommandGateway,
+        AuthoritySnapshotRepository,
+        AuthorityRoomSnapshotRepository {
   final List<AuthorityCommandRequest> sent = <AuthorityCommandRequest>[];
   bool reject = false;
   bool failSend = false;
   bool reconnectRejected = false;
+  bool failRoomSnapshot = false;
+  int roomSnapshotVersion = 6;
+  int roomReads = 0;
 
   @override
   Future<AuthorityCommandReply> send(AuthorityCommandRequest request) async {
@@ -241,6 +280,29 @@ final class _Gateway implements CommandGateway, AuthoritySnapshotRepository {
   @override
   Stream<AuthorityPublicSnapshot> watchGame(String gameId) =>
       const Stream<AuthorityPublicSnapshot>.empty();
+
+  @override
+  Stream<AuthorityPublicRoomSnapshot> watchRoom(String roomId) async* {
+    roomReads += 1;
+    if (failRoomSnapshot) throw StateError('snapshot unavailable');
+    yield AuthorityPublicRoomSnapshot(<String, Object?>{
+      'schemaVersion': 1,
+      'roomId': roomId,
+      'roomVersion': roomSnapshotVersion,
+      'status': 'open',
+      'hostPlayerId': 'player-1',
+      'actorPlayerId': 'player-1',
+      'presetId': 'synthetic-vp0',
+      'rulesVersion': 'synthetic-rules-vp0',
+      'members': const <Object?>[
+        <String, Object?>{
+          'playerId': 'player-1',
+          'kind': 'human',
+          'ready': true,
+        },
+      ],
+    });
+  }
 }
 
 AuthorityPublicSnapshot _snapshot(int version) =>
