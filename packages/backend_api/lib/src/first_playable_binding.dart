@@ -202,13 +202,12 @@ final class SessionFirstPlayableAuthorityBinding
       return _fromSession();
     }
 
+    if (action == FirstPlayableAuthorityAction.startGame) {
+      final blocked = await _refreshRoomBeforeStart();
+      if (blocked != null) return blocked;
+    }
+
     try {
-      if (action == FirstPlayableAuthorityAction.startGame) {
-        final snapshot = await _roomSnapshots
-            .watchRoom(_requests.confirmedRoomId)
-            .first;
-        _requests.replacePublicRoomSnapshot(snapshot);
-      }
       final request = _requests.commandFor(action, input: input);
       final reply = await _session.send(request);
       if (reply?.status == AuthorityCommandStatus.rejected) {
@@ -219,6 +218,21 @@ final class SessionFirstPlayableAuthorityBinding
       }
       if (reply != null) _requests.applyCommandReply(request, reply);
       return _fromSession();
+    } on ClientAuthorityContractViolation catch (error) {
+      return FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.blocked,
+        safeErrorCode: error.code,
+      );
+    }
+  }
+
+  Future<FirstPlayableAuthorityResult?> _refreshRoomBeforeStart() async {
+    try {
+      final snapshot = await _roomSnapshots
+          .watchRoom(_requests.confirmedRoomId)
+          .first;
+      _requests.replacePublicRoomSnapshot(snapshot);
+      return null;
     } on ClientAuthorityContractViolation catch (error) {
       return FirstPlayableAuthorityResult(
         outcome: FirstPlayableAuthorityOutcome.blocked,

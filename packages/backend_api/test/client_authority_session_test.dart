@@ -64,6 +64,65 @@ void main() {
     expect(backend.sent, hasLength(1));
     await session.close();
   });
+
+  test('canonical JSON store survives process replacement exactly', () async {
+    String? durableValue;
+    final store = JsonPendingAuthorityCommandStore(
+      read: () async => durableValue,
+      write: (value) async => durableValue = value,
+    );
+    final request = _request();
+
+    await store.save(request);
+    final restored = await store.load();
+
+    expect(durableValue, request.toCanonicalWireJson());
+    expect(restored!.toCanonicalWireJson(), request.toCanonicalWireJson());
+    expect(restored.uncertainIdentity.inputHash, request.inputHash);
+    await store.clear(request.commandId);
+    expect(durableValue, isNull);
+  });
+
+  test('canonical JSON store fails closed on corrupt persisted data', () async {
+    var durableValue = '{"family":"game"}';
+    final store = JsonPendingAuthorityCommandStore(
+      read: () async => durableValue,
+      write: (value) async => durableValue = value ?? '',
+    );
+
+    expect(
+      store.load(),
+      throwsA(
+        isA<ClientAuthorityContractViolation>().having(
+          (error) => error.code,
+          'code',
+          'pendingCommandCorrupt',
+        ),
+      ),
+    );
+  });
+
+  test('canonical JSON store cannot clear a different command', () async {
+    String? durableValue;
+    final store = JsonPendingAuthorityCommandStore(
+      read: () async => durableValue,
+      write: (value) async => durableValue = value,
+    );
+    final request = _request();
+    await store.save(request);
+
+    expect(
+      store.clear('cmd-other'),
+      throwsA(
+        isA<ClientAuthorityContractViolation>().having(
+          (error) => error.code,
+          'code',
+          'pendingCommandClearMismatch',
+        ),
+      ),
+    );
+    expect(durableValue, request.toCanonicalWireJson());
+  });
 }
 
 AuthorityCommandRequest _request({String commandId = 'cmd-roll-1'}) =>

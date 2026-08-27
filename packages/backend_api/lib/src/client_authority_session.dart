@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'client_authority.dart';
 
@@ -20,6 +21,71 @@ abstract interface class PendingAuthorityCommandStore {
   Future<AuthorityCommandRequest?> load();
 
   Future<void> clear(String commandId);
+}
+
+typedef PendingAuthorityCommandJsonRead = Future<String?> Function();
+typedef PendingAuthorityCommandJsonWrite = Future<void> Function(String? value);
+
+/// Canonical durable adapter for the one uncertain mobile command.
+///
+/// Flutter supplies only atomic key-value read/write callbacks (for example a
+/// device persistence plugin). This adapter owns wire serialization and strict
+/// decoding so the app does not maintain a second command schema. Corrupt,
+/// non-canonical or mismatched data fails closed instead of minting a new
+/// command identity after process death.
+final class JsonPendingAuthorityCommandStore
+    implements PendingAuthorityCommandStore {
+  JsonPendingAuthorityCommandStore({
+    required PendingAuthorityCommandJsonRead read,
+    required PendingAuthorityCommandJsonWrite write,
+  }) : this._(read, write);
+
+  const JsonPendingAuthorityCommandStore._(this._read, this._write);
+
+  static const int _maximumStoredBytes = 64 * 1024;
+
+  final PendingAuthorityCommandJsonRead _read;
+  final PendingAuthorityCommandJsonWrite _write;
+
+  @override
+  Future<void> save(AuthorityCommandRequest request) =>
+      _write(request.toCanonicalWireJson());
+
+  @override
+  Future<AuthorityCommandRequest?> load() async {
+    final value = await _read();
+    if (value == null) return null;
+    if (value.isEmpty || utf8.encode(value).length > _maximumStoredBytes) {
+      throw const ClientAuthorityContractViolation('pendingCommandCorrupt');
+    }
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! Map<String, Object?>) {
+        throw const ClientAuthorityContractViolation('pendingCommandCorrupt');
+      }
+      final request = AuthorityCommandRequest.fromWireJson(decoded);
+      if (request.toCanonicalWireJson() != value) {
+        throw const ClientAuthorityContractViolation('pendingCommandCorrupt');
+      }
+      return request;
+    } on ClientAuthorityContractViolation {
+      throw const ClientAuthorityContractViolation('pendingCommandCorrupt');
+    } on FormatException {
+      throw const ClientAuthorityContractViolation('pendingCommandCorrupt');
+    }
+  }
+
+  @override
+  Future<void> clear(String commandId) async {
+    final existing = await load();
+    if (existing == null) return;
+    if (existing.commandId != commandId) {
+      throw const ClientAuthorityContractViolation(
+        'pendingCommandClearMismatch',
+      );
+    }
+    await _write(null);
+  }
 }
 
 final class AuthoritySessionState {

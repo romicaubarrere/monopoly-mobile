@@ -117,6 +117,13 @@ with zero writes.
 9. Every reconnect snapshot replaces the cache completely. Client snapshot
    upload or merge is intentionally absent from the API.
 
+
+`JsonPendingAuthorityCommandStore` is the minimum lost-ACK persistence adapter.
+Flutter supplies one atomic device key-value read/write pair; the backend API
+package owns canonical serialization, strict restoration, the 64 KiB bound and
+command-aware clear. Corrupt, non-canonical or mismatched persisted data fails
+closed, so process restart cannot silently replace the uncertain command.
+
 ## Public/private boundary
 
 The public game snapshot may include `rngVersion` and `rngCommitment`. The
