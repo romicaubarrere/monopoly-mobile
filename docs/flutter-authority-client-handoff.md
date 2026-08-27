@@ -145,6 +145,8 @@ rules. After process death, `FirstPlayableAuthorityClient.restore` uses those
 locators only to perform authenticated public room/game reads; Authority
 re-establishes actor membership and confirmed versions before another command.
 The key-value write callback must remove the named key when its value is null.
+If locator decoding or either authenticated replacement read fails, the client
+retains that safe error and blocks command transport until restore succeeds.
 
 ## Public/private boundary
 

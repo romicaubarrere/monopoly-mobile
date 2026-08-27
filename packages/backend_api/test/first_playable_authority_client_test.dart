@@ -104,6 +104,28 @@ void main() {
       expect(transport.lastCommand!['actorPlayerId'], 'player-1');
     },
   );
+
+  test('failed restore blocks a new mutation before transport', () async {
+    final transport = _Transport();
+    final client = FirstPlayableAuthorityClient.withTransport(
+      transport: transport,
+      pendingStore: _PendingStore(),
+      sessionLocatorStore: _FailingLocatorStore(),
+      commandIds: _Ids(),
+      clientInstanceId: 'client-1',
+      presetId: 'synthetic-vp0',
+    );
+    addTearDown(client.close);
+
+    final restored = await client.restore();
+    final create = await client.perform(
+      FirstPlayableAuthorityAction.createRoom,
+    );
+
+    expect(restored.safeErrorCode, 'sessionLocatorCorrupt');
+    expect(create.safeErrorCode, 'sessionLocatorCorrupt');
+    expect(transport.lastCommand, isNull);
+  });
 }
 
 final class _Transport implements AuthorityWireTransport {
@@ -208,6 +230,15 @@ final class _LocatorStore implements FirstPlayableSessionLocatorStore {
   @override
   Future<void> save(FirstPlayableSessionLocator locator) async =>
       value = locator;
+}
+
+final class _FailingLocatorStore implements FirstPlayableSessionLocatorStore {
+  @override
+  Future<FirstPlayableSessionLocator?> load() =>
+      throw const ClientAuthorityContractViolation('sessionLocatorCorrupt');
+
+  @override
+  Future<void> save(FirstPlayableSessionLocator locator) async {}
 }
 
 final class _PendingStore implements PendingAuthorityCommandStore {

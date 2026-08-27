@@ -154,15 +154,18 @@ final class FirstPlayableAuthorityClient
         _session.restorePublicSnapshot(gameSnapshot);
         _watchConfirmedGame();
       }
+      _snapshotContractErrorCode = null;
       return const FirstPlayableAuthorityResult(
         outcome: FirstPlayableAuthorityOutcome.accepted,
       );
     } on ClientAuthorityContractViolation catch (error) {
+      _snapshotContractErrorCode = error.code;
       return FirstPlayableAuthorityResult(
         outcome: FirstPlayableAuthorityOutcome.blocked,
         safeErrorCode: error.code,
       );
     } on Object {
+      _snapshotContractErrorCode = 'sessionRestoreUnavailable';
       return const FirstPlayableAuthorityResult(
         outcome: FirstPlayableAuthorityOutcome.blocked,
         safeErrorCode: 'sessionRestoreUnavailable',
