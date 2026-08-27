@@ -92,6 +92,13 @@ with zero writes.
 
 ## Minimum Flutter repository behavior
 
+`FirstPlayableAuthorityClient.http` is the minimum mobile composition root.
+Flutter injects the Firebase ID-token provider, Authority origin, durable
+pending-command store, durable command-id source, client-instance id and
+`presetId`. The backend API package owns transport, wire decoding, session,
+confirmed context, command resolver, binding and public snapshot subscription.
+Flutter does not assemble those ports or synchronize state versions itself.
+
 1. Start without a client-minted `playerId`. Create/Join must return the
    authority-assigned `actorPlayerId` in their accepted public result; the
    confirmed context rejects a missing or changed identity before any gameplay
