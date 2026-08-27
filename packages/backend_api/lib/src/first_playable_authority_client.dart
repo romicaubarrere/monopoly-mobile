@@ -7,6 +7,7 @@ import 'client_authority_session.dart';
 import 'first_playable_binding.dart';
 import 'first_playable_commands.dart';
 import 'first_playable_context.dart';
+import 'first_playable_device_storage.dart';
 import 'first_playable_session_locator.dart';
 import 'http_authority_transport.dart';
 
@@ -61,6 +62,28 @@ final class FirstPlayableAuthorityClient
       closeTransport: transport.close,
     );
   }
+
+  /// HTTP composition using the single durable key-value port Flutter owns.
+  factory FirstPlayableAuthorityClient.httpWithDeviceStorage({
+    required Uri baseUri,
+    required AuthorityIdTokenProvider idTokenProvider,
+    required FirstPlayableAuthorityDeviceStorage deviceStorage,
+    required AuthorityCommandIdSource commandIds,
+    required String clientInstanceId,
+    required String presetId,
+    Duration snapshotPollInterval = const Duration(seconds: 1),
+    HttpClient? httpClient,
+  }) => FirstPlayableAuthorityClient.http(
+    baseUri: baseUri,
+    idTokenProvider: idTokenProvider,
+    pendingStore: deviceStorage.pendingCommands,
+    sessionLocatorStore: deviceStorage.sessionLocator,
+    commandIds: commandIds,
+    clientInstanceId: clientInstanceId,
+    presetId: presetId,
+    snapshotPollInterval: snapshotPollInterval,
+    httpClient: httpClient,
+  );
 
   FirstPlayableAuthorityClient._(
     this._session,

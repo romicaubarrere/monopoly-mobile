@@ -6,6 +6,7 @@ export 'src/client_authority_session.dart';
 export 'src/deadline_authority.dart';
 export 'src/first_playable_commands.dart';
 export 'src/first_playable_context.dart';
+export 'src/first_playable_device_storage.dart';
 export 'src/first_playable_binding.dart';
 export 'src/first_playable_authority_client.dart';
 export 'src/first_playable_session_locator.dart';

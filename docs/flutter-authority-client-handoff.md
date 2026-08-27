@@ -92,13 +92,14 @@ with zero writes.
 
 ## Minimum Flutter repository behavior
 
-`FirstPlayableAuthorityClient.http` is the minimum mobile composition root.
-Flutter injects the Firebase ID-token provider, Authority origin, durable
-pending-command store, public session-locator store, durable command-id source,
-client-instance id and `presetId`. The backend API package owns transport, wire
-decoding, session, confirmed context, command resolver, binding and public
-snapshot subscription. Flutter does not assemble those ports or synchronize
-state versions itself.
+`FirstPlayableAuthorityClient.httpWithDeviceStorage` is the minimum mobile
+composition root. Flutter injects the Firebase ID-token provider, Authority
+origin, one durable string key-value port, durable command-id source,
+client-instance id and `presetId`. `FirstPlayableAuthorityDeviceStorage` owns
+the versioned keys and both canonical codecs. The backend API package owns
+transport, wire decoding, session, confirmed context, command resolver, binding
+and public snapshot subscription. Flutter does not assemble those ports,
+serialize Authority contracts or synchronize state versions itself.
 
 1. Start without a client-minted `playerId`. Create/Join must return the
    authority-assigned `actorPlayerId` in their accepted public result; the
@@ -143,6 +144,7 @@ optional `gameId`. It never stores actor identity, UID, versions, snapshots or
 rules. After process death, `FirstPlayableAuthorityClient.restore` uses those
 locators only to perform authenticated public room/game reads; Authority
 re-establishes actor membership and confirmed versions before another command.
+The key-value write callback must remove the named key when its value is null.
 
 ## Public/private boundary
 
