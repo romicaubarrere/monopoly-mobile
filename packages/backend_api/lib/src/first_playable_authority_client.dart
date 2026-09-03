@@ -109,6 +109,30 @@ final class FirstPlayableAuthorityClient
   AuthoritySessionState get state => _session.state;
   Stream<AuthoritySessionState> get states => _session.states;
 
+  /// Transient six-character code returned only by an accepted CreateRoom ACK.
+  ///
+  /// The code is intentionally not reconstructed from Firestore or persisted in
+  /// the client composition root. Presentation may show it so another device
+  /// can join the room, then discard it.
+  String? get latestCreatedRoomCode {
+    final value = _session.state.reply?.publicResult['roomCode'];
+    if (value == null) return null;
+    if (value is! String || !RegExp(r'^[A-Z0-9]{6}$').hasMatch(value)) {
+      throw const ClientAuthorityContractViolation('invalidAuthorityRoomCode');
+    }
+    return value;
+  }
+
+  /// Refreshes the authenticated public lobby snapshot for the confirmed room.
+  ///
+  /// Only the already-validated public room contract is returned. UID mappings,
+  /// room secrets, catalog payloads and any other private state remain absent.
+  Future<AuthorityPublicRoomSnapshot> refreshConfirmedRoom() async {
+    final snapshot = await _snapshots.watchRoom(_context.roomId).first;
+    _context.replacePublicRoomSnapshot(snapshot);
+    return snapshot;
+  }
+
   @override
   Future<FirstPlayableAuthorityResult> perform(
     FirstPlayableAuthorityAction action, {
