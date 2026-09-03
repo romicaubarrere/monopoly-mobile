@@ -62,39 +62,38 @@ void main() {
     },
   );
 
-  testWidgets(
-    'join keeps entered Authority room code in confirmed lobby',
-    (tester) async {
-      final authority = _FakeLiveAuthority(actorPlayerId: 'player-guest');
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: LiveFirstPlayableApp(authority: authority),
-        ),
-      );
+  testWidgets('join keeps entered Authority room code in confirmed lobby', (
+    tester,
+  ) async {
+    final authority = _FakeLiveAuthority(actorPlayerId: 'player-guest');
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: LiveFirstPlayableApp(authority: authority),
+      ),
+    );
 
-      await tester.tap(find.text('Unirse con código'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('live-room-code-input')),
-        'abc123',
-      );
-      await tester.tap(find.text('Unirse'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Unirse con código'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('live-room-code-input')),
+      'abc123',
+    );
+    await tester.tap(find.text('Unirse'));
+    await tester.pumpAndSettle();
 
-      expect(authority.lastInput, 'ABC123');
-      expect(find.text('CÓDIGO · ABC123'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('live-member-player-host')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('live-member-player-guest')),
-        findsOneWidget,
-      );
-      expect(find.text('Empezar partida'), findsNothing);
-    },
-  );
+    expect(authority.lastInput, 'ABC123');
+    expect(find.text('CÓDIGO · ABC123'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('live-member-player-host')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('live-member-player-guest')),
+      findsOneWidget,
+    );
+    expect(find.text('Empezar partida'), findsNothing);
+  });
 }
 
 final class _FakeLiveAuthority implements LiveFirstPlayableAuthority {
