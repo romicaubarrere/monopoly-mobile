@@ -40,7 +40,16 @@ final class ClientLiveFirstPlayableAuthority
       client.refreshConfirmedRoom();
 }
 
-enum _LiveStep { home, create, join, lobby, board, property, auction, reconnect }
+enum _LiveStep {
+  home,
+  create,
+  join,
+  lobby,
+  board,
+  property,
+  auction,
+  reconnect,
+}
 
 class LiveFirstPlayableApp extends StatefulWidget {
   const LiveFirstPlayableApp({required this.authority, super.key});
@@ -204,110 +213,110 @@ class _LiveFirstPlayableAppState extends State<LiveFirstPlayableApp> {
       children: [
         switch (_step) {
           _LiveStep.home => HomeScreen(
-              onCreateRoom: () => setState(() => _step = _LiveStep.create),
-              onJoinRoom: () => setState(() => _step = _LiveStep.join),
-            ),
+            onCreateRoom: () => setState(() => _step = _LiveStep.create),
+            onJoinRoom: () => setState(() => _step = _LiveStep.join),
+          ),
           _LiveStep.create => _Stage(
-              key: const ValueKey('live-create'),
-              label: 'ARMAR SALA',
-              title: 'Creá una mesa',
-              body: const Text(
-                'El código aparece sólo después del ACK de Authority.',
-              ),
-              primaryLabel: 'Crear sala',
-              onPrimary: _createRoom,
-              onBack: () => setState(() => _step = _LiveStep.home),
+            key: const ValueKey('live-create'),
+            label: 'ARMAR SALA',
+            title: 'Creá una mesa',
+            body: const Text(
+              'El código aparece sólo después del ACK de Authority.',
             ),
+            primaryLabel: 'Crear sala',
+            onPrimary: _createRoom,
+            onBack: () => setState(() => _step = _LiveStep.home),
+          ),
           _LiveStep.join => _Stage(
-              key: const ValueKey('live-join'),
-              label: 'ENTRAR',
-              title: 'Sumate con el código',
-              body: TextField(
-                key: const ValueKey('live-room-code-input'),
-                controller: _roomCodeController,
-                maxLength: 6,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Código de sala',
-                  border: OutlineInputBorder(),
-                ),
+            key: const ValueKey('live-join'),
+            label: 'ENTRAR',
+            title: 'Sumate con el código',
+            body: TextField(
+              key: const ValueKey('live-room-code-input'),
+              controller: _roomCodeController,
+              maxLength: 6,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Código de sala',
+                border: OutlineInputBorder(),
               ),
-              primaryLabel: 'Unirse',
-              onPrimary: _joinRoom,
-              onBack: () => setState(() => _step = _LiveStep.home),
             ),
+            primaryLabel: 'Unirse',
+            onPrimary: _joinRoom,
+            onBack: () => setState(() => _step = _LiveStep.home),
+          ),
           _LiveStep.lobby => _buildLobby(),
           _LiveStep.board => _Stage(
-              key: const ValueKey('live-board'),
-              label: 'TU TURNO',
-              title: 'La vuelta está en marcha',
-              body: const GameCard(
-                child: Text(
-                  'El movimiento se aplica únicamente cuando Authority confirma el Roll.',
-                ),
+            key: const ValueKey('live-board'),
+            label: 'TU TURNO',
+            title: 'La vuelta está en marcha',
+            body: const GameCard(
+              child: Text(
+                'El movimiento se aplica únicamente cuando Authority confirma el Roll.',
               ),
-              primaryLabel: 'Tirar dados',
-              onPrimary: _roll,
             ),
+            primaryLabel: 'Tirar dados',
+            onPrimary: _roll,
+          ),
           _LiveStep.property => _Stage(
-              key: const ValueKey('live-property'),
-              label: 'PROPIEDAD',
-              title: 'Decisión confirmada',
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const GameCard(
-                    child: Text(
-                      'Los datos económicos vienen del snapshot confirmado. El contenido DEC-065 sigue fuera de este VP0.',
-                    ),
+            key: const ValueKey('live-property'),
+            label: 'PROPIEDAD',
+            title: 'Decisión confirmada',
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const GameCard(
+                  child: Text(
+                    'Los datos económicos vienen del snapshot confirmado. El contenido DEC-065 sigue fuera de este VP0.',
                   ),
-                  const SizedBox(height: AppSpacing.x3),
-                  OutlinedButton(
-                    onPressed: _busy ? null : _decline,
-                    child: const Text('No comprar · abrir subasta'),
-                  ),
-                ],
-              ),
-              primaryLabel: 'Comprar',
-              onPrimary: _buy,
-            ),
-          _LiveStep.auction => _Stage(
-              key: const ValueKey('live-auction'),
-              label: 'SUBASTA',
-              title: 'Subasta autoritativa',
-              body: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: _bidController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Tu puja',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.x3),
-                  OutlinedButton(
-                    onPressed: _busy ? null : _passAuction,
-                    child: const Text('Pasar'),
-                  ),
-                ],
-              ),
-              primaryLabel: 'Pujar',
-              onPrimary: _bid,
-            ),
-          _LiveStep.reconnect => _Stage(
-              key: const ValueKey('live-reconnect'),
-              label: 'RECONECTAR',
-              title: 'Recuperá el estado confirmado',
-              body: const GameCard(
-                child: Text(
-                  'Reconnect reutiliza la identidad durable del comando incierto y reemplaza el snapshot local.',
                 ),
-              ),
-              primaryLabel: 'Reconciliar',
-              onPrimary: _reconnect,
+                const SizedBox(height: AppSpacing.x3),
+                OutlinedButton(
+                  onPressed: _busy ? null : _decline,
+                  child: const Text('No comprar · abrir subasta'),
+                ),
+              ],
             ),
+            primaryLabel: 'Comprar',
+            onPrimary: _buy,
+          ),
+          _LiveStep.auction => _Stage(
+            key: const ValueKey('live-auction'),
+            label: 'SUBASTA',
+            title: 'Subasta autoritativa',
+            body: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _bidController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Tu puja',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.x3),
+                OutlinedButton(
+                  onPressed: _busy ? null : _passAuction,
+                  child: const Text('Pasar'),
+                ),
+              ],
+            ),
+            primaryLabel: 'Pujar',
+            onPrimary: _bid,
+          ),
+          _LiveStep.reconnect => _Stage(
+            key: const ValueKey('live-reconnect'),
+            label: 'RECONECTAR',
+            title: 'Recuperá el estado confirmado',
+            body: const GameCard(
+              child: Text(
+                'Reconnect reutiliza la identidad durable del comando incierto y reemplaza el snapshot local.',
+              ),
+            ),
+            primaryLabel: 'Reconciliar',
+            onPrimary: _reconnect,
+          ),
         },
         if (_safeError != null)
           Positioned(
@@ -355,7 +364,8 @@ class _LiveFirstPlayableAppState extends State<LiveFirstPlayableApp> {
     final actor = lobby.members.firstWhere(
       (member) => member.playerId == lobby.actorPlayerId,
     );
-    final allReady = lobby.members.length >= 2 &&
+    final allReady =
+        lobby.members.length >= 2 &&
         lobby.members.every((member) => member.ready);
     final canStart = lobby.actorPlayerId == lobby.hostPlayerId && allReady;
     return _Stage(
@@ -483,7 +493,6 @@ class _Stage extends StatelessWidget {
 
 final class _LobbyView {
   const _LobbyView({
-    required this.roomId,
     required this.actorPlayerId,
     required this.hostPlayerId,
     required this.members,
@@ -501,36 +510,36 @@ final class _LobbyView {
         rawMembers is! List<Object?>) {
       throw const FormatException('invalidPublicLobbySnapshot');
     }
-    final members = rawMembers.map((raw) {
-      if (raw is! Map<String, Object?>) {
-        throw const FormatException('invalidPublicLobbyMember');
-      }
-      final playerId = raw['playerId'];
-      final ready = raw['ready'];
-      final kind = raw['kind'];
-      if (playerId is! String ||
-          playerId.isEmpty ||
-          ready is! bool ||
-          kind is! String ||
-          kind.isEmpty) {
-        throw const FormatException('invalidPublicLobbyMember');
-      }
-      return _LobbyMember(playerId: playerId, ready: ready, kind: kind);
-    }).toList(growable: false);
+    final members = rawMembers
+        .map((raw) {
+          if (raw is! Map<String, Object?>) {
+            throw const FormatException('invalidPublicLobbyMember');
+          }
+          final playerId = raw['playerId'];
+          final ready = raw['ready'];
+          final kind = raw['kind'];
+          if (playerId is! String ||
+              playerId.isEmpty ||
+              ready is! bool ||
+              kind is! String ||
+              kind.isEmpty) {
+            throw const FormatException('invalidPublicLobbyMember');
+          }
+          return _LobbyMember(playerId: playerId, ready: ready, kind: kind);
+        })
+        .toList(growable: false);
     if (members.isEmpty ||
         !members.any((member) => member.playerId == actorPlayerId) ||
         !members.any((member) => member.playerId == hostPlayerId)) {
       throw const FormatException('invalidPublicLobbyMembership');
     }
     return _LobbyView(
-      roomId: snapshot.roomId,
       actorPlayerId: actorPlayerId,
       hostPlayerId: hostPlayerId,
       members: members,
     );
   }
 
-  final String roomId;
   final String actorPlayerId;
   final String hostPlayerId;
   final List<_LobbyMember> members;
