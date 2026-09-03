@@ -7,7 +7,7 @@ void main() {
     () {
       final config = MobileAuthorityConfiguration(
         authorityBaseUri: Uri.parse('https://authority.example.test'),
-        firebaseApiKey: 'api-key',
+        firebaseApiKey: 'fixture-value',
         firebaseAppId: 'app-id',
         firebaseMessagingSenderId: 'sender-id',
         firebaseProjectId: 'project-id',
