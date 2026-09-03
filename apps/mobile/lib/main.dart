@@ -3,7 +3,7 @@ import 'package:board_backend_api/backend_api.dart';
 
 import 'design_system/app_theme.dart';
 import 'infrastructure/mobile_authority_bootstrap.dart';
-import 'ui/first_playable/first_playable_app.dart';
+import 'ui/first_playable/live_first_playable_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,9 +16,9 @@ Future<void> main() async {
 }
 
 class BoardGameApp extends StatelessWidget {
-  const BoardGameApp({super.key, this.authority});
+  const BoardGameApp({super.key, required this.authority});
 
-  final FirstPlayableAuthorityBinding? authority;
+  final FirstPlayableAuthorityClient authority;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,9 @@ class BoardGameApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'La Vuelta',
       theme: AppTheme.light,
-      home: FirstPlayableApp(authority: authority),
+      home: LiveFirstPlayableApp(
+        authority: ClientLiveFirstPlayableAuthority(authority),
+      ),
     );
   }
 }
