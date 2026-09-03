@@ -9,9 +9,7 @@ Future<void> main() async {
   try {
     final authority = await MobileAuthorityBootstrap.fromEnvironment();
     runApp(
-      BoardGameApp(
-        authority: ClientLiveFirstPlayableAuthority(authority),
-      ),
+      BoardGameApp(authority: ClientLiveFirstPlayableAuthority(authority)),
     );
   } on Object {
     runApp(const BoardGameConfigurationErrorApp());
