@@ -109,6 +109,10 @@ class _LiveFirstPlayableAppState extends State<LiveFirstPlayableApp> {
     }
   }
 
+  Future<void> _refreshLobbyAction() async {
+    await _refreshLobby();
+  }
+
   Future<void> _createRoom() async {
     final result = await _perform(FirstPlayableAuthorityAction.createRoom);
     if (result?.accepted != true) return;
@@ -345,7 +349,7 @@ class _LiveFirstPlayableAppState extends State<LiveFirstPlayableApp> {
         title: 'Sincronizando la mesa',
         body: const Text('Esperando el snapshot público confirmado.'),
         primaryLabel: 'Actualizar lobby',
-        onPrimary: _refreshLobby,
+        onPrimary: _refreshLobbyAction,
       );
     }
     final actor = lobby.members.firstWhere(
@@ -380,7 +384,7 @@ class _LiveFirstPlayableAppState extends State<LiveFirstPlayableApp> {
           ),
           const SizedBox(height: AppSpacing.x3),
           OutlinedButton.icon(
-            onPressed: _busy ? null : _refreshLobby,
+            onPressed: _busy ? null : _refreshLobbyAction,
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Actualizar lobby'),
           ),
@@ -409,7 +413,7 @@ class _LiveFirstPlayableAppState extends State<LiveFirstPlayableApp> {
         ],
       ),
       primaryLabel: 'Actualizar lobby',
-      onPrimary: _refreshLobby,
+      onPrimary: _refreshLobbyAction,
       hidePrimary: true,
     );
   }
