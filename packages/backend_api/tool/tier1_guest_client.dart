@@ -100,7 +100,11 @@ Future<void> _playUntilAuctionPass(
   final deadline = DateTime.now().add(const Duration(seconds: 90));
   while (DateTime.now().isBefore(deadline)) {
     try {
-      await client.refreshConfirmedRoom();
+      // A one-shot restore reads the room and game snapshots directly. This
+      // keeps the second client deterministic after the smoke deliberately
+      // restarts Authority, even if its prior long-lived poll is still backing
+      // off from the outage.
+      await client.restore();
       final game = client.confirmedGameSnapshot;
       final snapshot = game?.snapshot;
       if (snapshot != null) {
