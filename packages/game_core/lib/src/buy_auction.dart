@@ -747,7 +747,7 @@ PublicGameState _copyState(
     'type': 'buyAuction',
     'commandId': command.commandId,
     'actorPlayerId': command.actorPlayerId,
-    if (outcome != null) 'outcome': outcome,
+    ?'outcome': outcome,
   },
 );
 
