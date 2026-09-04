@@ -8,8 +8,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  board_backend_api:
+    path: ../../packages/backend_api
   board_game_contracts:
     path: ../../packages/game_contracts
+  firebase_core: ^4.14.0
+  firebase_auth: ^6.6.1
+  shared_preferences: ^2.5.5
+  uuid: ^4.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

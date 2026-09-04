@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:board_backend_api/backend_api.dart';
 import 'package:board_mobile/design_system/app_theme.dart';
 import 'package:board_mobile/ui/first_playable/first_playable_app.dart';
 import 'package:flutter/material.dart';
@@ -108,6 +111,63 @@ void main() {
     expect(find.text('Sumate a la mesa'), findsOneWidget);
   });
 
+  testWidgets('Authority binding blocks optimistic navigation until ACK', (
+    tester,
+  ) async {
+    final authority = _AuthorityBinding();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: FirstPlayableApp(authority: authority),
+      ),
+    );
+
+    await tester.tap(find.text('Crear partida'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Crear sala'));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('fp-authority-pending')), findsOneWidget);
+    expect(find.text('La mesa está casi lista'), findsNothing);
+    expect(authority.actions, [FirstPlayableAuthorityAction.createRoom]);
+
+    authority.complete(
+      const FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.accepted,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('La mesa está casi lista'), findsOneWidget);
+  });
+
+  testWidgets('rejected Authority command keeps confirmed presentation', (
+    tester,
+  ) async {
+    final authority = _AuthorityBinding();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: FirstPlayableApp(authority: authority),
+      ),
+    );
+
+    await tester.tap(find.text('Crear partida'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Crear sala'));
+    await tester.pump();
+    authority.complete(
+      const FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.rejected,
+        safeErrorCode: 'notRoomMember',
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Elegí cómo empieza esta vuelta'), findsOneWidget);
+    expect(find.text('Authority · notRoomMember'), findsOneWidget);
+  });
+
   testWidgets('visual identity names keep the approved anatomy', (
     tester,
   ) async {
@@ -126,4 +186,25 @@ void main() {
 
     semantics.dispose();
   });
+}
+
+final class _AuthorityBinding implements FirstPlayableAuthorityBinding {
+  final List<FirstPlayableAuthorityAction> actions =
+      <FirstPlayableAuthorityAction>[];
+  final List<String?> inputs = <String?>[];
+  Completer<FirstPlayableAuthorityResult>? _pending;
+
+  @override
+  Future<FirstPlayableAuthorityResult> perform(
+    FirstPlayableAuthorityAction action, {
+    String? input,
+  }) {
+    actions.add(action);
+    inputs.add(input);
+    _pending = Completer<FirstPlayableAuthorityResult>();
+    return _pending!.future;
+  }
+
+  void complete(FirstPlayableAuthorityResult result) =>
+      _pending!.complete(result);
 }

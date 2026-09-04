@@ -21,6 +21,8 @@ void main() {
       final retry = AuthorityCommandRequest.room(command);
 
       expect(first.command, command.toJson());
+      expect(first.asRoomCommand, same(command));
+      expect(first.asRoomCommand.toJson(), first.command);
       expect(first.inputHashVersion, 1);
       expect(first.inputHash, retry.inputHash);
       expect(first.toCanonicalWireJson(), retry.toCanonicalWireJson());
@@ -55,6 +57,7 @@ void main() {
       );
 
       expect(first.inputHash, sameSemantic.inputHash);
+      expect(first.asGameCommand.toJson(), first.command);
       expect(first.inputHash, hasLength(64));
       expect(
         first.toCanonicalWireJson(),
@@ -85,6 +88,90 @@ void main() {
         buy(4, 'property-1').inputHash,
         isNot(buy(4, 'property-2').inputHash),
       );
+    });
+
+    test('ingress recomputes fingerprint and rejects body mutation', () {
+      final request = AuthorityCommandRequest.game(
+        GameCommand(
+          commandId: 'cmd-buy-ingress-1',
+          schemaVersion: 1,
+          expectedStateVersion: 4,
+          clientInstanceId: 'client-a',
+          gameId: 'game-1',
+          actorPlayerId: 'player-1',
+          type: GameCommandType.buyProperty,
+          payload: const <String, Object?>{'propertyId': 'property-1'},
+        ),
+      );
+      final wire = request.toWireJson();
+
+      expect(
+        AuthorityCommandRequest.fromWireJson(wire),
+        isA<AuthorityCommandRequest>()
+            .having((value) => value.inputHash, 'inputHash', request.inputHash)
+            .having(
+              (value) => value.asGameCommand.toJson(),
+              'validated game command',
+              request.command,
+            ),
+      );
+      expect(
+        () => AuthorityCommandRequest.fromWireJson(<String, Object?>{
+          ...wire,
+          'command': <String, Object?>{
+            ...(wire['command']! as Map<String, Object?>),
+            'expectedStateVersion': 5,
+          },
+        }),
+        throwsA(
+          isA<ClientAuthorityContractViolation>().having(
+            (error) => error.code,
+            'code',
+            'semanticFingerprintMismatch',
+          ),
+        ),
+      );
+    });
+
+    test('typed accessors fail closed across command families', () {
+      final roomRequest = AuthorityCommandRequest.room(
+        RoomCommand(
+          commandId: 'cmd-ready-family-1',
+          schemaVersion: 1,
+          expectedRoomVersion: 7,
+          clientInstanceId: 'client-a',
+          type: RoomCommandType.setReady,
+          payload: const <String, Object?>{'roomId': 'room-1', 'ready': true},
+        ),
+      );
+      final gameRequest = AuthorityCommandRequest.game(
+        GameCommand(
+          commandId: 'cmd-roll-family-1',
+          schemaVersion: 1,
+          expectedStateVersion: 4,
+          clientInstanceId: 'client-a',
+          gameId: 'game-1',
+          actorPlayerId: 'player-1',
+          type: GameCommandType.rollDice,
+          payload: const <String, Object?>{},
+        ),
+      );
+
+      for (final accessWrongFamily in <Object? Function()>[
+        () => roomRequest.asGameCommand,
+        () => gameRequest.asRoomCommand,
+      ]) {
+        expect(
+          accessWrongFamily,
+          throwsA(
+            isA<ClientAuthorityContractViolation>().having(
+              (error) => error.code,
+              'code',
+              'commandFamilyMismatch',
+            ),
+          ),
+        );
+      }
     });
   });
 
@@ -148,6 +235,14 @@ void main() {
       );
 
       expect(accepted.snapshot!.stateVersion, 3);
+      expect(accepted.toWireJson(), <String, Object?>{
+        'commandId': 'cmd-roll-1',
+        'status': 'accepted',
+        'versionBefore': 2,
+        'versionAfter': 3,
+        'publicResult': const <String, Object?>{},
+        'snapshot': _snapshotJson(3),
+      });
       expect(rejected.errorCode, 'notCurrentTurn');
       expect(
         () => AuthorityCommandReply(
@@ -157,6 +252,57 @@ void main() {
           versionAfter: 3,
         ),
         throwsA(isA<ClientAuthorityContractViolation>()),
+      );
+    });
+  });
+
+  group('public room snapshot routing metadata', () {
+    test('exposes Authority-issued gameId only when present and valid', () {
+      final lobby = AuthorityPublicRoomSnapshot(_roomSnapshotJson());
+      final active = AuthorityPublicRoomSnapshot(
+        _roomSnapshotJson(gameId: 'game-1'),
+      );
+
+      expect(lobby.gameId, isNull);
+      expect(active.gameId, 'game-1');
+    });
+
+    test('rejects malformed optional gameId', () {
+      for (final gameId in <Object?>['', 7]) {
+        expect(
+          () => AuthorityPublicRoomSnapshot(_roomSnapshotJson(gameId: gameId)),
+          throwsA(
+            isA<ClientAuthorityContractViolation>().having(
+              (error) => error.code,
+              'code',
+              'invalidRoomSnapshotGameId',
+            ),
+          ),
+        );
+      }
+    });
+
+    test('rejects incoherent status and game routing', () {
+      expect(
+        () => AuthorityPublicRoomSnapshot(<String, Object?>{
+          ..._roomSnapshotJson(gameId: 'game-1'),
+          'status': 'open',
+        }),
+        throwsA(_violation('inconsistentRoomSnapshotGameRouting')),
+      );
+      expect(
+        () => AuthorityPublicRoomSnapshot(<String, Object?>{
+          ..._roomSnapshotJson(gameId: 'game-1'),
+          'status': 'paused',
+        }),
+        throwsA(_violation('invalidRoomSnapshotMetadata')),
+      );
+      expect(
+        () => AuthorityPublicRoomSnapshot(<String, Object?>{
+          ..._roomSnapshotJson(),
+          'status': 'active',
+        }),
+        throwsA(_violation('inconsistentRoomSnapshotGameRouting')),
       );
     });
   });
@@ -212,6 +358,12 @@ void main() {
         CommandResolutionAction.useDurableResult,
       );
       expect(reply.snapshot.stateVersion, 9);
+      final wire = reply.toWireJson();
+      expect(wire['disposition'], 'uncertainConfirmed');
+      expect(
+        (wire['commandResolution']! as Map<String, Object?>)['identity'],
+        request.uncertainIdentity.toWireJson(),
+      );
     });
 
     test('reconnect dispositions fail closed on mismatched actions', () {
@@ -283,6 +435,24 @@ Map<String, Object?> _snapshotJson(int stateVersion) => <String, Object?>{
     'currentPlayerId': 'player-1',
   },
 };
+
+Map<String, Object?> _roomSnapshotJson({Object? gameId}) => <String, Object?>{
+  'schemaVersion': 1,
+  'roomId': 'room-1',
+  'roomVersion': 1,
+  'status': gameId == null ? 'open' : 'active',
+  'gameId': ?gameId,
+  'hostPlayerId': 'player-1',
+  'actorPlayerId': 'player-1',
+  'presetId': 'synthetic-vp0',
+  'rulesVersion': 'synthetic-rules-vp0',
+  'members': const <Object?>[
+    <String, Object?>{'playerId': 'player-1', 'kind': 'human', 'ready': false},
+  ],
+};
+
+Matcher _violation(String code) => isA<ClientAuthorityContractViolation>()
+    .having((error) => error.code, 'code', code);
 
 final class _RecordingGateway
     implements CommandGateway, AuthoritySnapshotRepository {

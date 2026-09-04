@@ -181,6 +181,14 @@ abstract final class BuyAuctionEngine {
       return reject(BuyAuctionErrorCode.insufficientFunds);
     }
 
+    final outcome = GameDomainEvent(
+      type: 'propertyPurchased',
+      data: <String, Object?>{
+        'playerId': actor.playerId,
+        'propertyId': offer.propertyId,
+        'price': offer.purchasePrice,
+      },
+    );
     final stateAfter = _copyState(
       state,
       command: command,
@@ -197,21 +205,13 @@ abstract final class BuyAuctionEngine {
       ),
       turnState: _turnAfterDecision(state.turnState),
       pendingDecision: const _NullableMap.clear(),
+      outcome: outcome.toJson(),
     );
     return BuyAuctionPlan(
       commandId: command.commandId,
       stateVersionBefore: state.header.stateVersion,
       stateAfter: stateAfter,
-      events: <GameDomainEvent>[
-        GameDomainEvent(
-          type: 'propertyPurchased',
-          data: <String, Object?>{
-            'playerId': actor.playerId,
-            'propertyId': offer.propertyId,
-            'price': offer.purchasePrice,
-          },
-        ),
-      ],
+      events: <GameDomainEvent>[outcome],
     );
   }
 
@@ -430,22 +430,22 @@ abstract final class BuyAuctionEngine {
         events: events,
       );
     }
+    final outcome = GameDomainEvent(
+      type: 'auctionEndedWithoutWinner',
+      data: <String, Object?>{
+        'auctionId': auction.auctionId,
+        'propertyId': auction.propertyId,
+      },
+    );
     final stateAfter = _copyState(
       state,
       command: command,
       turnState: _turnAfterDecision(state.turnState),
       pendingDecision: const _NullableMap.clear(),
       activeAuction: const _NullableMap.clear(),
+      outcome: outcome.toJson(),
     );
-    events.add(
-      GameDomainEvent(
-        type: 'auctionEndedWithoutWinner',
-        data: <String, Object?>{
-          'auctionId': auction.auctionId,
-          'propertyId': auction.propertyId,
-        },
-      ),
-    );
+    events.add(outcome);
     return BuyAuctionPlan(
       commandId: command.commandId,
       stateVersionBefore: state.header.stateVersion,
@@ -511,6 +511,15 @@ abstract final class BuyAuctionEngine {
         'A validated auction winner must be able to pay the winning bid',
       );
     }
+    final outcome = GameDomainEvent(
+      type: 'auctionWon',
+      data: <String, Object?>{
+        'auctionId': auction.auctionId,
+        'propertyId': auction.propertyId,
+        'winnerPlayerId': winnerPlayerId,
+        'winningBid': winningBid,
+      },
+    );
     final stateAfter = _copyState(
       state,
       command: command,
@@ -528,18 +537,9 @@ abstract final class BuyAuctionEngine {
       turnState: _turnAfterDecision(state.turnState),
       pendingDecision: const _NullableMap.clear(),
       activeAuction: const _NullableMap.clear(),
+      outcome: outcome.toJson(),
     );
-    events.add(
-      GameDomainEvent(
-        type: 'auctionWon',
-        data: <String, Object?>{
-          'auctionId': auction.auctionId,
-          'propertyId': auction.propertyId,
-          'winnerPlayerId': winnerPlayerId,
-          'winningBid': winningBid,
-        },
-      ),
-    );
+    events.add(outcome);
     return BuyAuctionPlan(
       commandId: command.commandId,
       stateVersionBefore: state.header.stateVersion,
@@ -714,6 +714,7 @@ PublicGameState _copyState(
   List<PlayerState>? players,
   Map<String, Object?>? ownership,
   Map<String, Object?>? turnState,
+  Map<String, Object?>? outcome,
   _NullableMap pendingDecision = const _NullableMap.keep(),
   _NullableMap activeAuction = const _NullableMap.keep(),
 }) => PublicGameState(
@@ -746,6 +747,7 @@ PublicGameState _copyState(
     'type': 'buyAuction',
     'commandId': command.commandId,
     'actorPlayerId': command.actorPlayerId,
+    'outcome': ?outcome,
   },
 );
 
