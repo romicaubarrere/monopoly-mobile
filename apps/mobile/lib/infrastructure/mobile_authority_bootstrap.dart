@@ -8,6 +8,9 @@ final class MobileAuthorityBootstrap {
   const MobileAuthorityBootstrap._();
 
   static const _clientInstanceKey = 'la_vuelta.authority.v1.client-instance';
+  static const _commandIdPrefix = String.fromEnvironment(
+    'FIRST_PLAYABLE_COMMAND_ID_PREFIX',
+  );
 
   static Future<FirstPlayableAuthorityClient> fromEnvironment() async {
     final config = MobileAuthorityConfiguration.fromEnvironment();
@@ -39,11 +42,14 @@ final class MobileAuthorityBootstrap {
       },
     );
 
+    final AuthorityCommandIdSource commandIds = _commandIdPrefix.isEmpty
+        ? const _UuidCommandIdSource()
+        : _PrefixedCommandIdSource(_commandIdPrefix);
     final client = FirstPlayableAuthorityClient.httpWithDeviceStorage(
       baseUri: config.authorityBaseUri,
       idTokenProvider: () => _idToken(auth),
       deviceStorage: storage,
-      commandIds: const _UuidCommandIdSource(),
+      commandIds: commandIds,
       clientInstanceId: clientInstanceId,
       presetId: config.presetId,
     );
@@ -159,4 +165,17 @@ final class _UuidCommandIdSource implements AuthorityCommandIdSource {
 
   @override
   String nextCommandId() => const Uuid().v4();
+}
+
+
+/// Deterministic CI-only command identities. Production builds do not set the
+/// compile-time prefix and continue to use UUIDs.
+final class _PrefixedCommandIdSource implements AuthorityCommandIdSource {
+  _PrefixedCommandIdSource(this._prefix);
+
+  final String _prefix;
+  int _counter = 0;
+
+  @override
+  String nextCommandId() => '$_prefix-${++_counter}';
 }
