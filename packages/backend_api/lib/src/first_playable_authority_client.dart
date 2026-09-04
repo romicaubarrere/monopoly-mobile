@@ -459,7 +459,7 @@ final class FirstPlayableAuthorityClient
         if (identical(_roomSnapshotSubscription, subscription)) {
           _roomSnapshotSubscription = null;
         }
-        if (subscription != null) unawaited(subscription.cancel());
+        unawaited(subscription.cancel());
       }
     } on ClientAuthorityContractViolation catch (error) {
       if (roomIdForReset != null && generationForReset != null) {
