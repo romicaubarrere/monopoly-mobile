@@ -50,6 +50,7 @@ Future<void> main(List<String> args) async {
     stdout.writeln('TIER1_GUEST_READY');
 
     final actorPlayerId = await _waitForActor(client);
+    stdout.writeln('TIER1_GUEST_ACTOR:$actorPlayerId');
     await _playUntilAuctionPass(client, actorPlayerId);
     stdout.writeln('TIER1_GUEST_AUCTION_PASS');
   } finally {
@@ -98,6 +99,7 @@ Future<void> _playUntilAuctionPass(
   String actorPlayerId,
 ) async {
   final deadline = DateTime.now().add(const Duration(seconds: 90));
+  String? lastObservedState;
   while (DateTime.now().isBefore(deadline)) {
     try {
       // A one-shot restore reads the room and game snapshots directly. This
@@ -111,8 +113,17 @@ Future<void> _playUntilAuctionPass(
         final turn = snapshot['turnState'];
         if (turn is Map<String, Object?>) {
           final phase = turn['phase'];
+          final auction = snapshot['activeAuction'];
+          final bidder = auction is Map<String, Object?>
+              ? auction['currentBidderPlayerId']
+              : null;
+          final observedState =
+              '${game!.stateVersion}:$phase:${turn['currentPlayerId']}:$bidder';
+          if (observedState != lastObservedState) {
+            stdout.writeln('TIER1_GUEST_STATE:$observedState');
+            lastObservedState = observedState;
+          }
           if (phase == 'awaitingAuctionBid') {
-            final auction = snapshot['activeAuction'];
             if (auction is Map<String, Object?> &&
                 auction['currentBidderPlayerId'] == actorPlayerId) {
               _requireAccepted(
