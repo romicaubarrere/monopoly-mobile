@@ -82,6 +82,16 @@ def room_code(timeout=30):
     raise RuntimeError("authoritative room code not visible")
 
 
+def dismiss_anr():
+    for node in nodes():
+        if node.attrib.get("resource-id") == "android:id/aerr_close":
+            x, y = center(node.attrib.get("bounds"))
+            adb("shell", "input", "tap", str(x), str(y))
+            time.sleep(1)
+            return True
+    return False
+
+
 def screenshot(path):
     target = pathlib.Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -93,6 +103,7 @@ def main():
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("room-code")
+    sub.add_parser("dismiss-anr")
     tap = sub.add_parser("tap")
     tap.add_argument("text")
     wait = sub.add_parser("wait")
@@ -103,6 +114,8 @@ def main():
 
     if args.command == "room-code":
         print(room_code())
+    elif args.command == "dismiss-anr":
+        dismiss_anr()
     elif args.command == "tap":
         tap_text(args.text)
     elif args.command == "wait":
