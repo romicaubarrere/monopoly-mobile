@@ -134,17 +134,17 @@ final _certificateResponse = CertificateFetchResponse(
 );
 
 const _fixtureToken =
-    'eyJraWQiOiJmaXh0dXJlLWtpZCIsImFsZyI6IlJTMjU2IiwidHlwIjoiSldUIn0.'
-    'eyJhdWQiOiJmaXh0dXJlLXByb2plY3QiLCJpc3MiOiJodHRwczovL3NlY3VyZXRva2Vu'
-    'Lmdvb2dsZS5jb20vZml4dHVyZS1wcm9qZWN0IiwiZXhwIjoxNzg3NzUyODAwLCJpYXQi'
-    'OjE3ODc3NDU2MDAsImF1dGhfdGltZSI6MTc4Nzc0NTYwMCwic3ViIjoidWlkLWZpeHR1'
-    'cmUifQ.'
-    'wB3BsJN6gf6H_M8R_t4qR3aLV0N9yYQCkXeNzySgQldA0F3X4zE2et8xdBEl3g97k59R'
-    'r602dxqa0sZH5T7cnWW-anyUnBqzwkUNCehWL7Yr4tRDFFh-f7lTlm4t-RN9Kay3KSGH'
-    'yYSDQMMMHvUiuQjGMePVA17vOL7mo6y7w3XmHKWC3tvkE_QMGnaj7JooAmv39VXJm_aE'
-    'XdDbOXmPYvGVbap5rLCUHq7Q20FRUBaCral6Cti15KQf8Dh9ljWuOZbypqGnVydEyHgH'
-    'Ij8d_suhHdYBNSrptVVKaOLDhSunN2v_twLfaS-yvCx3_DsAS-A5PpPsWvbPMJ_say1Q'
-    'vQ';
+    'eyJraWQiOiJmaXh0dXJlLWtpZCIsImFsZyI6IlJTMjU2IiwidHlwIjoiSldUIn0.' // pragma: allowlist secret
+    'eyJhdWQiOiJmaXh0dXJlLXByb2plY3QiLCJpc3MiOiJodHRwczovL3NlY3VyZXRva2Vu' // pragma: allowlist secret
+    'Lmdvb2dsZS5jb20vZml4dHVyZS1wcm9qZWN0IiwiZXhwIjoxNzg3NzUyODAwLCJpYXQi' // pragma: allowlist secret
+    'OjE3ODc3NDU2MDAsImF1dGhfdGltZSI6MTc4Nzc0NTYwMCwic3ViIjoidWlkLWZpeHR1' // pragma: allowlist secret
+    'cmUifQ.' // pragma: allowlist secret
+    'wB3BsJN6gf6H_M8R_t4qR3aLV0N9yYQCkXeNzySgQldA0F3X4zE2et8xdBEl3g97k59R' // pragma: allowlist secret
+    'r602dxqa0sZH5T7cnWW-anyUnBqzwkUNCehWL7Yr4tRDFFh-f7lTlm4t-RN9Kay3KSGH' // pragma: allowlist secret
+    'yYSDQMMMHvUiuQjGMePVA17vOL7mo6y7w3XmHKWC3tvkE_QMGnaj7JooAmv39VXJm_aE' // pragma: allowlist secret
+    'XdDbOXmPYvGVbap5rLCUHq7Q20FRUBaCral6Cti15KQf8Dh9ljWuOZbypqGnVydEyHgH' // pragma: allowlist secret
+    'Ij8d_suhHdYBNSrptVVKaOLDhSunN2v_twLfaS-yvCx3_DsAS-A5PpPsWvbPMJ_say1Q' // pragma: allowlist secret
+    'vQ'; // pragma: allowlist secret
 
 const _fixtureCertificate = '''-----BEGIN CERTIFICATE-----
 MIIDMjCCAhoCCQD3O5GD6JcncDANBgkqhkiG9w0BAQsFADBbMQswCQYDVQQGEwJG
