@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:board_mobile/design_system/app_theme.dart';
+import 'package:board_mobile/design_system/tokens.dart';
 import 'package:board_mobile/ui/first_playable/first_playable_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,7 +38,10 @@ void main() {
             data: const MediaQueryData(size: viewport, disableAnimations: true),
             child: RepaintBoundary(
               key: boundaryKey,
-              child: FirstPlayableApp(initialStep: checkpoint.$1),
+              child: ColoredBox(
+                color: AppPalette.canvas,
+                child: FirstPlayableApp(initialStep: checkpoint.$1),
+              ),
             ),
           ),
         ),
