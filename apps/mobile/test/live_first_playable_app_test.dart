@@ -32,6 +32,14 @@ void main() {
       );
       expect(find.text('Romina PLACEHOLDER'), findsNothing);
       expect(find.textContaining('ABC 123'), findsNothing);
+      final startButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Empezar partida'),
+      );
+      expect(startButton.onPressed, isNotNull);
+      expect(
+        find.textContaining('Start se habilita cuando'),
+        findsNothing,
+      );
 
       await tester.tap(find.text('Estoy lista'));
       await tester.pumpAndSettle();
