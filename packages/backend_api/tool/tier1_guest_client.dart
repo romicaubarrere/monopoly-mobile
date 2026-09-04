@@ -123,15 +123,13 @@ Future<void> _playUntilAuctionPass(
             stdout.writeln('TIER1_GUEST_STATE:$observedState');
             lastObservedState = observedState;
           }
-          if (phase == 'awaitingAuctionBid') {
-            if (auction is Map<String, Object?> &&
-                auction['currentBidderPlayerId'] == actorPlayerId) {
-              _requireAccepted(
-                await client.perform(FirstPlayableAuthorityAction.passAuction),
-                'guest-pass-auction',
-              );
-              return;
-            }
+          if (auction is Map<String, Object?> &&
+              auction['currentBidderPlayerId'] == actorPlayerId) {
+            _requireAccepted(
+              await client.perform(FirstPlayableAuthorityAction.passAuction),
+              'guest-pass-auction',
+            );
+            return;
           } else if (turn['currentPlayerId'] == actorPlayerId) {
             switch (phase) {
               case 'awaitingRoll':
