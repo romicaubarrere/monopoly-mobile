@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'design_system/app_theme.dart';
@@ -11,7 +12,9 @@ Future<void> main() async {
     runApp(
       BoardGameApp(authority: ClientLiveFirstPlayableAuthority(authority)),
     );
-  } on Object {
+  } on Object catch (error, stackTrace) {
+    debugPrint('Mobile authority bootstrap failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
     runApp(const BoardGameConfigurationErrorApp());
   }
 }
