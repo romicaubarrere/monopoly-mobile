@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:board_backend_api/backend_api.dart';
 import 'package:board_game_contracts/game_contracts.dart';
-import 'package:board_game_core/game_core.dart';
 import 'package:test/test.dart';
 
 void main() {
