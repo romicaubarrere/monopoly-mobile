@@ -85,7 +85,7 @@ final class FirstPlayableAuthorityContext
     if (request.commandId != reply.commandId) {
       throw const ClientAuthorityContractViolation('replyCommandMismatch');
     }
-    if (reply.status == AuthorityCommandStatus.rejected) return;
+    if (reply.isRejectedOutcome) return;
 
     switch (request.family) {
       case AuthorityCommandFamily.room:
@@ -181,11 +181,16 @@ final class FirstPlayableAuthorityContext
     )) {
       throw const ClientAuthorityContractViolation('roomSnapshotActorMissing');
     }
+    final nextGameId = snapshot.gameId;
+    if (nextGameId != null && _gameId != null && _gameId != nextGameId) {
+      throw const ClientAuthorityContractViolation('roomSnapshotGameMismatch');
+    }
     _roomId = nextRoomId;
     _roomVersion = snapshot.roomVersion;
     _roomSnapshotCanonicalJson = canonicalJson;
-    final nextGameId = _identifier(value['gameId']);
-    if (nextGameId != null) _gameId = nextGameId;
+    if (nextGameId != null) {
+      _gameId = nextGameId;
+    }
   }
 
   void _applyRoomReply(

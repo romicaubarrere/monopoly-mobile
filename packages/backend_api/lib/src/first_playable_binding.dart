@@ -171,17 +171,28 @@ final class SessionFirstPlayableAuthorityBinding
     required AuthorityClientSession session,
     required ConfirmedFirstPlayableRequestResolver requests,
     required AuthorityRoomSnapshotRepository roomSnapshots,
-  }) : this._(session, requests, roomSnapshots);
+    Duration roomSnapshotReadTimeout = const Duration(seconds: 10),
+  }) : this._(session, requests, roomSnapshots, roomSnapshotReadTimeout);
 
   SessionFirstPlayableAuthorityBinding._(
     this._session,
     this._requests,
     this._roomSnapshots,
-  );
+    this._roomSnapshotReadTimeout,
+  ) {
+    if (_roomSnapshotReadTimeout <= Duration.zero) {
+      throw ArgumentError.value(
+        _roomSnapshotReadTimeout,
+        'roomSnapshotReadTimeout',
+        'must be positive',
+      );
+    }
+  }
 
   final AuthorityClientSession _session;
   final ConfirmedFirstPlayableRequestResolver _requests;
   final AuthorityRoomSnapshotRepository _roomSnapshots;
+  final Duration _roomSnapshotReadTimeout;
 
   @override
   Future<FirstPlayableAuthorityResult> perform(
@@ -190,17 +201,7 @@ final class SessionFirstPlayableAuthorityBinding
   }) async {
     if (action == FirstPlayableAuthorityAction.reconnect) {
       try {
-        final reply = await _session.reconnect(_requests.reconnectGameId);
-        if (reply != null) {
-          _requests.replacePublicSnapshot(reply.snapshot);
-        }
-        if (reply?.disposition == ReconnectDisposition.uncertainRejected) {
-          return const FirstPlayableAuthorityResult(
-            outcome: FirstPlayableAuthorityOutcome.rejected,
-            safeErrorCode: 'durableCommandRejected',
-          );
-        }
-        return _fromSession();
+        return await _reconcileOrRetryPending();
       } on ClientAuthorityContractViolation catch (error) {
         return FirstPlayableAuthorityResult(
           outcome: FirstPlayableAuthorityOutcome.blocked,
@@ -222,10 +223,10 @@ final class SessionFirstPlayableAuthorityBinding
     try {
       final request = _requests.commandFor(action, input: input);
       final reply = await _session.send(request);
-      if (reply?.status == AuthorityCommandStatus.rejected) {
+      if (reply?.isRejectedOutcome == true) {
         return FirstPlayableAuthorityResult(
           outcome: FirstPlayableAuthorityOutcome.rejected,
-          safeErrorCode: reply!.errorCode,
+          safeErrorCode: reply!.errorCode ?? 'durableCommandRejected',
         );
       }
       if (reply != null) _requests.applyCommandReply(request, reply);
@@ -238,10 +239,45 @@ final class SessionFirstPlayableAuthorityBinding
     }
   }
 
+  Future<FirstPlayableAuthorityResult> _reconcileOrRetryPending() async {
+    try {
+      final reply = await _session.reconnect(_requests.reconnectGameId);
+      if (reply != null) {
+        _requests.replacePublicSnapshot(reply.snapshot);
+      }
+      if (reply?.disposition == ReconnectDisposition.uncertainRejected) {
+        return const FirstPlayableAuthorityResult(
+          outcome: FirstPlayableAuthorityOutcome.rejected,
+          safeErrorCode: 'durableCommandRejected',
+        );
+      }
+      return _fromSession();
+    } on ClientAuthorityContractViolation catch (error) {
+      if (error.code != 'confirmedGameUnavailable') rethrow;
+      return _retryPendingWithoutGame();
+    }
+  }
+
+  Future<FirstPlayableAuthorityResult> _retryPendingWithoutGame() async {
+    final retry = await _session.retryPendingCommand();
+    final reply = retry?.reply;
+    if (reply?.isRejectedOutcome == true) {
+      return FirstPlayableAuthorityResult(
+        outcome: FirstPlayableAuthorityOutcome.rejected,
+        safeErrorCode: reply!.errorCode ?? 'durableCommandRejected',
+      );
+    }
+    if (reply != null) {
+      _requests.applyCommandReply(retry!.request, reply);
+    }
+    return _fromSession();
+  }
+
   Future<FirstPlayableAuthorityResult?> _refreshRoomBeforeStart() async {
     try {
       final snapshot = await _roomSnapshots
           .watchRoom(_requests.confirmedRoomId)
+          .timeout(_roomSnapshotReadTimeout)
           .first;
       _requests.replacePublicRoomSnapshot(snapshot);
       return null;

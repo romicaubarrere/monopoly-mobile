@@ -104,6 +104,21 @@ final class AuthoritySessionState {
   final String? safeErrorCode;
 }
 
+/// Exact durable command retried after a transport outcome was uncertain.
+///
+/// The request is loaded from [PendingAuthorityCommandStore] rather than
+/// reconstructed by presentation. Callers can therefore apply the matching
+/// Authority reply to their confirmed context without minting a new identity.
+final class AuthorityPendingCommandRetry {
+  const AuthorityPendingCommandRetry({
+    required this.request,
+    required this.reply,
+  });
+
+  final AuthorityCommandRequest request;
+  final AuthorityCommandReply? reply;
+}
+
 /// Coordinates confirmed Authority state without interpreting gameplay rules.
 ///
 /// Commands are durably marked uncertain before transport. Only Authority
@@ -114,17 +129,30 @@ final class AuthorityClientSession {
     required CommandGateway gateway,
     required AuthoritySnapshotRepository snapshots,
     required PendingAuthorityCommandStore pendingStore,
-  }) : this._(gateway, snapshots, pendingStore);
+    bool deferAcceptedPendingClear = false,
+  }) : this._(
+         gateway,
+         snapshots,
+         pendingStore,
+         deferAcceptedPendingClear,
+       );
 
-  AuthorityClientSession._(this._gateway, this._snapshots, this._pendingStore);
+  AuthorityClientSession._(
+    this._gateway,
+    this._snapshots,
+    this._pendingStore,
+    this._deferAcceptedPendingClear,
+  );
 
   final CommandGateway _gateway;
   final AuthoritySnapshotRepository _snapshots;
   final PendingAuthorityCommandStore _pendingStore;
+  final bool _deferAcceptedPendingClear;
   final StreamController<AuthoritySessionState> _states =
       StreamController<AuthoritySessionState>.broadcast(sync: true);
   AuthoritySessionState _state = const AuthoritySessionState();
   StreamSubscription<AuthorityPublicSnapshot>? _snapshotSubscription;
+  int _snapshotWatchGeneration = 0;
 
   AuthoritySessionState get state => _state;
   Stream<AuthoritySessionState> get states => _states.stream;
@@ -186,6 +214,86 @@ final class AuthorityClientSession {
     return _sendSaved(request);
   }
 
+  /// Restores a persisted uncertain command without sending it.
+  ///
+  /// Process restart must not silently discard a command identity that was
+  /// saved before its ACK was lost. Presentation can inspect the resulting
+  /// state and explicitly ask Authority to reconcile or replay that exact
+  /// identity.
+  Future<AuthorityCommandRequest?> restorePendingCommand() async {
+    try {
+      final pending = await _pendingStore.load();
+      if (pending == null) return null;
+      _publish(
+        AuthoritySessionState(
+          status: AuthoritySessionStatus.uncertain,
+          snapshot: _state.snapshot,
+          pendingCommand: pending,
+          safeErrorCode: 'pendingCommandRecoveryRequired',
+        ),
+      );
+      return pending;
+    } on ClientAuthorityContractViolation catch (error) {
+      _publishPendingStoreBlocked(error.code);
+      rethrow;
+    } on Object {
+      const error = ClientAuthorityContractViolation(
+        'pendingCommandStoreUnavailable',
+      );
+      _publishPendingStoreBlocked(error.code);
+      throw error;
+    }
+  }
+
+  /// Finalizes an accepted command after the caller durably persisted the
+  /// public locator derived from its Authority reply.
+  ///
+  /// This optional two-phase acknowledgement closes the crash window between a
+  /// received Create/Join ACK and storing the public room locator. Rejections
+  /// are already safe to clear immediately because they cannot create state.
+  Future<bool> acknowledgeConfirmedPendingCommand() async {
+    if (!_deferAcceptedPendingClear) return true;
+    final current = _state;
+    final pending = current.pendingCommand;
+    if (pending == null) return true;
+    if (current.status != AuthoritySessionStatus.confirmed) return false;
+    try {
+      await _pendingStore.clear(pending.commandId);
+      // A public game replacement can arrive while durable storage is
+      // clearing. Preserve the latest replacement rather than publishing the
+      // snapshot captured before the await and rolling the session backward.
+      final latest = _state;
+      final latestPending = latest.pendingCommand;
+      if (latestPending == null) return true;
+      if (latestPending.commandId != pending.commandId) {
+        _publish(
+          AuthoritySessionState(
+            status: AuthoritySessionStatus.blocked,
+            snapshot: latest.snapshot,
+            pendingCommand: latestPending,
+            safeErrorCode: 'pendingCommandStoreMismatch',
+          ),
+        );
+        return false;
+      }
+      _publish(
+        AuthoritySessionState(
+          status: latest.status,
+          snapshot: latest.snapshot,
+          reply: latest.reply,
+          safeErrorCode: latest.safeErrorCode,
+        ),
+      );
+      return true;
+    } on ClientAuthorityContractViolation catch (error) {
+      _publishPendingStoreBlocked(error.code);
+      return false;
+    } on Object {
+      _publishPendingStoreBlocked('pendingCommandStoreUnavailable');
+      return false;
+    }
+  }
+
   Future<AuthorityReconnectReply?> reconnect(String gameId) async {
     late final AuthorityCommandRequest? pending;
     try {
@@ -216,14 +324,23 @@ final class AuthorityClientSession {
       );
       final resolution = reply.commandResolution;
       switch (resolution?.action) {
-        case CommandResolutionAction.useDurableResult:
-          if (pending != null) await _pendingStore.clear(pending.commandId);
+        case CommandResolutionAction.useDurableResult: {
+          final durableRejected =
+              reply.disposition == ReconnectDisposition.uncertainRejected ||
+              resolution?.publicResult?['status'] == 'rejected';
+          final retainPending =
+              _deferAcceptedPendingClear && !durableRejected;
+          if (pending != null && !retainPending) {
+            await _pendingStore.clear(pending.commandId);
+          }
           _publish(
             AuthoritySessionState(
               status: AuthoritySessionStatus.confirmed,
               snapshot: reply.snapshot,
+              pendingCommand: retainPending ? pending : null,
             ),
           );
+        }
         case CommandResolutionAction.retrySameCommand:
           if (pending == null) {
             _publish(
@@ -262,6 +379,16 @@ final class AuthorityClientSession {
           );
       }
       return reply;
+    } on ClientAuthorityContractViolation catch (error) {
+      _publish(
+        AuthoritySessionState(
+          status: AuthoritySessionStatus.blocked,
+          snapshot: snapshot,
+          pendingCommand: pending,
+          safeErrorCode: error.code,
+        ),
+      );
+      return null;
     } on Object {
       _publish(
         AuthoritySessionState(
@@ -275,6 +402,64 @@ final class AuthorityClientSession {
     }
   }
 
+  /// Replays the one durable uncertain command without requiring a game.
+  ///
+  /// This covers room commands such as Create, Join and Ready, whose receipt
+  /// has the same idempotency guarantees as game commands but cannot use the
+  /// game-scoped reconnect endpoint yet.
+  Future<AuthorityPendingCommandRetry?> retryPendingCommand() async {
+    final current = _state;
+    if (current.status == AuthoritySessionStatus.blocked &&
+        current.safeErrorCode != 'uncertainCommandPending' &&
+        current.safeErrorCode != 'pendingCommandStoreUnavailable') {
+      // A contract/storage failure is intentionally fail-closed. The sole
+      // blocked state that remains replayable is the guard emitted when a
+      // second presentation command was attempted while the first one was
+      // already durable and uncertain.
+      return null;
+    }
+    late final AuthorityCommandRequest? pending;
+    try {
+      pending = await _pendingStore.load();
+    } on ClientAuthorityContractViolation catch (error) {
+      _publishPendingStoreBlocked(error.code);
+      return null;
+    } on Object {
+      _publishPendingStoreBlocked('pendingCommandStoreUnavailable');
+      return null;
+    }
+    if (pending == null) {
+      _publish(
+        AuthoritySessionState(
+          status: AuthoritySessionStatus.blocked,
+          snapshot: _state.snapshot,
+          safeErrorCode: 'missingUncertainCommand',
+        ),
+      );
+      return null;
+    }
+    if (pending.family != AuthorityCommandFamily.room) {
+      _publish(
+        AuthoritySessionState(
+          status: AuthoritySessionStatus.blocked,
+          snapshot: _state.snapshot,
+          pendingCommand: pending,
+          safeErrorCode: 'pendingCommandRequiresGameReconnect',
+        ),
+      );
+      return null;
+    }
+    _publish(
+      AuthoritySessionState(
+        status: AuthoritySessionStatus.sending,
+        snapshot: _state.snapshot,
+        pendingCommand: pending,
+      ),
+    );
+    final reply = await _sendSaved(pending);
+    return AuthorityPendingCommandRetry(request: pending, reply: reply);
+  }
+
   void _publishPendingStoreBlocked(String safeErrorCode) {
     _publish(
       AuthoritySessionState(
@@ -286,12 +471,43 @@ final class AuthorityClientSession {
     );
   }
 
-  void watch(String gameId) {
-    _snapshotSubscription?.cancel();
-    _snapshotSubscription = _snapshots
+  /// Begins replacing the confirmed snapshot from one public game stream.
+  ///
+  /// A terminal stream error is deliberately distinct from a contract error:
+  /// an availability failure leaves the exact command/reconnect path usable,
+  /// while a malformed public snapshot fails closed. The optional callback is
+  /// invoked once whenever this watch ends so its owner can explicitly start a
+  /// fresh watch after refresh or reconnect.
+  void watch(String gameId, {void Function(Object? error)? onTerminated}) {
+    final generation = ++_snapshotWatchGeneration;
+    final previous = _snapshotSubscription;
+    _snapshotSubscription = null;
+    if (previous != null) unawaited(previous.cancel());
+    var terminated = false;
+    StreamSubscription<AuthorityPublicSnapshot>? subscription;
+
+    bool isCurrent() => _snapshotWatchGeneration == generation;
+
+    void stopCurrentWatch() {
+      if (!isCurrent()) return;
+      final current = subscription;
+      if (identical(_snapshotSubscription, current)) {
+        _snapshotSubscription = null;
+      }
+      if (current != null) unawaited(current.cancel());
+    }
+
+    void notifyTerminated([Object? error]) {
+      if (terminated || !isCurrent()) return;
+      terminated = true;
+      onTerminated?.call(error);
+    }
+
+    subscription = _snapshots
         .watchGame(gameId)
         .listen(
           (snapshot) {
+            if (terminated || !isCurrent()) return;
             final current = _state.snapshot;
             if (current == null ||
                 snapshot.stateVersion >= current.stateVersion) {
@@ -304,21 +520,49 @@ final class AuthorityClientSession {
               );
             }
           },
-          onError: (_) {
-            _publish(
-              AuthoritySessionState(
-                status: AuthoritySessionStatus.uncertain,
-                snapshot: _state.snapshot,
-                pendingCommand: _state.pendingCommand,
-                safeErrorCode: 'snapshotStreamUnavailable',
-              ),
-            );
+          onError: (Object error, StackTrace _) {
+            if (terminated || !isCurrent()) return;
+            if (error case ClientAuthorityContractViolation(:final code)) {
+              _publish(
+                AuthoritySessionState(
+                  status: AuthoritySessionStatus.blocked,
+                  snapshot: _state.snapshot,
+                  pendingCommand: _state.pendingCommand,
+                  safeErrorCode: code,
+                ),
+              );
+            } else {
+              _publish(
+                AuthoritySessionState(
+                  status: AuthoritySessionStatus.uncertain,
+                  snapshot: _state.snapshot,
+                  pendingCommand: _state.pendingCommand,
+                  safeErrorCode: 'snapshotStreamUnavailable',
+                ),
+              );
+            }
+            notifyTerminated(error);
+            stopCurrentWatch();
+          },
+          onDone: () {
+            if (!isCurrent()) return;
+            if (identical(_snapshotSubscription, subscription)) {
+              _snapshotSubscription = null;
+            }
+            notifyTerminated();
           },
         );
+    _snapshotSubscription = subscription;
+    // A synchronous stream can report an error while [listen] is being set
+    // up. Cancel it after assignment as well so no stale data can revive a
+    // terminated watch.
+    if (terminated) stopCurrentWatch();
   }
 
   Future<void> close() async {
+    _snapshotWatchGeneration += 1;
     await _snapshotSubscription?.cancel();
+    _snapshotSubscription = null;
     await _states.close();
   }
 
@@ -330,8 +574,9 @@ final class AuthorityClientSession {
       if (reply.commandId != request.commandId) {
         throw const ClientAuthorityContractViolation('replyCommandMismatch');
       }
-      await _pendingStore.clear(request.commandId);
-      final rejected = reply.status == AuthorityCommandStatus.rejected;
+      final rejected = reply.isRejectedOutcome;
+      final retainPending = _deferAcceptedPendingClear && !rejected;
+      if (!retainPending) await _pendingStore.clear(request.commandId);
       _publish(
         AuthoritySessionState(
           status: rejected
@@ -339,7 +584,10 @@ final class AuthorityClientSession {
               : AuthoritySessionStatus.confirmed,
           snapshot: reply.snapshot ?? _state.snapshot,
           reply: reply,
-          safeErrorCode: reply.errorCode,
+          pendingCommand: retainPending ? request : null,
+          safeErrorCode: rejected
+              ? reply.errorCode ?? 'durableCommandRejected'
+              : null,
         ),
       );
       return reply;

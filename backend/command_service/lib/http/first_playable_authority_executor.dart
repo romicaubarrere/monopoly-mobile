@@ -371,6 +371,7 @@ final class FirstPlayableRoomTransactionView {
     required this.roomId,
     required this.roomVersion,
     required this.status,
+    this.gameId,
     required this.hostUid,
     required this.presetId,
     required this.rulesVersion,
@@ -382,6 +383,7 @@ final class FirstPlayableRoomTransactionView {
     if (roomId.isEmpty ||
         roomVersion < 0 ||
         status.isEmpty ||
+        gameId != null && gameId!.isEmpty ||
         hostUid.isEmpty ||
         presetId.isEmpty ||
         rulesVersion.isEmpty ||
@@ -398,6 +400,7 @@ final class FirstPlayableRoomTransactionView {
   final String roomId;
   final int roomVersion;
   final String status;
+  final String? gameId;
   final String hostUid;
   final String presetId;
   final String rulesVersion;
@@ -794,6 +797,7 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       'roomId': read.view.roomId,
       'roomVersion': read.view.roomVersion,
       'status': read.view.status,
+      if (read.view.gameId case final gameId?) 'gameId': gameId,
       'hostPlayerId': hostPlayerId,
       'actorPlayerId': actor.playerId,
       'presetId': read.view.presetId,

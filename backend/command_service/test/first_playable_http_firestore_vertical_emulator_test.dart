@@ -290,6 +290,7 @@ Future<_StartedGame> _startGame({
   expect(started.versionBefore, guestReady.versionAfter);
   final gameId = hostContext.gameId;
   await hostSession.close();
+  expect((await guest.watchRoom(roomId).first).gameId, gameId);
   final snapshot = await host.watchGame(gameId).first;
   expect(snapshot.stateVersion, 0);
   return _StartedGame(

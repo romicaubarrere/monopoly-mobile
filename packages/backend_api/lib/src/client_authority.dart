@@ -220,6 +220,7 @@ final class AuthorityPublicRoomSnapshot {
     final roomVersion = this.snapshot['roomVersion'];
     final roomId = this.snapshot['roomId'];
     final status = this.snapshot['status'];
+    final gameId = this.snapshot['gameId'];
     final hostPlayerId = this.snapshot['hostPlayerId'];
     final actorPlayerId = this.snapshot['actorPlayerId'];
     final presetId = this.snapshot['presetId'];
@@ -238,8 +239,11 @@ final class AuthorityPublicRoomSnapshot {
     if (roomId is! String || roomId.isEmpty) {
       throw const ClientAuthorityContractViolation('invalidRoomSnapshotRoomId');
     }
+    if (gameId != null && (gameId is! String || gameId.isEmpty)) {
+      throw const ClientAuthorityContractViolation('invalidRoomSnapshotGameId');
+    }
     if (status is! String ||
-        status.isEmpty ||
+        (status != 'open' && status != 'active') ||
         hostPlayerId is! String ||
         hostPlayerId.isEmpty ||
         actorPlayerId is! String ||
@@ -250,6 +254,12 @@ final class AuthorityPublicRoomSnapshot {
         rulesVersion.isEmpty) {
       throw const ClientAuthorityContractViolation(
         'invalidRoomSnapshotMetadata',
+      );
+    }
+    if ((status == 'open' && gameId != null) ||
+        (status == 'active' && gameId == null)) {
+      throw const ClientAuthorityContractViolation(
+        'inconsistentRoomSnapshotGameRouting',
       );
     }
     if (members is! List<Object?> ||
@@ -285,6 +295,11 @@ final class AuthorityPublicRoomSnapshot {
   int get schemaVersion => snapshot['schemaVersion']! as int;
   int get roomVersion => snapshot['roomVersion']! as int;
   String get roomId => snapshot['roomId']! as String;
+
+  /// Null while the confirmed lobby is still open; set once Authority starts
+  /// its single game for this room. This value is public routing metadata, not
+  /// a client-supplied session identifier.
+  String? get gameId => snapshot['gameId'] as String?;
 
   Map<String, Object?> toWireJson() => snapshot;
 
@@ -334,6 +349,17 @@ final class AuthorityCommandReply {
   final String? errorCode;
   final Map<String, Object?> publicResult;
   final AuthorityPublicSnapshot? snapshot;
+
+  /// Whether Authority's durable result is a safe rejection.
+  ///
+  /// A duplicate is deliberately kept as a transport/idempotency status, but
+  /// it replays the original durable result in [publicResult]. A lost ACK for
+  /// a rejected command must therefore remain rejected when the client retries
+  /// the same command identity.
+  bool get isRejectedOutcome =>
+      status == AuthorityCommandStatus.rejected ||
+      (status == AuthorityCommandStatus.duplicate &&
+          publicResult['status'] == AuthorityCommandStatus.rejected.wireValue);
 
   Map<String, Object?> toWireJson() => <String, Object?>{
     'commandId': commandId,

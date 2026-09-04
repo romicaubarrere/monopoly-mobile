@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:board_backend_api/backend_api.dart';
 import 'package:test/test.dart';
 
@@ -43,6 +45,21 @@ void main() {
     },
   );
 
+  test('Start bounds a retrying room read before command transport', () async {
+    final fixture = _Fixture(
+      roomSnapshotReadTimeout: const Duration(milliseconds: 1),
+    )..gateway.hangRoomSnapshot = true;
+    addTearDown(fixture.close);
+
+    final result = await fixture.binding.perform(
+      FirstPlayableAuthorityAction.startGame,
+    );
+
+    expect(result.outcome, FirstPlayableAuthorityOutcome.blocked);
+    expect(result.safeErrorCode, 'roomSnapshotUnavailable');
+    expect(fixture.gateway.sent, isEmpty);
+  });
+
   test(
     'binding exposes safe rejection without optimistic acceptance',
     () async {
@@ -84,6 +101,55 @@ void main() {
     expect(result.safeErrorCode, 'durableCommandRejected');
     expect(fixture.store.value, isNull);
   });
+
+  test(
+    'reconnect retries an uncertain room command without a game id',
+    () async {
+      final fixture = _Fixture()
+        ..gateway.failSend = true
+        ..context.gameAvailable = false;
+      final first = await fixture.binding.perform(
+        FirstPlayableAuthorityAction.setReady,
+      );
+      fixture.gateway.failSend = false;
+
+      final retried = await fixture.binding.perform(
+        FirstPlayableAuthorityAction.reconnect,
+      );
+
+      expect(first.outcome, FirstPlayableAuthorityOutcome.uncertain);
+      expect(retried.outcome, FirstPlayableAuthorityOutcome.accepted);
+      expect(fixture.gateway.reconnects, 0);
+      expect(fixture.gateway.sent, hasLength(2));
+      expect(fixture.gateway.sent.first, same(fixture.gateway.sent.last));
+      expect(fixture.store.value, isNull);
+    },
+  );
+
+  test(
+    'room replay keeps a durable duplicate rejection visibly rejected',
+    () async {
+      final fixture = _Fixture()
+        ..gateway.failSend = true
+        ..context.gameAvailable = false;
+      final first = await fixture.binding.perform(
+        FirstPlayableAuthorityAction.setReady,
+      );
+      fixture.gateway
+        ..failSend = false
+        ..replayRejected = true;
+
+      final replayed = await fixture.binding.perform(
+        FirstPlayableAuthorityAction.reconnect,
+      );
+
+      expect(first.outcome, FirstPlayableAuthorityOutcome.uncertain);
+      expect(replayed.outcome, FirstPlayableAuthorityOutcome.rejected);
+      expect(replayed.safeErrorCode, 'staleVersion');
+      expect(fixture.context.applyCalls, 0);
+      expect(fixture.store.value, isNull);
+    },
+  );
 
   test('pending store fault blocks reconnect without transport', () async {
     final fixture = _Fixture()..store.failLoad = true;
@@ -134,7 +200,7 @@ void main() {
 }
 
 final class _Fixture {
-  _Fixture() {
+  _Fixture({Duration roomSnapshotReadTimeout = const Duration(seconds: 10)}) {
     session = AuthorityClientSession(
       gateway: gateway,
       snapshots: gateway,
@@ -154,6 +220,7 @@ final class _Fixture {
       session: session,
       requests: requests,
       roomSnapshots: gateway,
+      roomSnapshotReadTimeout: roomSnapshotReadTimeout,
     );
   }
 
@@ -164,16 +231,25 @@ final class _Fixture {
   late final AuthorityClientSession session;
   late final ConfirmedFirstPlayableRequestResolver requests;
   late final SessionFirstPlayableAuthorityBinding binding;
+
+  Future<void> close() async {
+    await session.close();
+    await gateway.close();
+  }
 }
 
 final class _Context implements FirstPlayableConfirmedContext {
   int _roomVersion = 6;
+  bool gameAvailable = true;
+  int applyCalls = 0;
 
   @override
   void applyCommandReply(
     AuthorityCommandRequest request,
     AuthorityCommandReply reply,
-  ) {}
+  ) {
+    applyCalls += 1;
+  }
 
   @override
   String get actorPlayerId => 'player-1';
@@ -182,7 +258,12 @@ final class _Context implements FirstPlayableConfirmedContext {
   String get auctionId => 'auction-1';
 
   @override
-  String get gameId => 'game-1';
+  String get gameId {
+    if (!gameAvailable) {
+      throw const ClientAuthorityContractViolation('confirmedGameUnavailable');
+    }
+    return 'game-1';
+  }
 
   @override
   String get propertyDecisionId => 'decision-1';
@@ -242,16 +323,41 @@ final class _Gateway
   final List<AuthorityCommandRequest> sent = <AuthorityCommandRequest>[];
   bool reject = false;
   bool failSend = false;
+  bool replayRejected = false;
   bool reconnectRejected = false;
   bool failRoomSnapshot = false;
+  bool hangRoomSnapshot = false;
   int roomSnapshotVersion = 6;
   int roomReads = 0;
   int reconnects = 0;
+  final StreamController<AuthorityPublicRoomSnapshot> _hangingRoomSnapshots =
+      StreamController<AuthorityPublicRoomSnapshot>.broadcast();
 
   @override
   Future<AuthorityCommandReply> send(AuthorityCommandRequest request) async {
     sent.add(request);
     if (failSend) throw StateError('transport unavailable');
+    if (replayRejected) {
+      final expected =
+          (request.command['expectedStateVersion'] ??
+                  request.command['expectedRoomVersion'] ??
+                  0)
+              as int;
+      return AuthorityCommandReply(
+        commandId: request.commandId,
+        status: AuthorityCommandStatus.duplicate,
+        versionBefore: expected,
+        versionAfter: expected,
+        errorCode: 'staleVersion',
+        publicResult: <String, Object?>{
+          'commandId': request.commandId,
+          'status': 'rejected',
+          'stateVersionBefore': expected,
+          'stateVersionAfter': expected,
+          'errorCode': 'staleVersion',
+        },
+      );
+    }
     if (reject) {
       return AuthorityCommandReply(
         commandId: request.commandId,
@@ -300,27 +406,36 @@ final class _Gateway
       const Stream<AuthorityPublicSnapshot>.empty();
 
   @override
-  Stream<AuthorityPublicRoomSnapshot> watchRoom(String roomId) async* {
+  Stream<AuthorityPublicRoomSnapshot> watchRoom(String roomId) {
     roomReads += 1;
-    if (failRoomSnapshot) throw StateError('snapshot unavailable');
-    yield AuthorityPublicRoomSnapshot(<String, Object?>{
-      'schemaVersion': 1,
-      'roomId': roomId,
-      'roomVersion': roomSnapshotVersion,
-      'status': 'open',
-      'hostPlayerId': 'player-1',
-      'actorPlayerId': 'player-1',
-      'presetId': 'synthetic-vp0',
-      'rulesVersion': 'synthetic-rules-vp0',
-      'members': const <Object?>[
-        <String, Object?>{
-          'playerId': 'player-1',
-          'kind': 'human',
-          'ready': true,
-        },
-      ],
-    });
+    if (failRoomSnapshot) {
+      return Stream<AuthorityPublicRoomSnapshot>.error(
+        StateError('snapshot unavailable'),
+      );
+    }
+    if (hangRoomSnapshot) return _hangingRoomSnapshots.stream;
+    return Stream<AuthorityPublicRoomSnapshot>.value(
+      AuthorityPublicRoomSnapshot(<String, Object?>{
+        'schemaVersion': 1,
+        'roomId': roomId,
+        'roomVersion': roomSnapshotVersion,
+        'status': 'open',
+        'hostPlayerId': 'player-1',
+        'actorPlayerId': 'player-1',
+        'presetId': 'synthetic-vp0',
+        'rulesVersion': 'synthetic-rules-vp0',
+        'members': const <Object?>[
+          <String, Object?>{
+            'playerId': 'player-1',
+            'kind': 'human',
+            'ready': true,
+          },
+        ],
+      }),
+    );
   }
+
+  Future<void> close() => _hangingRoomSnapshots.close();
 }
 
 AuthorityPublicSnapshot _snapshot(int version) =>

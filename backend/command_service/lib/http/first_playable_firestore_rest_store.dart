@@ -803,6 +803,7 @@ FirstPlayableRoomTransactionView _decodeRoomTransaction(
     roomId: _requiredString(publicRoom, 'roomId'),
     roomVersion: _requiredInt(publicRoom, 'roomVersion'),
     status: _requiredString(publicRoom, 'status'),
+    gameId: _optionalString(publicRoom, 'gameId'),
     hostUid: _requiredString(publicRoom, 'hostUid'),
     presetId: _requiredString(publicRoom, 'presetId'),
     rulesVersion: _requiredString(publicRoom, 'frozenRulesVersion'),

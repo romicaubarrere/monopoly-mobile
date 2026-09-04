@@ -40,6 +40,19 @@ void main() {
       expect(plan.stateAfter.activeAuction, isNull);
       expect(plan.stateAfter.turnState['phase'], 'turnResolved');
       expect(plan.events.single.type, 'propertyPurchased');
+      expect(plan.stateAfter.lastMutation, <String, Object?>{
+        'type': 'buyAuction',
+        'commandId': 'cmd-1',
+        'actorPlayerId': 'p1',
+        'outcome': <String, Object?>{
+          'type': 'propertyPurchased',
+          'data': <String, Object?>{
+            'playerId': 'p1',
+            'propertyId': 'street-07',
+            'price': 107,
+          },
+        },
+      });
     });
 
     test('Buy retry is byte-identical and does not mutate source state', () {
@@ -63,7 +76,7 @@ void main() {
 
       expect(
         digest.toString(),
-        'd3a6f7422927db4f353cfb6e105b7834847bc0c024d554c7f4ddbed5feed3be3', // pragma: allowlist secret
+        '94d065e2b7bc94d268c14e37e10eb2bae4d9a70f4e203a5d489250c74086d69c', // pragma: allowlist secret
       );
     });
 
@@ -152,6 +165,7 @@ void main() {
         'propertyDeclined',
         'auctionStarted',
       ]);
+      expect(plan.stateAfter.lastMutation, isNot(contains('outcome')));
     });
 
     test('bid rotates to next challenger and enforces increment and cash', () {
@@ -176,6 +190,7 @@ void main() {
       expect(bid.stateAfter.pendingDecision!['allowedPlayerIds'], <Object?>[
         'p2',
       ]);
+      expect(bid.stateAfter.lastMutation, isNot(contains('outcome')));
 
       _expectRejected(
         evaluate(
@@ -241,6 +256,21 @@ void main() {
       ]);
       expect(won.events.last.type, 'auctionWon');
       expect(won.events.last.data, containsPair('winningBid', 40));
+      expect(won.stateAfter.lastMutation, <String, Object?>{
+        'type': 'buyAuction',
+        'commandId': 'cmd-1',
+        // The adjudicating pass is not necessarily the winner.
+        'actorPlayerId': 'p2',
+        'outcome': <String, Object?>{
+          'type': 'auctionWon',
+          'data': <String, Object?>{
+            'auctionId': 'cmd-1:auction',
+            'propertyId': 'street-07',
+            'winnerPlayerId': 'p1',
+            'winningBid': 40,
+          },
+        },
+      });
     });
 
     test('all players passing ends explicitly without a winner', () {
@@ -274,6 +304,18 @@ void main() {
       expect(_playerIn(secondPass.stateAfter, 'p1').cash, 2000);
       expect(_playerIn(secondPass.stateAfter, 'p2').cash, 2000);
       expect(secondPass.stateAfter.ownership['byPropertyId'], isNull);
+      expect(secondPass.stateAfter.lastMutation, <String, Object?>{
+        'type': 'buyAuction',
+        'commandId': 'cmd-1',
+        'actorPlayerId': 'p2',
+        'outcome': <String, Object?>{
+          'type': 'auctionEndedWithoutWinner',
+          'data': <String, Object?>{
+            'auctionId': 'cmd-1:auction',
+            'propertyId': 'street-07',
+          },
+        },
+      });
     });
 
     test('passed bidder cannot re-enter and non-current bidder cannot act', () {

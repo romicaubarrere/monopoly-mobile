@@ -70,6 +70,14 @@
       "lastMutation": {
         "actorPlayerId": "p1",
         "commandId": "cmd-offer-1",
+        "outcome": {
+          "data": {
+            "playerId": "p1",
+            "price": 107,
+            "propertyId": "street-07"
+          },
+          "type": "propertyPurchased"
+        },
         "type": "buyAuction"
       }
     },
@@ -376,6 +384,15 @@
       "lastMutation": {
         "actorPlayerId": "p2",
         "commandId": "deadline:v1:cmd-offer-1:auction:turn:3",
+        "outcome": {
+          "data": {
+            "auctionId": "cmd-offer-1:auction",
+            "propertyId": "street-07",
+            "winnerPlayerId": "p1",
+            "winningBid": 40
+          },
+          "type": "auctionWon"
+        },
         "type": "buyAuction"
       }
     },

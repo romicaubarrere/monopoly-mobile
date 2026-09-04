@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:board_backend_api/backend_api.dart';
 import 'package:board_mobile/main.dart';
 import 'package:board_mobile/ui/first_playable/live_first_playable_app.dart';
@@ -24,6 +26,23 @@ final class _NoopLiveAuthority implements LiveFirstPlayableAuthority {
 
   @override
   String? get latestCreatedRoomCode => null;
+
+  @override
+  AuthorityPublicRoomSnapshot? get confirmedLobbySnapshot => null;
+
+  @override
+  AuthorityPublicSnapshot? get confirmedGameSnapshot => null;
+
+  @override
+  bool get requiresReconciliation => false;
+
+  @override
+  Stream<AuthorityPublicRoomSnapshot> get lobbySnapshots =>
+      const Stream<AuthorityPublicRoomSnapshot>.empty();
+
+  @override
+  Stream<AuthorityPublicSnapshot> get gameSnapshots =>
+      const Stream<AuthorityPublicSnapshot>.empty();
 
   @override
   Future<FirstPlayableAuthorityResult> perform(
