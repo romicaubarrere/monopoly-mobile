@@ -5,6 +5,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 ARTIFACTS="$ROOT/build/tier1-android"
 mkdir -p "$ARTIFACTS"
+# Preserve the foreground build/ADB/UI failure in the uploaded artifact. Avoid
+# shell xtrace here because the Authority HMAC is intentionally process-private.
+exec > >(tee "$ARTIFACTS/tier1.log") 2>&1
 
 firebase_pid=""
 authority_pid=""
