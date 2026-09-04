@@ -50,7 +50,7 @@ Future<void> main(List<String> args) async {
     stdout.writeln('TIER1_GUEST_READY');
 
     final actorPlayerId = await _waitForActor(client);
-    await _waitForAuctionTurnAndPass(client, actorPlayerId);
+    await _playUntilAuctionPass(client, actorPlayerId);
     stdout.writeln('TIER1_GUEST_AUCTION_PASS');
   } finally {
     await client.close(forceTransport: true);
@@ -93,7 +93,7 @@ Future<String> _waitForActor(FirstPlayableAuthorityClient client) async {
   throw StateError('guestActorUnavailable');
 }
 
-Future<void> _waitForAuctionTurnAndPass(
+Future<void> _playUntilAuctionPass(
   FirstPlayableAuthorityClient client,
   String actorPlayerId,
 ) async {
@@ -106,13 +106,29 @@ Future<void> _waitForAuctionTurnAndPass(
       if (snapshot != null) {
         final turn = snapshot['turnState'];
         if (turn is Map<String, Object?> &&
-            turn['phase'] == 'awaitingAuctionBid' &&
             turn['currentPlayerId'] == actorPlayerId) {
-          _requireAccepted(
-            await client.perform(FirstPlayableAuthorityAction.passAuction),
-            'guest-pass-auction',
-          );
-          return;
+          switch (turn['phase']) {
+            case 'awaitingRoll':
+              _requireAccepted(
+                await client.perform(FirstPlayableAuthorityAction.roll),
+                'guest-roll',
+              );
+              continue;
+            case 'awaitingPropertyDecision':
+              _requireAccepted(
+                await client.perform(
+                  FirstPlayableAuthorityAction.declineProperty,
+                ),
+                'guest-decline-property',
+              );
+              continue;
+            case 'awaitingAuctionBid':
+              _requireAccepted(
+                await client.perform(FirstPlayableAuthorityAction.passAuction),
+                'guest-pass-auction',
+              );
+              return;
+          }
         }
       }
     } on TimeoutException {

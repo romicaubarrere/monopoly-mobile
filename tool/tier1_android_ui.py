@@ -59,6 +59,16 @@ def wait_text(text, timeout=30):
     raise RuntimeError(f"text not visible: {text}")
 
 
+def wait_any(texts, timeout=30):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        for text in texts:
+            if find_text(text) is not None:
+                return text
+        time.sleep(0.4)
+    raise RuntimeError(f"none of the texts are visible: {', '.join(texts)}")
+
+
 def tap_text(text, timeout=30, scroll=True):
     deadline = time.time() + timeout
     while time.time() < deadline:
@@ -110,6 +120,8 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("room-code")
     sub.add_parser("dismiss-anr")
+    wait_any_parser = sub.add_parser("wait-any")
+    wait_any_parser.add_argument("texts", nargs="+")
     tap = sub.add_parser("tap")
     tap.add_argument("text")
     wait = sub.add_parser("wait")
@@ -122,6 +134,8 @@ def main():
         print(room_code())
     elif args.command == "dismiss-anr":
         dismiss_anr()
+    elif args.command == "wait-any":
+        print(wait_any(args.texts))
     elif args.command == "tap":
         tap_text(args.text)
     elif args.command == "wait":

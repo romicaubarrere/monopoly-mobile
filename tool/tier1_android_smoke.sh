@@ -133,28 +133,28 @@ wait_log "$ARTIFACTS/guest.log" TIER1_GUEST_READY
 
 python3 tool/tier1_android_ui.py tap "Actualizar lobby"
 python3 tool/tier1_android_ui.py wait "Estoy lista"
-python3 tool/tier1_android_ui.py tap "Estoy lista"
-python3 tool/tier1_android_ui.py tap "Actualizar lobby"
-python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/02-two-member-ready-lobby.png"
-python3 tool/tier1_android_ui.py tap "Empezar partida"
-python3 tool/tier1_android_ui.py wait "Tu turno"
-python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/03-started-board.png"
-
-# Stop Authority for one command. Removing adb reverse alone is insufficient
-# because an existing HTTP connection can remain usable. Firestore retains the
-# durable state, and restarting with the same HMAC key preserves identities.
+# Exercise durable recovery on a host action that is available regardless of
+# which player Authority selects for the first game turn.
 kill "$authority_pid"
 wait "$authority_pid" || true
 authority_pid=""
-python3 tool/tier1_android_ui.py tap "Tirar dados"
+python3 tool/tier1_android_ui.py tap "Estoy lista"
 python3 tool/tier1_android_ui.py wait "Recuperá el estado confirmado"
-python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/04-reconnect-required.png"
+python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/02-reconnect-required.png"
 start_authority
 python3 tool/tier1_android_ui.py tap "Reconciliar"
-python3 tool/tier1_android_ui.py wait "Decisión confirmada"
-python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/05-movement-property.png"
+python3 tool/tier1_android_ui.py tap "Actualizar lobby"
+python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/03-two-member-ready-lobby.png"
+python3 tool/tier1_android_ui.py tap "Empezar partida"
+starter="$(python3 tool/tier1_android_ui.py wait-any "Tu turno" "Esperando turno")"
+python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/04-started-board.png"
 
-python3 tool/tier1_android_ui.py tap "No comprar · abrir subasta"
+if [[ "$starter" == "Tu turno" ]]; then
+  python3 tool/tier1_android_ui.py tap "Tirar dados"
+  python3 tool/tier1_android_ui.py wait "Decisión confirmada"
+  python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/05-movement-property.png"
+  python3 tool/tier1_android_ui.py tap "No comprar · abrir subasta"
+fi
 python3 tool/tier1_android_ui.py wait "Subasta autoritativa"
 python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/06-auction.png"
 # Whichever participant owns the first bid acts first. The guest helper waits
