@@ -908,8 +908,8 @@ AuthorityPublicSnapshot _gameSnapshot({
       'currentBid': 10,
       'currentBidderPlayerId': 'player-host',
     },
-  if (lastMutation != null) 'lastMutation': lastMutation,
-  if (ownership != null) 'ownership': ownership,
+  'lastMutation': ?lastMutation,
+  'ownership': ?ownership,
 });
 
 Map<String, Object?> _buyAuctionMutation(Map<String, Object?> outcome) =>
