@@ -45,7 +45,9 @@ wait_log() {
 }
 
 npm --prefix tool/firebase ci --ignore-scripts --no-audit --no-fund
+npm --prefix tool/firebase run prepare:stream-json-v3-compat
 ./tool/firebase/node_modules/.bin/firebase emulators:start \
+  --config "$ROOT/firebase.json" \
   --project demo-board-game-local --only auth,firestore \
   >"$ARTIFACTS/firebase.log" 2>&1 &
 firebase_pid=$!
