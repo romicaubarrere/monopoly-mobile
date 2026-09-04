@@ -99,20 +99,29 @@ Future<void> _waitForAuctionTurnAndPass(
 ) async {
   final deadline = DateTime.now().add(const Duration(seconds: 90));
   while (DateTime.now().isBefore(deadline)) {
-    await client.refreshConfirmedRoom();
-    final game = client.confirmedGameSnapshot;
-    final snapshot = game?.snapshot;
-    if (snapshot != null) {
-      final turn = snapshot['turnState'];
-      if (turn is Map<String, Object?> &&
-          turn['phase'] == 'awaitingAuctionBid' &&
-          turn['currentPlayerId'] == actorPlayerId) {
-        _requireAccepted(
-          await client.perform(FirstPlayableAuthorityAction.passAuction),
-          'guest-pass-auction',
-        );
-        return;
+    try {
+      await client.refreshConfirmedRoom();
+      final game = client.confirmedGameSnapshot;
+      final snapshot = game?.snapshot;
+      if (snapshot != null) {
+        final turn = snapshot['turnState'];
+        if (turn is Map<String, Object?> &&
+            turn['phase'] == 'awaitingAuctionBid' &&
+            turn['currentPlayerId'] == actorPlayerId) {
+          _requireAccepted(
+            await client.perform(FirstPlayableAuthorityAction.passAuction),
+            'guest-pass-auction',
+          );
+          return;
+        }
       }
+    } on TimeoutException {
+      // Authority is deliberately restarted by the Android reconnect smoke.
+      // A same-room refresh restarts the authenticated game watch once the
+      // service is available again.
+    } on AuthorityTransportException {
+      // The bounded poll retries only transport loss; contract failures remain
+      // fatal so the gate cannot hide an invalid public snapshot.
     }
     await Future<void>.delayed(const Duration(milliseconds: 350));
   }
