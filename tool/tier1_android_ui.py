@@ -21,9 +21,15 @@ def adb(*args, capture=True):
 
 
 def nodes():
-    adb("shell", "uiautomator", "dump", "/sdcard/window.xml")
-    xml = adb("exec-out", "cat", "/sdcard/window.xml")
-    return list(ET.fromstring(xml).iter("node"))
+    try:
+        adb("shell", "uiautomator", "dump", "/sdcard/window.xml")
+        xml = adb("exec-out", "cat", "/sdcard/window.xml")
+        return list(ET.fromstring(xml).iter("node"))
+    except (subprocess.CalledProcessError, ET.ParseError):
+        # The accessibility hierarchy can be temporarily unavailable while
+        # Flutter's first frame is attaching. Let the caller's bounded poll
+        # retry instead of failing the Tier-1 run on one empty dump.
+        return []
 
 
 def center(bounds):
