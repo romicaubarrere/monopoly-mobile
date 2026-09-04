@@ -1,0 +1,30 @@
+# Scoped, expiring exceptions for the Firebase Emulator test harness only.
+# These packages are transitive dev-only dependencies under tool/firebase and
+# are not packaged into the Flutter app or the Authority runtime. Keep OSV
+# scanning enabled for every other dependency and remove each exception as soon
+# as the upstream Firebase toolchain admits the patched major/version.
+
+[[IgnoredVulns]]
+id = "GHSA-8988-4f7v-96qf"
+ignoreUntil = 2026-09-18
+reason = "@opentelemetry/core 1.30.1 is constrained transitively by the pinned Firebase Emulator toolchain; the affected inbound W3C baggage propagator is not used by the local emulator test path, and forcing 2.8.0 would cross the upstream major constraint. Emulator-only dev dependency; not shipped."
+
+[[IgnoredVulns]]
+id = "GHSA-4mjr-xmp4-gh2g"
+ignoreUntil = 2026-09-18
+reason = "qs 6.15.3 is a transitive dependency of the pinned Firebase Emulator test toolchain. It is dev-only under tool/firebase and not shipped in the mobile or Authority runtime; retain the exception only until the upstream graph admits 6.16.0."
+
+[[IgnoredVulns]]
+id = "GHSA-x5fp-wj9c-mxmx"
+ignoreUntil = 2026-09-18
+reason = "qs 6.15.3 is a transitive dependency of the pinned Firebase Emulator test toolchain. It is dev-only under tool/firebase and not shipped in the mobile or Authority runtime; retain the exception only until the upstream graph admits 6.16.0."
+
+[[IgnoredVulns]]
+id = "GHSA-528h-pc64-c93x"
+ignoreUntil = 2026-09-18
+reason = "stream-json 1.9.1 is transitive to the pinned Firebase Emulator CLI. The test harness processes repository-controlled emulator data only; this package is dev-only and not shipped. A forced 3.5.0 major override is not accepted without upstream compatibility evidence."
+
+[[IgnoredVulns]]
+id = "GHSA-w5hq-g745-h8pq"
+ignoreUntil = 2026-09-18
+reason = "uuid 9.0.1 is transitive to the pinned Firebase Emulator CLI. The advisory affects v3/v5/v6 calls with caller-provided output buffers; the emulator harness does not expose such an API and the dependency is dev-only/not shipped. Remove when upstream admits 11.1.1 or later."
