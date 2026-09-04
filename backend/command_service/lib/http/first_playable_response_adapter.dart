@@ -1,5 +1,6 @@
 import 'package:board_backend_api/backend_api.dart' as api;
 
+import '../bankruptcy_transition_planner.dart';
 import '../buy_auction_planner.dart';
 import '../reconnect_planner.dart' as planner;
 import '../roll_movement_planner.dart';
@@ -54,6 +55,29 @@ abstract final class FirstPlayableResponseAdapter {
     ),
     AuthorityBuyAuctionNoOp(:final reason) =>
       throw AuthorityBuyAuctionViolation('nonCommandEvaluation:$reason'),
+  };
+
+  static api.AuthorityCommandReply bankruptcy(
+    AuthorityBankruptcyEvaluation evaluation,
+  ) => switch (evaluation) {
+    AuthorityBankruptcyAccepted(:final plan) => api.AuthorityCommandReply(
+      commandId: plan.enginePlan.commandId,
+      status: api.AuthorityCommandStatus.accepted,
+      versionBefore: plan.enginePlan.stateVersionBefore,
+      versionAfter: plan.enginePlan.stateVersionAfter,
+      publicResult: plan.safeResultSummary,
+      snapshot: api.AuthorityPublicSnapshot(plan.stateAfter.toJson()),
+    ),
+    AuthorityBankruptcyRejected(:final rejection) => api.AuthorityCommandReply(
+      commandId: rejection.commandId,
+      status: api.AuthorityCommandStatus.rejected,
+      versionBefore: rejection.stateVersionBefore,
+      versionAfter: rejection.stateVersionAfter,
+      errorCode: rejection.errorCode.wireValue,
+      publicResult: rejection.toPublicJson(),
+    ),
+    AuthorityBankruptcyNoOp(:final reason) =>
+      throw AuthorityBankruptcyViolation('nonCommandEvaluation:$reason'),
   };
 
   /// Replays a persisted command result without re-invoking Engine or RNG.

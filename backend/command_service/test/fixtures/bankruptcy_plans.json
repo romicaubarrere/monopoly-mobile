@@ -1,0 +1,888 @@
+{
+  "declareA": {
+    "command": {
+      "commandId": "cmd-bankruptcy-a",
+      "schemaVersion": 1,
+      "expectedStateVersion": 1,
+      "clientInstanceId": "client-1",
+      "gameId": "game-vp0",
+      "actorPlayerId": "p1",
+      "type": "DeclareBankruptcy",
+      "payload": {
+        "debtCaseId": "debt-1",
+        "decisionId": "debt-1:decision"
+      }
+    },
+    "inputHashMarker": "5d2d3b8e25210c04c5542f6dc03ab1daf8d2c0de5ea89abd556a38e3d83cb052",
+    "initialState": {
+      "schemaVersion": 1,
+      "stateVersion": 1,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-vp0",
+      "roomId": "room-vp0",
+      "status": "active",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "debtResolution",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 7,
+          "position": 0,
+          "ownedPropertyIds": [
+            "street-00"
+          ],
+          "keepCards": [
+            "keep-a"
+          ],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p1",
+          "controller": "human",
+          "humanReclaimPending": false
+        },
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {
+          "street-00": "p1"
+        },
+        "properties": [
+          {
+            "improvementLevel": 0,
+            "kind": "street",
+            "mortgaged": true,
+            "ownerPlayerId": "p1",
+            "propertyId": "street-00"
+          }
+        ]
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit",
+        "keepCardIds": []
+      },
+      "freeParkingPot": 0,
+      "deckPublicState": {},
+      "pendingDecision": {
+        "allowedPlayerIds": [
+          "p1"
+        ],
+        "createdAt": "2026-08-25T04:29:00.000Z",
+        "deadlineAt": "2026-08-25T04:30:00.000Z",
+        "decisionId": "debt-1:decision",
+        "kind": "debtResolution",
+        "stateVersionCreated": 1,
+        "timeoutPolicy": "declareBankruptcy"
+      },
+      "debtCase": {
+        "amountDue": 500,
+        "creditor": {
+          "kind": "player",
+          "playerId": "p2"
+        },
+        "debtCaseId": "debt-1",
+        "debtorPlayerId": "p1",
+        "status": "open"
+      },
+      "lastMutation": {
+        "type": "debtOpened"
+      }
+    },
+    "stateAfter": {
+      "schemaVersion": 1,
+      "stateVersion": 2,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-vp0",
+      "roomId": "room-vp0",
+      "status": "finished",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "gameFinished",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "bankrupt",
+          "cash": 0,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "finished",
+          "cash": 2007,
+          "position": 0,
+          "ownedPropertyIds": [
+            "street-00"
+          ],
+          "keepCards": [
+            "keep-a"
+          ],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {
+          "street-00": "p2"
+        },
+        "properties": [
+          {
+            "improvementLevel": 0,
+            "kind": "street",
+            "mortgaged": true,
+            "ownerPlayerId": "p2",
+            "propertyId": "street-00"
+          }
+        ]
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit",
+        "keepCardIds": []
+      },
+      "freeParkingPot": 0,
+      "deckPublicState": {},
+      "result": {
+        "reason": "lastSolventPlayer",
+        "winnerPlayerId": "p2"
+      },
+      "lastMutation": {
+        "actorPlayerId": "p1",
+        "commandId": "cmd-bankruptcy-a",
+        "type": "bankruptcyTransition"
+      }
+    },
+    "resultSummary": {
+      "commandId": "cmd-bankruptcy-a",
+      "status": "accepted",
+      "stateVersionBefore": 1,
+      "stateVersionAfter": 2,
+      "bankruptcyDeclared": true,
+      "events": [
+        {
+          "type": "bankruptcyDeclared",
+          "data": {
+            "cashTransferred": 7,
+            "creditorKind": "player",
+            "creditorPlayerId": "p2",
+            "debtCaseId": "debt-1",
+            "debtorPlayerId": "p1",
+            "keepCardIds": [
+              "keep-a"
+            ],
+            "propertyIds": [
+              "street-00"
+            ]
+          }
+        },
+        {
+          "type": "gameFinished",
+          "data": {
+            "winnerPlayerId": "p2"
+          }
+        }
+      ]
+    }
+  },
+  "declareB": {
+    "command": {
+      "commandId": "cmd-bankruptcy-b",
+      "schemaVersion": 1,
+      "expectedStateVersion": 1,
+      "clientInstanceId": "client-1",
+      "gameId": "game-vp0",
+      "actorPlayerId": "p1",
+      "type": "DeclareBankruptcy",
+      "payload": {
+        "debtCaseId": "debt-1",
+        "decisionId": "debt-1:decision"
+      }
+    },
+    "inputHashMarker": "5d2d3b8e25210c04c5542f6dc03ab1daf8d2c0de5ea89abd556a38e3d83cb052",
+    "initialState": {
+      "schemaVersion": 1,
+      "stateVersion": 1,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-vp0",
+      "roomId": "room-vp0",
+      "status": "active",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "debtResolution",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 7,
+          "position": 0,
+          "ownedPropertyIds": [
+            "street-00"
+          ],
+          "keepCards": [
+            "keep-a"
+          ],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p1",
+          "controller": "human",
+          "humanReclaimPending": false
+        },
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {
+          "street-00": "p1"
+        },
+        "properties": [
+          {
+            "improvementLevel": 0,
+            "kind": "street",
+            "mortgaged": true,
+            "ownerPlayerId": "p1",
+            "propertyId": "street-00"
+          }
+        ]
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit",
+        "keepCardIds": []
+      },
+      "freeParkingPot": 0,
+      "deckPublicState": {},
+      "pendingDecision": {
+        "allowedPlayerIds": [
+          "p1"
+        ],
+        "createdAt": "2026-08-25T04:29:00.000Z",
+        "deadlineAt": "2026-08-25T04:30:00.000Z",
+        "decisionId": "debt-1:decision",
+        "kind": "debtResolution",
+        "stateVersionCreated": 1,
+        "timeoutPolicy": "declareBankruptcy"
+      },
+      "debtCase": {
+        "amountDue": 500,
+        "creditor": {
+          "kind": "player",
+          "playerId": "p2"
+        },
+        "debtCaseId": "debt-1",
+        "debtorPlayerId": "p1",
+        "status": "open"
+      },
+      "lastMutation": {
+        "type": "debtOpened"
+      }
+    },
+    "stateAfter": {
+      "schemaVersion": 1,
+      "stateVersion": 2,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-vp0",
+      "roomId": "room-vp0",
+      "status": "finished",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "gameFinished",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "bankrupt",
+          "cash": 0,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "finished",
+          "cash": 2007,
+          "position": 0,
+          "ownedPropertyIds": [
+            "street-00"
+          ],
+          "keepCards": [
+            "keep-a"
+          ],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {
+          "street-00": "p2"
+        },
+        "properties": [
+          {
+            "improvementLevel": 0,
+            "kind": "street",
+            "mortgaged": true,
+            "ownerPlayerId": "p2",
+            "propertyId": "street-00"
+          }
+        ]
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit",
+        "keepCardIds": []
+      },
+      "freeParkingPot": 0,
+      "deckPublicState": {},
+      "result": {
+        "reason": "lastSolventPlayer",
+        "winnerPlayerId": "p2"
+      },
+      "lastMutation": {
+        "actorPlayerId": "p1",
+        "commandId": "cmd-bankruptcy-b",
+        "type": "bankruptcyTransition"
+      }
+    },
+    "resultSummary": {
+      "commandId": "cmd-bankruptcy-b",
+      "status": "accepted",
+      "stateVersionBefore": 1,
+      "stateVersionAfter": 2,
+      "bankruptcyDeclared": true,
+      "events": [
+        {
+          "type": "bankruptcyDeclared",
+          "data": {
+            "cashTransferred": 7,
+            "creditorKind": "player",
+            "creditorPlayerId": "p2",
+            "debtCaseId": "debt-1",
+            "debtorPlayerId": "p1",
+            "keepCardIds": [
+              "keep-a"
+            ],
+            "propertyIds": [
+              "street-00"
+            ]
+          }
+        },
+        {
+          "type": "gameFinished",
+          "data": {
+            "winnerPlayerId": "p2"
+          }
+        }
+      ]
+    }
+  },
+  "deadline": {
+    "command": {
+      "commandId": "deadline:v1:debt-1:decision",
+      "schemaVersion": 1,
+      "expectedStateVersion": 1,
+      "clientInstanceId": "authority-system",
+      "gameId": "game-vp0",
+      "actorPlayerId": "p1",
+      "type": "DeclareBankruptcy",
+      "payload": {
+        "debtCaseId": "debt-1",
+        "decisionId": "debt-1:decision"
+      }
+    },
+    "inputHashMarker": "5d2d3b8e25210c04c5542f6dc03ab1daf8d2c0de5ea89abd556a38e3d83cb052",
+    "initialState": {
+      "schemaVersion": 1,
+      "stateVersion": 1,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-vp0",
+      "roomId": "room-vp0",
+      "status": "active",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "debtResolution",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 7,
+          "position": 0,
+          "ownedPropertyIds": [
+            "street-00"
+          ],
+          "keepCards": [
+            "keep-a"
+          ],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 2000,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p1",
+          "controller": "human",
+          "humanReclaimPending": false
+        },
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {
+          "street-00": "p1"
+        },
+        "properties": [
+          {
+            "improvementLevel": 0,
+            "kind": "street",
+            "mortgaged": true,
+            "ownerPlayerId": "p1",
+            "propertyId": "street-00"
+          }
+        ]
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit",
+        "keepCardIds": []
+      },
+      "freeParkingPot": 0,
+      "deckPublicState": {},
+      "pendingDecision": {
+        "allowedPlayerIds": [
+          "p1"
+        ],
+        "createdAt": "2026-08-25T04:29:00.000Z",
+        "deadlineAt": "2026-08-25T04:30:00.000Z",
+        "decisionId": "debt-1:decision",
+        "kind": "debtResolution",
+        "stateVersionCreated": 1,
+        "timeoutPolicy": "declareBankruptcy"
+      },
+      "debtCase": {
+        "amountDue": 500,
+        "creditor": {
+          "kind": "player",
+          "playerId": "p2"
+        },
+        "debtCaseId": "debt-1",
+        "debtorPlayerId": "p1",
+        "status": "open"
+      },
+      "lastMutation": {
+        "type": "debtOpened"
+      }
+    },
+    "stateAfter": {
+      "schemaVersion": 1,
+      "stateVersion": 2,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-vp0",
+      "roomId": "room-vp0",
+      "status": "finished",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "gameFinished",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "bankrupt",
+          "cash": 0,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "finished",
+          "cash": 2007,
+          "position": 0,
+          "ownedPropertyIds": [
+            "street-00"
+          ],
+          "keepCards": [
+            "keep-a"
+          ],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {
+          "street-00": "p2"
+        },
+        "properties": [
+          {
+            "improvementLevel": 0,
+            "kind": "street",
+            "mortgaged": true,
+            "ownerPlayerId": "p2",
+            "propertyId": "street-00"
+          }
+        ]
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit",
+        "keepCardIds": []
+      },
+      "freeParkingPot": 0,
+      "deckPublicState": {},
+      "result": {
+        "reason": "lastSolventPlayer",
+        "winnerPlayerId": "p2"
+      },
+      "lastMutation": {
+        "actorPlayerId": "p1",
+        "commandId": "deadline:v1:debt-1:decision",
+        "type": "bankruptcyTransition"
+      }
+    },
+    "resultSummary": {
+      "commandId": "deadline:v1:debt-1:decision",
+      "status": "accepted",
+      "stateVersionBefore": 1,
+      "stateVersionAfter": 2,
+      "bankruptcyDeclared": true,
+      "events": [
+        {
+          "type": "bankruptcyDeclared",
+          "data": {
+            "cashTransferred": 7,
+            "creditorKind": "player",
+            "creditorPlayerId": "p2",
+            "debtCaseId": "debt-1",
+            "debtorPlayerId": "p1",
+            "keepCardIds": [
+              "keep-a"
+            ],
+            "propertyIds": [
+              "street-00"
+            ]
+          }
+        },
+        {
+          "type": "gameFinished",
+          "data": {
+            "winnerPlayerId": "p2"
+          }
+        }
+      ]
+    }
+  },
+  "privateSentinel": {
+    "rngVersion": "hmac_sha256_counter_v1",
+    "seedMarker": "authority-private-unchanged",
+    "streamCounters": {
+      "dice": 2
+    }
+  }
+}
