@@ -105,6 +105,11 @@ flutter pub get --enforce-lockfile
 adb install -r apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
 adb shell pm clear uy.romicaubarrere.board_mobile >/dev/null
 adb shell monkey -p uy.romicaubarrere.board_mobile 1 >/dev/null
+# The heavily loaded CI emulator can surface a stale Quickstep ANR above the
+# app after Gradle finishes. Close only that system ANR, then explicitly
+# foreground La Vuelta before asserting its semantics tree.
+python3 tool/tier1_android_ui.py dismiss-anr
+adb shell am start -W -n uy.romicaubarrere.board_mobile/.MainActivity >/dev/null
 
 python3 tool/tier1_android_ui.py wait "Crear partida"
 python3 tool/tier1_android_ui.py tap "Crear partida"
