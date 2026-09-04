@@ -6,19 +6,19 @@ import 'synthetic_bankruptcy_fixture.dart';
 final class SyntheticBankruptcyPlan {
   const SyntheticBankruptcyPlan({
     required this.command,
-    required this.inputHash,
+    required this.inputHashMarker,
     required this.initialState,
     required this.plan,
   });
 
   final GameCommand command;
-  final String inputHash;
+  final String inputHashMarker;
   final PublicGameState initialState;
   final AuthorityBankruptcyPlan plan;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'command': command.toJson(),
-    'inputHashMarker': inputHash,
+    'inputHashMarker': inputHashMarker,
     'initialState': initialState.toJson(),
     'stateAfter': plan.stateAfter.toJson(),
     'resultSummary': plan.safeResultSummary,
@@ -45,7 +45,7 @@ Map<String, SyntheticBankruptcyPlan> syntheticBankruptcyPlans() {
     ) as AuthorityBankruptcyAccepted;
     return SyntheticBankruptcyPlan(
       command: command,
-      inputHash: AuthorityBankruptcyPlanner.inputHash(command),
+      inputHashMarker: 'fixture-semantic-hash-v1-declare',
       initialState: initial,
       plan: accepted.plan,
     );
@@ -79,7 +79,7 @@ Map<String, SyntheticBankruptcyPlan> syntheticBankruptcyPlans() {
     'declareB': human('cmd-bankruptcy-b'),
     'deadline': SyntheticBankruptcyPlan(
       command: deadlineCommand,
-      inputHash: AuthorityBankruptcyPlanner.inputHash(deadlineCommand),
+      inputHashMarker: 'fixture-semantic-hash-v1-declare',
       initialState: initial,
       plan: deadline.plan,
     ),

@@ -13,7 +13,7 @@
         "decisionId": "debt-1:decision"
       }
     },
-    "inputHashMarker": "5d2d3b8e25210c04c5542f6dc03ab1daf8d2c0de5ea89abd556a38e3d83cb052",
+    "inputHashMarker": "fixture-semantic-hash-v1-declare",
     "initialState": {
       "schemaVersion": 1,
       "stateVersion": 1,
@@ -306,7 +306,7 @@
         "decisionId": "debt-1:decision"
       }
     },
-    "inputHashMarker": "5d2d3b8e25210c04c5542f6dc03ab1daf8d2c0de5ea89abd556a38e3d83cb052",
+    "inputHashMarker": "fixture-semantic-hash-v1-declare",
     "initialState": {
       "schemaVersion": 1,
       "stateVersion": 1,
@@ -599,7 +599,7 @@
         "decisionId": "debt-1:decision"
       }
     },
-    "inputHashMarker": "5d2d3b8e25210c04c5542f6dc03ab1daf8d2c0de5ea89abd556a38e3d83cb052",
+    "inputHashMarker": "fixture-semantic-hash-v1-declare",
     "initialState": {
       "schemaVersion": 1,
       "stateVersion": 1,
