@@ -119,9 +119,18 @@ adb shell am start -W -n uy.romicaubarrere.board_mobile/.MainActivity >/dev/null
 
 python3 tool/tier1_android_ui.py wait "Crear partida"
 python3 tool/tier1_android_ui.py tap "Crear partida"
+# Exercise durable recovery before the guest starts, so every later public
+# snapshot watch is established against the restarted Authority process.
+kill "$authority_pid"
+wait "$authority_pid" || true
+authority_pid=""
 python3 tool/tier1_android_ui.py tap "Crear sala"
+python3 tool/tier1_android_ui.py wait "Recuperá el estado confirmado"
+python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/01-reconnect-required.png"
+start_authority
+python3 tool/tier1_android_ui.py tap "Reconciliar"
 room_code="$(python3 tool/tier1_android_ui.py room-code)"
-python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/01-created-room.png"
+python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/02-created-room.png"
 printf 'room_code=%s\n' "$room_code" >"$ARTIFACTS/smoke.txt"
 
 (
@@ -133,16 +142,7 @@ wait_log "$ARTIFACTS/guest.log" TIER1_GUEST_READY
 
 python3 tool/tier1_android_ui.py tap "Actualizar lobby"
 python3 tool/tier1_android_ui.py wait "Estoy lista"
-# Exercise durable recovery on a host action that is available regardless of
-# which player Authority selects for the first game turn.
-kill "$authority_pid"
-wait "$authority_pid" || true
-authority_pid=""
 python3 tool/tier1_android_ui.py tap "Estoy lista"
-python3 tool/tier1_android_ui.py wait "Recuperá el estado confirmado"
-python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/02-reconnect-required.png"
-start_authority
-python3 tool/tier1_android_ui.py tap "Reconciliar"
 python3 tool/tier1_android_ui.py tap "Actualizar lobby"
 python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/03-two-member-ready-lobby.png"
 python3 tool/tier1_android_ui.py tap "Empezar partida"
