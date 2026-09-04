@@ -109,29 +109,35 @@ Future<void> _playUntilAuctionPass(
       final snapshot = game?.snapshot;
       if (snapshot != null) {
         final turn = snapshot['turnState'];
-        if (turn is Map<String, Object?> &&
-            turn['currentPlayerId'] == actorPlayerId) {
-          switch (turn['phase']) {
-            case 'awaitingRoll':
-              _requireAccepted(
-                await client.perform(FirstPlayableAuthorityAction.roll),
-                'guest-roll',
-              );
-              continue;
-            case 'awaitingPropertyDecision':
-              _requireAccepted(
-                await client.perform(
-                  FirstPlayableAuthorityAction.declineProperty,
-                ),
-                'guest-decline-property',
-              );
-              continue;
-            case 'awaitingAuctionBid':
+        if (turn is Map<String, Object?>) {
+          final phase = turn['phase'];
+          if (phase == 'awaitingAuctionBid') {
+            final auction = snapshot['activeAuction'];
+            if (auction is Map<String, Object?> &&
+                auction['currentBidderPlayerId'] == actorPlayerId) {
               _requireAccepted(
                 await client.perform(FirstPlayableAuthorityAction.passAuction),
                 'guest-pass-auction',
               );
               return;
+            }
+          } else if (turn['currentPlayerId'] == actorPlayerId) {
+            switch (phase) {
+              case 'awaitingRoll':
+                _requireAccepted(
+                  await client.perform(FirstPlayableAuthorityAction.roll),
+                  'guest-roll',
+                );
+                continue;
+              case 'awaitingPropertyDecision':
+                _requireAccepted(
+                  await client.perform(
+                    FirstPlayableAuthorityAction.declineProperty,
+                  ),
+                  'guest-decline-property',
+                );
+                continue;
+            }
           }
         }
       }
