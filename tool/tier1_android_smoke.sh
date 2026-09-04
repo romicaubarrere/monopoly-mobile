@@ -103,6 +103,7 @@ flutter pub get --enforce-lockfile
     --dart-define=FIREBASE_MESSAGING_SENDER_ID=1234567890 \
     --dart-define=FIREBASE_PROJECT_ID=demo-board-game-local \
     --dart-define=FIRST_PLAYABLE_PRESET_ID=express \
+    --dart-define=FIRST_PLAYABLE_COMMAND_ID_PREFIX=tier1-host \
     --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1 \
     --dart-define=FIREBASE_AUTH_EMULATOR_PORT=9099
 )
