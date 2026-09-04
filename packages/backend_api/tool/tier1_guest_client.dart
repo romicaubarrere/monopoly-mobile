@@ -121,7 +121,9 @@ Future<void> _waitForAuctionTurnAndPass(
 
 void _requireAccepted(FirstPlayableAuthorityResult result, String stage) {
   if (!result.accepted) {
-    throw StateError('$stage:${result.outcome.name}:${result.safeErrorCode ?? 'unknown'}');
+    throw StateError(
+      '$stage:${result.outcome.name}:${result.safeErrorCode ?? 'unknown'}',
+    );
   }
 }
 
