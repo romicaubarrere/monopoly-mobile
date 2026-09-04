@@ -36,10 +36,7 @@ void main() {
         find.widgetWithText(FilledButton, 'Empezar partida'),
       );
       expect(startButton.onPressed, isNotNull);
-      expect(
-        find.textContaining('Start se habilita cuando'),
-        findsNothing,
-      );
+      expect(find.textContaining('Start se habilita cuando'), findsNothing);
 
       await tester.tap(find.text('Estoy lista'));
       await tester.pumpAndSettle();
