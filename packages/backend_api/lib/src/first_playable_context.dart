@@ -236,9 +236,16 @@ final class FirstPlayableAuthorityContext
       return;
     }
 
+    final advancesConfirmedRoomVersion = _roomVersion != nextRoomVersion;
     _actorPlayerId ??= replyActorPlayerId;
     _roomId = nextRoomId;
     _roomVersion = nextRoomVersion;
+    if (advancesConfirmedRoomVersion) {
+      // A command receipt can advance routing context without carrying a full
+      // public room snapshot. Its canonical bytes must not be compared with
+      // the later authoritative snapshot at this new room version.
+      _roomSnapshotCanonicalJson = null;
+    }
     final nextGameId =
         _identifier(result['gameId']) ?? _identifier(roomSnapshot?['gameId']);
     if (nextGameId != null) {

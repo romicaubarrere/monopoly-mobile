@@ -114,6 +114,53 @@ void main() {
     expect(context.roomVersion, 5);
   });
 
+  test(
+    'room ACK version advance clears stale bytes without weakening collisions',
+    () {
+      final context = _confirmedContext();
+      context.replacePublicRoomSnapshot(_roomSnapshot(4));
+      final request = _roomRequest(
+        commandId: 'cmd-ready-room-snapshot',
+        type: RoomCommandType.setReady,
+        expectedVersion: 4,
+      );
+
+      context.applyCommandReply(
+        request,
+        AuthorityCommandReply(
+          commandId: request.commandId,
+          status: AuthorityCommandStatus.accepted,
+          versionBefore: 4,
+          versionAfter: 5,
+          publicResult: const <String, Object?>{
+            'roomId': 'room-1',
+            'roomVersion': 5,
+          },
+        ),
+      );
+
+      context.replacePublicRoomSnapshot(_roomSnapshot(5, ready: true));
+      context.applyCommandReply(
+        request,
+        AuthorityCommandReply(
+          commandId: request.commandId,
+          status: AuthorityCommandStatus.duplicate,
+          versionBefore: 4,
+          versionAfter: 5,
+          publicResult: const <String, Object?>{
+            'roomId': 'room-1',
+            'roomVersion': 5,
+          },
+        ),
+      );
+
+      expect(
+        () => context.replacePublicRoomSnapshot(_roomSnapshot(5)),
+        throwsA(_violation('roomSnapshotVersionCollision')),
+      );
+    },
+  );
+
   test('public room snapshot advances version after another actor Ready', () {
     final context = _confirmedContext();
 
@@ -383,6 +430,25 @@ AuthorityPublicSnapshot _snapshot(
       'propertyId': 'property-7',
     },
 });
+
+AuthorityPublicRoomSnapshot _roomSnapshot(int version, {bool ready = false}) =>
+    AuthorityPublicRoomSnapshot(<String, Object?>{
+      'schemaVersion': 1,
+      'roomId': 'room-1',
+      'roomVersion': version,
+      'status': 'open',
+      'hostPlayerId': 'player-1',
+      'actorPlayerId': 'player-1',
+      'presetId': 'express',
+      'rulesVersion': 'synthetic-rules-vp0',
+      'members': <Object?>[
+        <String, Object?>{
+          'playerId': 'player-1',
+          'kind': 'human',
+          'ready': ready,
+        },
+      ],
+    });
 
 Matcher _violation(String code) => isA<ClientAuthorityContractViolation>()
     .having((error) => error.code, 'code', code);
