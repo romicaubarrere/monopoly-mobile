@@ -74,15 +74,18 @@ adb reverse tcp:9099 tcp:9099
 adb reverse tcp:8787 tcp:8787
 
 flutter pub get --enforce-lockfile
-flutter build apk --debug \
-  --dart-define=AUTHORITY_BASE_URL=http://127.0.0.1:8787 \
-  --dart-define=FIREBASE_API_KEY=tier1-emulator-key \
-  --dart-define=FIREBASE_APP_ID=1:1234567890:android:abcdef123456 \
-  --dart-define=FIREBASE_MESSAGING_SENDER_ID=1234567890 \
-  --dart-define=FIREBASE_PROJECT_ID=demo-board-game-local \
-  --dart-define=FIRST_PLAYABLE_PRESET_ID=express \
-  --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1 \
-  --dart-define=FIREBASE_AUTH_EMULATOR_PORT=9099
+(
+  cd apps/mobile
+  flutter build apk --debug \
+    --dart-define=AUTHORITY_BASE_URL=http://127.0.0.1:8787 \
+    --dart-define=FIREBASE_API_KEY=tier1-emulator-key \
+    --dart-define=FIREBASE_APP_ID=1:1234567890:android:abcdef123456 \
+    --dart-define=FIREBASE_MESSAGING_SENDER_ID=1234567890 \
+    --dart-define=FIREBASE_PROJECT_ID=demo-board-game-local \
+    --dart-define=FIRST_PLAYABLE_PRESET_ID=express \
+    --dart-define=FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1 \
+    --dart-define=FIREBASE_AUTH_EMULATOR_PORT=9099
+)
 
 adb install -r apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
 adb shell pm clear uy.romicaubarrere.board_mobile >/dev/null
@@ -128,7 +131,7 @@ python3 tool/tier1_android_ui.py wait "Subasta autoritativa"
 python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/06-auction.png"
 # Whichever participant owns the first bid acts first. The guest helper waits
 # for its authoritative turn; this tap waits until the host's Pass is exposed.
-python3 tool/tier1_android_ui.py tap "Pasar" 60
+python3 tool/tier1_android_ui.py tap "Pasar"
 wait_log "$ARTIFACTS/guest.log" TIER1_GUEST_AUCTION_PASS
 wait "$guest_pid"
 guest_pid=""
