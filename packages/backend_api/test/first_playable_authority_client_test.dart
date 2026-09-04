@@ -521,6 +521,7 @@ void main() {
       await client.perform(FirstPlayableAuthorityAction.setReady);
       await client.perform(FirstPlayableAuthorityAction.startGame);
       await client.refreshConfirmedRoom();
+      await Future<void>.delayed(Duration.zero);
       expect(transport.gameWatchCount, 1);
       await transport.gameSnapshots.close();
       await Future<void>.delayed(Duration.zero);
@@ -530,6 +531,7 @@ void main() {
 
       final room = await client.refreshConfirmedRoom();
 
+      await Future<void>.delayed(Duration.zero);
       expect(room.gameId, 'game-1');
       expect(transport.gameWatchCount, 2);
     },
