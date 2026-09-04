@@ -159,7 +159,7 @@ final class HttpAuthorityWireTransport implements AuthorityWireTransport {
           _ => 'authorityUnavailable',
         });
       }
-      return _readJsonObject(response);
+      return await _readJsonObject(response);
     } on AuthorityTransportException {
       rethrow;
     } on Object {

@@ -130,12 +130,7 @@ final class AuthorityClientSession {
     required AuthoritySnapshotRepository snapshots,
     required PendingAuthorityCommandStore pendingStore,
     bool deferAcceptedPendingClear = false,
-  }) : this._(
-         gateway,
-         snapshots,
-         pendingStore,
-         deferAcceptedPendingClear,
-       );
+  }) : this._(gateway, snapshots, pendingStore, deferAcceptedPendingClear);
 
   AuthorityClientSession._(
     this._gateway,
@@ -324,23 +319,24 @@ final class AuthorityClientSession {
       );
       final resolution = reply.commandResolution;
       switch (resolution?.action) {
-        case CommandResolutionAction.useDurableResult: {
-          final durableRejected =
-              reply.disposition == ReconnectDisposition.uncertainRejected ||
-              resolution?.publicResult?['status'] == 'rejected';
-          final retainPending =
-              _deferAcceptedPendingClear && !durableRejected;
-          if (pending != null && !retainPending) {
-            await _pendingStore.clear(pending.commandId);
+        case CommandResolutionAction.useDurableResult:
+          {
+            final durableRejected =
+                reply.disposition == ReconnectDisposition.uncertainRejected ||
+                resolution?.publicResult?['status'] == 'rejected';
+            final retainPending =
+                _deferAcceptedPendingClear && !durableRejected;
+            if (pending != null && !retainPending) {
+              await _pendingStore.clear(pending.commandId);
+            }
+            _publish(
+              AuthoritySessionState(
+                status: AuthoritySessionStatus.confirmed,
+                snapshot: reply.snapshot,
+                pendingCommand: retainPending ? pending : null,
+              ),
+            );
           }
-          _publish(
-            AuthoritySessionState(
-              status: AuthoritySessionStatus.confirmed,
-              snapshot: reply.snapshot,
-              pendingCommand: retainPending ? pending : null,
-            ),
-          );
-        }
         case CommandResolutionAction.retrySameCommand:
           if (pending == null) {
             _publish(

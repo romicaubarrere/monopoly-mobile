@@ -159,8 +159,8 @@ final class FirstPlayableAuthorityClient
     final state = _session.state;
     if (state.pendingCommand == null) return false;
     return switch (state.status) {
-      AuthoritySessionStatus.uncertain || AuthoritySessionStatus.confirmed =>
-        true,
+      AuthoritySessionStatus.uncertain ||
+      AuthoritySessionStatus.confirmed => true,
       AuthoritySessionStatus.blocked =>
         state.safeErrorCode == 'uncertainCommandPending' ||
             state.safeErrorCode == 'pendingCommandStoreUnavailable',
@@ -240,8 +240,8 @@ final class FirstPlayableAuthorityClient
     if (startsGame || reconcilesUncertainCommand) _watchConfirmedGame();
     if (result.accepted) {
       final locatorSaved = await _saveConfirmedLocator();
-      final pendingAcknowledged = locatorSaved &&
-          await _session.acknowledgeConfirmedPendingCommand();
+      final pendingAcknowledged =
+          locatorSaved && await _session.acknowledgeConfirmedPendingCommand();
       if (!pendingAcknowledged) {
         return FirstPlayableAuthorityResult(
           outcome: FirstPlayableAuthorityOutcome.blocked,

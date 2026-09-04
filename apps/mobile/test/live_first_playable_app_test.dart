@@ -311,10 +311,7 @@ void main() {
     await tester.tap(find.text('Reconciliar'));
     await tester.pumpAndSettle();
 
-    expect(
-      authority.actions.single,
-      FirstPlayableAuthorityAction.reconnect,
-    );
+    expect(authority.actions.single, FirstPlayableAuthorityAction.reconnect);
     expect(find.byKey(const ValueKey('live-lobby')), findsOneWidget);
     expect(find.text('CÓDIGO · ABC123'), findsOneWidget);
   });
@@ -362,8 +359,7 @@ void main() {
     tester,
   ) async {
     final previous = _FakeLiveAuthority();
-    final replacement = _FakeLiveAuthority()
-      ..requiresReconciliation = true;
+    final replacement = _FakeLiveAuthority()..requiresReconciliation = true;
     final refresh = Completer<AuthorityPublicRoomSnapshot>();
     previous.refreshCompleter = refresh;
     addTearDown(previous.close);
@@ -636,7 +632,9 @@ void main() {
     );
   });
 
-  testWidgets('rejects a nonterminal buy auction outcome safely', (tester) async {
+  testWidgets('rejects a nonterminal buy auction outcome safely', (
+    tester,
+  ) async {
     final authority = _FakeLiveAuthority();
     addTearDown(authority.close);
     authority.emitLobby(gameId: 'game-live');

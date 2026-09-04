@@ -1055,15 +1055,12 @@ final class _GameView {
         (winnerPlayerId is! String || winnerPlayerId.isEmpty)) {
       throw const FormatException('invalidPublicGameResult');
     }
-    final buyAuctionOutcomeReceipt =
-        _BuyAuctionOutcomeReceipt.fromLastMutation(
-          value['lastMutation'],
-          ownership: value['ownership'],
-        );
+    final buyAuctionOutcomeReceipt = _BuyAuctionOutcomeReceipt.fromLastMutation(
+      value['lastMutation'],
+      ownership: value['ownership'],
+    );
     if (buyAuctionOutcomeReceipt != null &&
-        (phase != 'turnResolved' ||
-            pending != null ||
-            activeAuction != null)) {
+        (phase != 'turnResolved' || pending != null || activeAuction != null)) {
       throw const FormatException(
         'invalidPublicGameSnapshot:lastMutation.outcome.context',
       );
@@ -1213,14 +1210,8 @@ final class _BuyAuctionOutcomeReceipt {
     if (rawOutcome == null) return null;
     _requiredString(lastMutation['commandId'], 'lastMutation.commandId');
     final outcome = _requiredObject(rawOutcome, 'lastMutation.outcome');
-    final type = _requiredString(
-      outcome['type'],
-      'lastMutation.outcome.type',
-    );
-    final data = _requiredObject(
-      outcome['data'],
-      'lastMutation.outcome.data',
-    );
+    final type = _requiredString(outcome['type'], 'lastMutation.outcome.type');
+    final data = _requiredObject(outcome['data'], 'lastMutation.outcome.data');
 
     return switch (type) {
       'propertyPurchased' => _propertyPurchased(data, ownership: ownership),
@@ -1268,10 +1259,7 @@ final class _BuyAuctionOutcomeReceipt {
     Map<String, Object?> data, {
     required Object? ownership,
   }) {
-    _requiredString(
-      data['auctionId'],
-      'lastMutation.outcome.data.auctionId',
-    );
+    _requiredString(data['auctionId'], 'lastMutation.outcome.data.auctionId');
     final propertyId = _requiredString(
       data['propertyId'],
       'lastMutation.outcome.data.propertyId',
@@ -1301,10 +1289,7 @@ final class _BuyAuctionOutcomeReceipt {
     Map<String, Object?> data, {
     required Object? ownership,
   }) {
-    _requiredString(
-      data['auctionId'],
-      'lastMutation.outcome.data.auctionId',
-    );
+    _requiredString(data['auctionId'], 'lastMutation.outcome.data.auctionId');
     final propertyId = _requiredString(
       data['propertyId'],
       'lastMutation.outcome.data.propertyId',
