@@ -167,7 +167,6 @@ final class _UuidCommandIdSource implements AuthorityCommandIdSource {
   String nextCommandId() => const Uuid().v4();
 }
 
-
 /// Deterministic CI-only command identities. Production builds do not set the
 /// compile-time prefix and continue to use UUIDs.
 final class _PrefixedCommandIdSource implements AuthorityCommandIdSource {
