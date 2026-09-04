@@ -364,10 +364,6 @@ class _LiveFirstPlayableAppState extends State<LiveFirstPlayableApp> {
     final actor = lobby.members.firstWhere(
       (member) => member.playerId == lobby.actorPlayerId,
     );
-    final allReady =
-        lobby.members.length >= 2 &&
-        lobby.members.every((member) => member.ready);
-    final canStart = lobby.actorPlayerId == lobby.hostPlayerId && allReady;
     return _Stage(
       key: const ValueKey('live-lobby'),
       label: 'LOBBY',
@@ -409,16 +405,9 @@ class _LiveFirstPlayableAppState extends State<LiveFirstPlayableApp> {
           if (lobby.actorPlayerId == lobby.hostPlayerId) ...[
             const SizedBox(height: AppSpacing.x3),
             FilledButton(
-              onPressed: !_busy && canStart ? _startGame : null,
+              onPressed: _busy ? null : _startGame,
               child: const Text('Empezar partida'),
             ),
-            if (!canStart) ...[
-              const SizedBox(height: AppSpacing.x2),
-              const Text(
-                'Start se habilita cuando hay al menos dos miembros y todos están listos.',
-                textAlign: TextAlign.center,
-              ),
-            ],
           ],
         ],
       ),
