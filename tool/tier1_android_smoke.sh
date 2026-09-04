@@ -80,10 +80,15 @@ print(base64.b64encode(bytes(range(32))).decode())
 PY
 )"
 
-dart run backend/command_service/tool/first_playable_authority_emulator_server.dart \
-  >"$ARTIFACTS/authority.log" 2>&1 &
-authority_pid=$!
-wait_port 8787
+start_authority() {
+  dart run backend/command_service/tool/first_playable_authority_emulator_server.dart \
+    >>"$ARTIFACTS/authority.log" 2>&1 &
+  authority_pid=$!
+  wait_port 8787
+}
+
+: >"$ARTIFACTS/authority.log"
+start_authority
 
 adb reverse tcp:9099 tcp:9099
 adb reverse tcp:8787 tcp:8787
@@ -134,14 +139,16 @@ python3 tool/tier1_android_ui.py tap "Empezar partida"
 python3 tool/tier1_android_ui.py wait "Tu turno"
 python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/03-started-board.png"
 
-# Deliberately remove Authority forwarding for one command. The mobile client
-# must retain the durable command identity, surface reconciliation, then resend
-# the exact command after the loopback route is restored.
-adb reverse --remove tcp:8787
+# Stop Authority for one command. Removing adb reverse alone is insufficient
+# because an existing HTTP connection can remain usable. Firestore retains the
+# durable state, and restarting with the same HMAC key preserves identities.
+kill "$authority_pid"
+wait "$authority_pid" || true
+authority_pid=""
 python3 tool/tier1_android_ui.py tap "Tirar dados"
 python3 tool/tier1_android_ui.py wait "Recuperá el estado confirmado"
 python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/04-reconnect-required.png"
-adb reverse tcp:8787 tcp:8787
+start_authority
 python3 tool/tier1_android_ui.py tap "Reconciliar"
 python3 tool/tier1_android_ui.py wait "Decisión confirmada"
 python3 tool/tier1_android_ui.py screenshot "$ARTIFACTS/05-movement-property.png"
