@@ -10,10 +10,20 @@ firebase_pid=""
 authority_pid=""
 guest_pid=""
 cleanup() {
+  local status=$?
   set +e
+  if [[ "$status" -ne 0 ]]; then
+    adb exec-out screencap -p >"$ARTIFACTS/failure-screen.png" 2>/dev/null || true
+    adb shell uiautomator dump /sdcard/window.xml >/dev/null 2>&1 || true
+    adb exec-out cat /sdcard/window.xml >"$ARTIFACTS/failure-window.xml" 2>/dev/null || true
+    adb logcat -d -v threadtime >"$ARTIFACTS/logcat.txt" 2>&1 || true
+    adb shell dumpsys activity activities >"$ARTIFACTS/activity.txt" 2>&1 || true
+  fi
   [[ -n "$guest_pid" ]] && kill "$guest_pid" 2>/dev/null
   [[ -n "$authority_pid" ]] && kill "$authority_pid" 2>/dev/null
   [[ -n "$firebase_pid" ]] && kill "$firebase_pid" 2>/dev/null
+  trap - EXIT
+  exit "$status"
 }
 trap cleanup EXIT
 
