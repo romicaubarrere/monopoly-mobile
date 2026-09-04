@@ -14,6 +14,7 @@ import 'package:board_game_core/game_core.dart';
 import 'package:test/test.dart';
 
 import 'support/synthetic_buy_auction_fixture.dart';
+import 'support/synthetic_bankruptcy_fixture.dart';
 import 'support/synthetic_roll_fixture.dart';
 
 service.FirstPlayableRulesCatalogRepository _catalogRepository(
@@ -151,6 +152,102 @@ void main() {
 
     expect(result.value.status, api.AuthorityCommandStatus.accepted);
     expect(result.value.snapshot!.stateVersion, 2);
+    expect(store.state.header.stateVersion, 2);
+    expect(store.privateRng, same(privateRng));
+    expect(store.writeCount, 1);
+  });
+
+  test(
+    'Bankruptcy commits public state and receipt without consuming RNG',
+    () async {
+      final privateRng = syntheticRollPrivateState();
+      final store = _MemoryStore(
+        state: syntheticBankruptcyState(),
+        catalog: syntheticBankruptcyCatalog(),
+        privateRng: privateRng,
+      );
+      final executor = service.FirstPlayableAuthorityExecutor(
+        store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
+      );
+      final request = api.AuthorityCommandRequest.game(
+        syntheticBankruptcyCommand(GameCommandType.declareBankruptcy),
+      );
+
+      final accepted = await executor.executeCommand(
+        context: ingress.IngressContext(
+          requestReceivedAt: syntheticBankruptcyTime,
+        ),
+        identity: identity,
+        request: request,
+      );
+      final duplicate = await executor.executeCommand(
+        context: ingress.IngressContext(
+          requestReceivedAt: syntheticBankruptcyTime,
+        ),
+        identity: identity,
+        request: request,
+      );
+
+      expect(accepted.outcome, observability.AuthorityOutcome.success);
+      expect(accepted.value.status, api.AuthorityCommandStatus.accepted);
+      expect(accepted.value.snapshot!.stateVersion, 2);
+      expect(accepted.value.publicResult, isNot(contains('state')));
+      expect(store.state.header.stateVersion, 2);
+      expect(store.privateRng, same(privateRng));
+      expect(store.lastAcceptedGameDecision!.privateRngAfter, isNull);
+      expect(store.writeCount, 1);
+      expect(duplicate.outcome, observability.AuthorityOutcome.duplicate);
+      expect(duplicate.value.status, api.AuthorityCommandStatus.duplicate);
+      expect(store.writeCount, 1);
+    },
+  );
+
+  test('bankruptcy deadline is early-safe and durable exactly once', () async {
+    final privateRng = syntheticRollPrivateState();
+    final store = _MemoryStore(
+      state: syntheticBankruptcyState(),
+      catalog: syntheticBankruptcyCatalog(),
+      privateRng: privateRng,
+    );
+    final executor = service.FirstPlayableAuthorityExecutor(
+      store: store,
+      rulesCatalogRepository: _catalogRepository(store.catalog),
+    );
+
+    Future<ingress.AuthorityExecutionResult<api.AuthorityCommandReply>> execute(
+      DateTime authorityNow,
+    ) => executor.executeBankruptcyDeadline(
+      gameId: 'game-vp0',
+      decisionId: 'debt-1:decision',
+      debtCaseId: 'debt-1',
+      debtorPlayerId: 'p1',
+      expectedStateVersion: 1,
+      authorityNow: authorityNow,
+    );
+
+    final early = await execute(
+      syntheticBankruptcyDeadline.subtract(const Duration(microseconds: 1)),
+    );
+    final stale = await executor.executeBankruptcyDeadline(
+      gameId: 'game-vp0',
+      decisionId: 'debt-1:decision',
+      debtCaseId: 'debt-1',
+      debtorPlayerId: 'p1',
+      expectedStateVersion: 0,
+      authorityNow: syntheticBankruptcyDeadline,
+    );
+    final accepted = await execute(syntheticBankruptcyDeadline);
+    final duplicate = await execute(syntheticBankruptcyDeadline);
+
+    expect(early.value.errorCode, 'notDue');
+    expect(early.metrics.firestoreWriteCount, 0);
+    expect(stale.outcome, observability.AuthorityOutcome.stale);
+    expect(stale.value.errorCode, 'staleStateVersion');
+    expect(stale.metrics.firestoreWriteCount, 0);
+    expect(accepted.outcome, observability.AuthorityOutcome.success);
+    expect(accepted.value.commandId, 'deadline:v1:debt-1:decision');
+    expect(duplicate.outcome, observability.AuthorityOutcome.duplicate);
     expect(store.state.header.stateVersion, 2);
     expect(store.privateRng, same(privateRng));
     expect(store.writeCount, 1);

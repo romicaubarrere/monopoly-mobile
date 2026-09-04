@@ -2,6 +2,7 @@ import 'package:board_backend_api/backend_api.dart' as api;
 import 'package:board_game_contracts/game_contracts.dart';
 import 'package:board_game_core/game_core.dart';
 
+import '../bankruptcy_transition_planner.dart';
 import '../buy_auction_planner.dart';
 import '../ingress/command_ingress.dart';
 import '../observability/authority_observability.dart';
@@ -602,6 +603,74 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     );
   }
 
+  /// Executes one immutable debt-deadline wake through the same atomic game
+  /// transaction as human commands.
+  ///
+  /// The caller captures every identity field when scheduling the wake. A
+  /// changed decision or state version therefore returns a read-only no-op
+  /// instead of acting on newer gameplay state.
+  Future<AuthorityExecutionResult<api.AuthorityCommandReply>>
+  executeBankruptcyDeadline({
+    required String gameId,
+    required String decisionId,
+    required String debtCaseId,
+    required String debtorPlayerId,
+    required int expectedStateVersion,
+    required DateTime authorityNow,
+  }) async {
+    if (gameId.isEmpty ||
+        decisionId.isEmpty ||
+        debtCaseId.isEmpty ||
+        debtorPlayerId.isEmpty ||
+        expectedStateVersion < 0 ||
+        !authorityNow.isUtc) {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'invalidBankruptcyDeadlineInput',
+      );
+    }
+    final command = GameCommand(
+      commandId: DeadlineTimeoutEngine.operationIdFor(decisionId),
+      schemaVersion: 1,
+      expectedStateVersion: expectedStateVersion,
+      clientInstanceId: 'authority-system',
+      gameId: gameId,
+      actorPlayerId: debtorPlayerId,
+      type: GameCommandType.declareBankruptcy,
+      payload: <String, Object?>{
+        'debtCaseId': debtCaseId,
+        'decisionId': decisionId,
+      },
+    );
+    final request = api.AuthorityCommandRequest.game(command);
+    final transaction = await _store.transactGame(
+      gameId: gameId,
+      commandId: command.commandId,
+      evaluate: (view) {
+        final catalog = _rulesCatalogRepository.catalogForGame(
+          view.publicState,
+        );
+        return _evaluateBankruptcyDeadline(
+          request: request,
+          command: command,
+          view: view,
+          catalog: catalog,
+          authorityNow: authorityNow,
+          decisionId: decisionId,
+          debtCaseId: debtCaseId,
+          debtorPlayerId: debtorPlayerId,
+          expectedStateVersion: expectedStateVersion,
+        );
+      },
+    );
+    final decision = transaction.decision;
+    return AuthorityExecutionResult<api.AuthorityCommandReply>(
+      value: decision.reply,
+      outcome: decision.outcome,
+      reason: decision.reason,
+      metrics: transaction.metrics,
+    );
+  }
+
   Future<AuthorityExecutionResult<api.AuthorityCommandReply>>
   _executeRoomCommand({
     required IngressContext context,
@@ -874,6 +943,14 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
         view: view,
         catalog: catalog,
       ),
+      GameCommandType.payDebt ||
+      GameCommandType.declareBankruptcy => _evaluateBankruptcy(
+        context: context,
+        actorUid: actorUid,
+        command: command,
+        view: view,
+        catalog: catalog,
+      ),
       _ => throw FirstPlayableAuthorityExecutorViolation(
         'unsupportedGameCommand:${command.type.wireValue}',
       ),
@@ -882,6 +959,105 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       actorUid: actorUid,
       request: request,
       evaluation: evaluation,
+    );
+  }
+
+  static FirstPlayableGameTransactionDecision _evaluateBankruptcyDeadline({
+    required api.AuthorityCommandRequest request,
+    required GameCommand command,
+    required FirstPlayableGameTransactionView view,
+    required RulesCatalog catalog,
+    required DateTime authorityNow,
+    required String decisionId,
+    required String debtCaseId,
+    required String debtorPlayerId,
+    required int expectedStateVersion,
+  }) {
+    const actorUid = 'authority-system';
+    final prior = view.storedReceipt;
+    if (prior != null) {
+      final exactDuplicate =
+          prior.actorUid == actorUid &&
+          prior.receipt.commandId == command.commandId &&
+          prior.receipt.inputHashVersion == request.inputHashVersion &&
+          prior.receipt.inputHash == request.inputHash;
+      if (exactDuplicate) {
+        return FirstPlayableGameTransactionDecision(
+          reply: FirstPlayableResponseAdapter.duplicate(prior.receipt),
+          outcome: AuthorityOutcome.duplicate,
+          reason: AuthorityReason.duplicateCommand,
+        );
+      }
+      final version = view.publicState.header.stateVersion;
+      return FirstPlayableGameTransactionDecision(
+        reply: api.AuthorityCommandReply(
+          commandId: command.commandId,
+          status: api.AuthorityCommandStatus.rejected,
+          versionBefore: version,
+          versionAfter: version,
+          errorCode: 'commandIdCollision',
+          publicResult: <String, Object?>{
+            'commandId': command.commandId,
+            'status': 'rejected',
+            'stateVersionBefore': version,
+            'stateVersionAfter': version,
+            'errorCode': 'commandIdCollision',
+          },
+        ),
+        outcome: AuthorityOutcome.collision,
+        reason: AuthorityReason.commandIdCollision,
+      );
+    }
+
+    final evaluation = AuthorityBankruptcyPlanner.evaluateDeadline(
+      state: view.publicState,
+      catalog: catalog,
+      authorityNow: authorityNow,
+      decisionId: decisionId,
+      debtCaseId: debtCaseId,
+      debtorPlayerId: debtorPlayerId,
+      expectedStateVersion: expectedStateVersion,
+    );
+    if (evaluation case AuthorityBankruptcyNoOp(:final reason)) {
+      final version = view.publicState.header.stateVersion;
+      return FirstPlayableGameTransactionDecision(
+        reply: api.AuthorityCommandReply(
+          commandId: command.commandId,
+          status: api.AuthorityCommandStatus.rejected,
+          versionBefore: version,
+          versionAfter: version,
+          errorCode: reason,
+          publicResult: <String, Object?>{
+            'commandId': command.commandId,
+            'status': 'rejected',
+            'stateVersionBefore': version,
+            'stateVersionAfter': version,
+            'errorCode': reason,
+          },
+        ),
+        outcome: reason.startsWith('stale')
+            ? AuthorityOutcome.stale
+            : AuthorityOutcome.rejected,
+        reason: reason == 'staleStateVersion'
+            ? AuthorityReason.staleVersion
+            : reason == 'staleDecision'
+            ? AuthorityReason.decisionClosed
+            : AuthorityReason.none,
+      );
+    }
+    final reply = FirstPlayableResponseAdapter.bankruptcy(evaluation);
+    final evaluated = switch (evaluation) {
+      AuthorityBankruptcyAccepted(:final plan) => _EvaluatedGameCommand(
+        reply: reply,
+        publicStateAfter: plan.stateAfter,
+      ),
+      AuthorityBankruptcyRejected() => _EvaluatedGameCommand(reply: reply),
+      AuthorityBankruptcyNoOp() => throw StateError('unreachable'),
+    };
+    return _persistableDecision(
+      actorUid: actorUid,
+      request: request,
+      evaluation: evaluated,
     );
   }
 
@@ -1521,6 +1697,35 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       ),
       AuthorityBuyAuctionRejected() => _EvaluatedGameCommand(reply: reply),
       AuthorityBuyAuctionNoOp() =>
+        throw const FirstPlayableAuthorityExecutorViolation(
+          'unexpectedHumanNoOp',
+        ),
+    };
+  }
+
+  static _EvaluatedGameCommand _evaluateBankruptcy({
+    required IngressContext context,
+    required String actorUid,
+    required GameCommand command,
+    required FirstPlayableGameTransactionView view,
+    required RulesCatalog catalog,
+  }) {
+    final evaluation = AuthorityBankruptcyPlanner.evaluateHuman(
+      command: command,
+      authenticatedActorUid: actorUid,
+      memberUidByPlayerId: view.memberUidByPlayerId,
+      state: view.publicState,
+      catalog: catalog,
+      requestReceivedAt: context.requestReceivedAt,
+    );
+    final reply = FirstPlayableResponseAdapter.bankruptcy(evaluation);
+    return switch (evaluation) {
+      AuthorityBankruptcyAccepted(:final plan) => _EvaluatedGameCommand(
+        reply: reply,
+        publicStateAfter: plan.stateAfter,
+      ),
+      AuthorityBankruptcyRejected() => _EvaluatedGameCommand(reply: reply),
+      AuthorityBankruptcyNoOp() =>
         throw const FirstPlayableAuthorityExecutorViolation(
           'unexpectedHumanNoOp',
         ),
