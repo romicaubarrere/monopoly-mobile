@@ -46,17 +46,26 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
       - name: Runtime versions
         run: |
           node --version
           npm --version
           java -version
+          flutter --version
+          dart --version
+      - name: Resolve locked Dart workspace dependencies
+        run: flutter pub get --enforce-lockfile
       - name: Install pinned emulator test dependencies
         working-directory: tool/firebase
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Auth + Firestore emulator security tests
+      - name: Auth + Firestore JavaScript and Dart integration gates
         working-directory: tool/firebase
-        run: npm run emulators:test
+        run: npm run emulators:test:all
 
   android-tier1:
     name: android / tier1-first-playable

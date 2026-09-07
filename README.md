@@ -32,6 +32,11 @@ rejected in CI. See [preflight modes, regression evidence and the pre-push
 checklist](docs/dart-preflight.md). `./tool/ci.sh` remains the Foundation entrypoint
 used by CI, with the same read-only format stage.
 
+The required Firebase job also runs the existing JavaScript suite and a
+[non-skippable Dart integration gate](docs/dart-firebase-integration-gate.md)
+inside local Auth/Firestore emulators. The Foundation preflight alone does not
+execute those opt-in integration cases without emulator environment variables.
+
 Canonical Confluence status/evidence writes have a separate
 [guarded operator workflow](docs/canonical-document-guard.md). Its regression
 tests run offline in Foundation CI; gameplay CI never requires Atlassian access.
