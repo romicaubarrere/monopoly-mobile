@@ -209,6 +209,9 @@ class Journal:
         if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
                 or stat.S_IMODE(info.st_mode) & 0o077):
             reject("unsafeSnapshotDirectory")
+        resolved = self.path.resolve(strict=True)
+        if any((parent / ".git").exists() for parent in (resolved, *resolved.parents)):
+            reject("snapshotInsideRepository")
 
     @classmethod
     def create(cls, root):

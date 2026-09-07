@@ -21,6 +21,8 @@ promoted sources remain canonical; local snapshots are recovery evidence only.
   storage. The directory is private (0700); snapshot/plan/attempt/outcome files are
   exclusive, private (0600), flushed and fsynced before the next write boundary.
   Do not upload these full-body recovery files as CI artifacts or commit them.
+  The location check also runs when reopening a snapshot: copying an existing
+  recovery directory into a checkout does not permit a subsequent guarded write.
 - Existing API credentials supplied through `CONFLUENCE_EMAIL` and
   `CONFLUENCE_API_TOKEN`; never pass credentials as command-line arguments.
   No credential creation, deployment, or live write is part of the test suite.
@@ -142,7 +144,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tool/test -p '*_test.p
 The suite covers CFG-GUARD-01..12 plus snapshot failure, local concurrency,
 process restart, no-commit ambiguity, failed compensation, source-marker bypass,
 metadata mutation, redacted output, duplicate JSON keys, HTTPS/redirect rejection
-and explicit REST payload/history behavior. These tests use synthetic documents,
+and explicit REST payload/history behavior. The full CLI capture/apply/replay path
+also runs with durable files and a fake remote. These tests use synthetic documents,
 fake version-aware storage and mocked HTTP; no Atlassian call or secret is needed.
 Normal CI runs these offline tests without changing gameplay gates or adding
 Atlassian availability as a dependency.

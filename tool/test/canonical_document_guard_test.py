@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
 import sys
 import tempfile
@@ -334,6 +335,18 @@ class GuardTests(unittest.TestCase):
         with self.assertRaises(OSError):
             self.journal.read("linked.json")
 
+    def test_reopening_a_snapshot_copied_into_checkout_is_rejected(self):
+        # Synthetic .git marker models a checkout/worktree without touching Git.
+        checkout = Path(self.temp.name) / "checkout"
+        checkout.mkdir()
+        (checkout / ".git").write_text("synthetic worktree marker", encoding="utf-8")
+        relocated = checkout / "copied-snapshot"
+        shutil.copytree(self.journal.path, relocated)
+        with self.assertRaisesRegex(guard.GuardError, "snapshotInsideRepository"):
+            guard.Journal(relocated)
+        self.assertFalse((relocated / "plan.json").exists())
+        self.assert_no_put()
+
     def test_duplicate_JSON_keys_and_permissive_policy_are_rejected(self):
         with self.assertRaisesRegex(guard.GuardError, "duplicateJsonKey"):
             guard.decode('{"version":1,"version":2}')
@@ -452,6 +465,33 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(1, result)
         self.assertEqual({"verification": "blocked", "reason": "missingCredentials"},
                          json.loads(output.getvalue()))
+
+    def test_CLI_capture_apply_and_replay_use_durable_files_without_network(self):
+        client = FakeConfluence()
+        with tempfile.TemporaryDirectory() as root, patch.object(guard, "Confluence", return_value=client):
+            policy = Path(root) / "policy.json"
+            policy.write_text(guard.encode(POLICY), encoding="utf-8")
+            candidate = Path(root) / "candidate.json"
+            candidate.write_text(body("Accepted"), encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                status = guard.main(["--site", client.site, "capture", "--page-id", PAGE.id,
+                                     "--policy", str(policy), "--snapshot-root", root])
+            self.assertEqual(0, status)
+            captured = json.loads(output.getvalue())
+            self.assertEqual("captured", captured["verification"])
+            self.assertEqual(["GET"], client.calls)
+            args = ["--site", client.site, "apply", "--snapshot", captured["snapshot"],
+                    "--candidate", str(candidate)]
+            for _ in range(2):
+                output = io.StringIO()
+                with redirect_stdout(output):
+                    self.assertEqual(0, guard.main(args))
+                result = json.loads(output.getvalue())
+                self.assertEqual("verified", result["verification"])
+                self.assertNotIn(body("Accepted"), output.getvalue())
+            self.assertEqual(1, client.calls.count("PUT"))
+            self.assertTrue((Path(captured["snapshot"]) / "outcome.json").exists())
 
 
 if __name__ == "__main__":
