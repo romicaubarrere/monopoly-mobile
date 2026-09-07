@@ -198,7 +198,11 @@ Production Firebase ID-token verification is now concrete:
 `GoogleFirebaseIdTokenSignatureVerifier.live()` validates RS256 signatures with
 Google's secure-token certificates. Its bounded HTTPS fetcher uses the canonical
 certificate endpoint, honors `Cache-Control: max-age`, coalesces concurrent
-refreshes and fails an unknown `kid` from a fresh cache without another fetch.
+refreshes and permits at most one controlled extra refresh for an unknown `kid`
+while the cache is fresh. Repeated unknown keys cannot replenish that budget;
+an expired cache requires a successful refresh before any key can be used.
+The [RS256 negative gate](firebase-rs256-negative-gate.md) documents the rotation,
+real-signature, fail-closed and separate-membership regression coverage.
 Envelope and claim checks remain in `FirebaseIdentityVerifier`, so audience,
 issuer, expiry, issue time, auth time and subject use the same injected clock and
 fail-closed error boundary. Token, signature and certificate material is never

@@ -42,15 +42,22 @@ Future<void> main() async {
   );
   _expect(calls == 1, 'fresh lookup must not refetch');
 
-  await _expectFailure(cache.certificateForKid('kid-b'), 'unknown_kid');
-  _expect(calls == 1, 'unknown kid must not force a fresh-cache refetch');
+  _expect(
+    await cache.certificateForKid('kid-b') == 'synthetic-cert-b',
+    'new kid must use one controlled refresh',
+  );
+  await _expectFailure(cache.certificateForKid('missing-kid'), 'unknown_kid');
+  _expect(
+    calls == 2,
+    'fresh-cache misses must not replenish the refresh budget',
+  );
 
   now = now.add(const Duration(seconds: 121));
   _expect(
-    await cache.certificateForKid('kid-a') == 'synthetic-cert-a2',
+    await cache.certificateForKid('kid-a') == 'synthetic-cert-a3',
     'expired cache refresh mismatch',
   );
-  _expect(calls == 2, 'expired cache must refetch');
+  _expect(calls == 3, 'expired cache must refetch');
 
   await _expectFailure(
     GoogleSecureTokenCertificateCache(
