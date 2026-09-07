@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app_router.dart';
 import 'design_system/app_theme.dart';
 import 'infrastructure/mobile_authority_bootstrap.dart';
 import 'ui/first_playable/live_first_playable_app.dart';
+import 'ui/first_playable/live_first_playable_view_model.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,17 +22,35 @@ Future<void> main() async {
 }
 
 class BoardGameApp extends StatelessWidget {
-  const BoardGameApp({super.key, required this.authority});
+  const BoardGameApp({
+    super.key,
+    required this.authority,
+    this.initialLocation,
+  });
 
   final LiveFirstPlayableAuthority authority;
+  final String? initialLocation;
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context) => ProviderScope(
+    overrides: [
+      liveFirstPlayableAuthorityProvider.overrideWithValue(authority),
+      initialAppLocationProvider.overrideWithValue(initialLocation),
+    ],
+    child: const _RoutedBoardGameApp(),
+  );
+}
+
+class _RoutedBoardGameApp extends ConsumerWidget {
+  const _RoutedBoardGameApp();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'La Vuelta',
       theme: AppTheme.light,
-      home: LiveFirstPlayableApp(authority: authority),
+      routerConfig: ref.watch(appRouterProvider),
     );
   }
 }
