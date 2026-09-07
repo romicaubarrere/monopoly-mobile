@@ -5,6 +5,7 @@ enum BankruptcyErrorCode {
   invalidCommand('invalidCommand'),
   staleVersion('staleVersion'),
   actorNotInGame('actorNotInGame'),
+  controllerNotHuman('controllerNotHuman'),
   decisionClosed('decisionClosed'),
   invalidState('invalidState'),
   insufficientFunds('insufficientFunds'),

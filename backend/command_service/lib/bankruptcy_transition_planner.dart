@@ -1,6 +1,8 @@
 import 'package:board_backend_api/backend_api.dart';
 import 'package:board_game_core/game_core.dart';
 
+import 'security/human_controller_gate.dart';
+
 final class AuthorityBankruptcyViolation implements Exception {
   const AuthorityBankruptcyViolation(this.code);
 
@@ -97,6 +99,15 @@ abstract final class AuthorityBankruptcyPlanner {
     if (authenticatedActorUid.isEmpty ||
         memberUidByPlayerId[command.actorPlayerId] != authenticatedActorUid) {
       throw const AuthorityBankruptcyViolation('actorNotAuthenticatedMember');
+    }
+    if (HumanControllerGate.rejects(state, command.actorPlayerId)) {
+      return AuthorityBankruptcyRejected(
+        BankruptcyRejection(
+          commandId: command.commandId,
+          stateVersionBefore: state.header.stateVersion,
+          errorCode: BankruptcyErrorCode.controllerNotHuman,
+        ),
+      );
     }
 
     final deadlineAt = _currentDebtDeadlineAt(state);

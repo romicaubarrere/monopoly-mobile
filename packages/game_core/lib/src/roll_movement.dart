@@ -6,6 +6,7 @@ enum RollMovementErrorCode {
   invalidCommand('invalidCommand'),
   staleVersion('staleVersion'),
   actorNotInGame('actorNotInGame'),
+  controllerNotHuman('controllerNotHuman'),
   notYourTurn('notYourTurn'),
   decisionRequired('decisionRequired'),
   invalidState('invalidState'),
