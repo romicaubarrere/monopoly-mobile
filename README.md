@@ -23,3 +23,7 @@ Run the executable Foundation gates with:
 ```bash
 ./tool/ci.sh
 ```
+
+Canonical Confluence status/evidence writes have a separate
+[guarded operator workflow](docs/canonical-document-guard.md). Its regression
+tests run offline in Foundation CI; gameplay CI never requires Atlassian access.
