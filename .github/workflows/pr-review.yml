@@ -29,11 +29,13 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
+          # v2.23 nests the SDK in flutter/; do not restore immutable v2.21 caches.
+          cache-key: 'flutter-sdk-layout-v2-:os:-:channel:-:version:-:arch:-:hash:'
 
       - name: Resolve dependencies
         run: flutter pub get --enforce-lockfile
