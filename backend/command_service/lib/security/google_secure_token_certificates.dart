@@ -86,6 +86,7 @@ final class GoogleSecureTokenCertificateCache {
   Map<String, String> _certificates = const <String, String>{};
   DateTime? _expiresAt;
   Future<void>? _refreshInFlight;
+  bool _unknownKidRefreshUsed = false;
 
   Future<String> certificateForKid(String kid) async {
     if (kid.isEmpty) {
@@ -97,7 +98,21 @@ final class GoogleSecureTokenCertificateCache {
       if (certificate != null) {
         return certificate;
       }
-      throw const SecureTokenCertificateException('unknown_kid');
+      // ADR-007 permits one controlled refresh for a newly published kid.
+      // Consume the budget before awaiting I/O; concurrent misses join it and
+      // subsequent unknown values cannot amplify network traffic while fresh.
+      final inFlight = _refreshInFlight;
+      if (inFlight != null) {
+        await inFlight;
+      } else if (!_unknownKidRefreshUsed) {
+        _unknownKidRefreshUsed = true;
+        await _refreshCertificates(resetUnknownKidBudget: false);
+      }
+      final refreshed = _certificates[kid];
+      if (refreshed == null) {
+        throw const SecureTokenCertificateException('unknown_kid');
+      }
+      return refreshed;
     }
 
     await _refreshCertificates();
@@ -116,13 +131,16 @@ final class GoogleSecureTokenCertificateCache {
     return _now().toUtc().isBefore(expiresAt);
   }
 
-  Future<void> _refreshCertificates() async {
+  Future<void> _refreshCertificates({bool resetUnknownKidBudget = true}) async {
     final existing = _refreshInFlight;
     if (existing != null) return existing;
     final refresh = _refresh();
     _refreshInFlight = refresh;
     try {
       await refresh;
+      // Only a cold/expired-cache load starts a new budget. The extra refresh
+      // must not replenish itself, even when it returns a valid key map.
+      if (resetUnknownKidBudget) _unknownKidRefreshUsed = false;
     } finally {
       if (identical(_refreshInFlight, refresh)) {
         _refreshInFlight = null;
