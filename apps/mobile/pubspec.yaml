@@ -12,6 +12,8 @@ dependencies:
     path: ../../packages/backend_api
   board_game_contracts:
     path: ../../packages/game_contracts
+  flutter_riverpod: 3.4.2
+  go_router: 17.5.0
   firebase_core: ^4.14.0
   firebase_auth: ^6.6.1
   shared_preferences: ^2.5.5

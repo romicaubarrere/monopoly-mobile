@@ -92,6 +92,12 @@ with zero writes.
 
 ## Minimum Flutter repository behavior
 
+The mobile root now composes this existing repository through Riverpod and a
+`LiveFirstPlayableViewModel`; go_router paths contain locators only. The
+[state/routing/serialization handoff](mobile-state-routing-serialization.md)
+documents lifecycle, confirmed-state and membership guards. The repository and
+Authority contracts below remain the source of truth, not the router or widget.
+
 `FirstPlayableAuthorityClient.httpWithDeviceStorage` is the minimum mobile
 composition root. Flutter injects the Firebase ID-token provider, Authority
 origin, one durable string key-value port, durable command-id source,
