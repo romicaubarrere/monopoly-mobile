@@ -5,6 +5,7 @@ enum BuyAuctionErrorCode {
   invalidCommand('invalidCommand'),
   staleVersion('staleVersion'),
   actorNotInGame('actorNotInGame'),
+  controllerNotHuman('controllerNotHuman'),
   notAllowed('notAllowed'),
   invalidState('invalidState'),
   decisionClosed('decisionClosed'),

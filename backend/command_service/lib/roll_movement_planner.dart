@@ -2,6 +2,7 @@ import 'package:board_backend_api/backend_api.dart';
 import 'package:board_game_core/game_core.dart';
 
 import 'rng_operation_planner.dart';
+import 'security/human_controller_gate.dart';
 
 final class AuthorityRollMovementViolation implements Exception {
   const AuthorityRollMovementViolation(this.code);
@@ -92,6 +93,15 @@ abstract final class AuthorityRollMovementPlanner {
     if (authenticatedActorUid.isEmpty ||
         memberUidByPlayerId[command.actorPlayerId] != authenticatedActorUid) {
       throw const AuthorityRollMovementViolation('actorNotAuthenticatedMember');
+    }
+    if (HumanControllerGate.rejects(state, command.actorPlayerId)) {
+      return AuthorityRollMovementRejected(
+        RollMovementRejection(
+          commandId: command.commandId,
+          stateVersionBefore: state.header.stateVersion,
+          errorCode: RollMovementErrorCode.controllerNotHuman,
+        ),
+      );
     }
     if (privateSnapshot.rngVersion != canonicalRngVersion ||
         state.header.rngVersion != privateSnapshot.rngVersion) {
