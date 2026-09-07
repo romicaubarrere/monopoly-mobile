@@ -1,9 +1,71 @@
+import 'package:board_backend_api/backend_api.dart';
 import 'package:board_mobile/design_system/app_theme.dart';
 import 'package:board_mobile/ui/events/free_parking_event_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('accepted Authority result drives the confirmed receipt', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: FreeParkingEventSurface.authorityConfirmed(
+          reply: _authorityReply(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(r'+$180'), findsOneWidget);
+    expect(find.text(r'Te llevaste $180 del pozo'), findsOneWidget);
+    expect(find.text('Sin acción pendiente'), findsOneWidget);
+  });
+
+  testWidgets('durable duplicate result renders the original amount', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: FreeParkingEventSurface.authorityConfirmed(
+          reply: _authorityReply(status: AuthorityCommandStatus.duplicate),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(r'+$180'), findsOneWidget);
+    expect(find.text(r'Te llevaste $180 del pozo'), findsOneWidget);
+  });
+
+  test('rejected or malformed Authority result fails closed', () {
+    expect(
+      () => FreeParkingEventSurface.authorityConfirmed(
+        reply: _authorityReply(
+          status: AuthorityCommandStatus.rejected,
+          resultStatus: 'rejected',
+          errorCode: 'staleVersion',
+          versionAfter: 1,
+        ),
+      ),
+      throwsA(
+        isA<ClientAuthorityContractViolation>().having(
+          (error) => error.code,
+          'code',
+          'invalidConfirmedFreeParkingResult',
+        ),
+      ),
+    );
+    expect(
+      () => FreeParkingEventSurface.authorityConfirmed(
+        reply: _authorityReply(eventAmount: 179),
+      ),
+      throwsA(isA<ClientAuthorityContractViolation>()),
+    );
+  });
+
   testWidgets('confirmed_event_shows_authoritative_pot_receipt', (
     tester,
   ) async {
@@ -143,6 +205,40 @@ void main() {
     expect(find.text('DETALLE CONFIRMADO'), findsOneWidget);
   });
 }
+
+AuthorityCommandReply _authorityReply({
+  AuthorityCommandStatus status = AuthorityCommandStatus.accepted,
+  String resultStatus = 'accepted',
+  String? errorCode,
+  int versionAfter = 2,
+  int eventAmount = 180,
+}) => AuthorityCommandReply(
+  commandId: 'landing-free-1',
+  status: status,
+  versionBefore: 1,
+  versionAfter: versionAfter,
+  errorCode: errorCode,
+  publicResult: <String, Object?>{
+    'commandId': 'landing-free-1',
+    'operationId': 'landing-free-1',
+    'status': resultStatus,
+    'stateVersionBefore': 1,
+    'stateVersionAfter': versionAfter,
+    'kind': 'freeParkingCollected',
+    'amount': 180,
+    'events': <Object?>[
+      <String, Object?>{
+        'type': 'freeParkingCollected',
+        'data': <String, Object?>{
+          'playerId': 'player-1',
+          'amount': eventAmount,
+          'potBefore': 180,
+          'potAfter': 0,
+        },
+      },
+    ],
+  },
+);
 
 Widget _surface({
   required int confirmedAmount,

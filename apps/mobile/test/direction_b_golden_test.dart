@@ -21,34 +21,41 @@ void main() {
   ];
 
   for (final checkpoint in checkpoints) {
-    testWidgets('Direction B ${checkpoint.$2} screenshot at 390x844', (
-      tester,
-    ) async {
-      const viewport = Size(390, 844);
-      final boundaryKey = ValueKey('golden-${checkpoint.$2}');
-      await tester.binding.setSurfaceSize(viewport);
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+    testWidgets(
+      'Direction B ${checkpoint.$2} screenshot at 390x844',
+      (tester) async {
+        const viewport = Size(390, 844);
+        final boundaryKey = ValueKey('golden-${checkpoint.$2}');
+        await tester.binding.setSurfaceSize(viewport);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(
-        MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: _goldenTheme(),
-          home: MediaQuery(
-            data: const MediaQueryData(size: viewport, disableAnimations: true),
-            child: RepaintBoundary(
-              key: boundaryKey,
-              child: FirstPlayableApp(initialStep: checkpoint.$1),
+        await tester.pumpWidget(
+          MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: _goldenTheme(),
+            home: MediaQuery(
+              data: const MediaQueryData(
+                size: viewport,
+                disableAnimations: true,
+              ),
+              child: RepaintBoundary(
+                key: boundaryKey,
+                child: FirstPlayableApp(initialStep: checkpoint.$1),
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pump();
+        );
+        await tester.pump();
 
-      await expectLater(
-        find.byKey(boundaryKey),
-        matchesGoldenFile('goldens/direction_b_${checkpoint.$2}_390x844.png'),
-      );
-    });
+        await expectLater(
+          find.byKey(boundaryKey),
+          matchesGoldenFile('goldens/direction_b_${checkpoint.$2}_390x844.png'),
+        );
+      },
+      // Flutter's text and shadow rasterization is platform-dependent. Linux
+      // is the canonical renderer because CI verifies these baselines there.
+      skip: !Platform.isLinux,
+    );
   }
 }
 

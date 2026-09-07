@@ -10,6 +10,7 @@ import '../reconnect_planner.dart' as reconnect_planner;
 import '../ready_start_planner.dart';
 import '../rng_operation_planner.dart';
 import '../roll_movement_planner.dart';
+import '../tax_free_parking_planner.dart';
 import '../security/firebase_identity_verifier.dart';
 import '../security/membership_authorizer.dart';
 import 'authority_http_ingress.dart';
@@ -671,6 +672,66 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     );
   }
 
+  /// Executes one immutable automatic tax or Free Parking landing operation.
+  ///
+  /// The captured landing index prevents a delayed worker from resolving a
+  /// newer landing context. Duplicate and lost-ACK retries reuse the durable
+  /// receipt without invoking Engine a second time.
+  Future<AuthorityExecutionResult<api.AuthorityCommandReply>>
+  executeTaxFreeParkingLanding({
+    required String gameId,
+    required String operationId,
+    required String playerId,
+    required int expectedStateVersion,
+    required int expectedLandingIndex,
+    required DateTime transitionTime,
+  }) async {
+    if (gameId.isEmpty ||
+        operationId.isEmpty ||
+        playerId.isEmpty ||
+        expectedStateVersion < 0 ||
+        expectedLandingIndex < 0 ||
+        expectedLandingIndex >= 40 ||
+        !transitionTime.isUtc) {
+      throw const FirstPlayableAuthorityExecutorViolation(
+        'invalidTaxFreeParkingInput',
+      );
+    }
+    final inputHash = AuthorityTaxFreeParkingPlanner.inputHash(
+      gameId: gameId,
+      expectedStateVersion: expectedStateVersion,
+      playerId: playerId,
+      expectedLandingIndex: expectedLandingIndex,
+      transitionTime: transitionTime,
+    );
+    final transaction = await _store.transactGame(
+      gameId: gameId,
+      commandId: operationId,
+      evaluate: (view) {
+        final catalog = _rulesCatalogRepository.catalogForGame(
+          view.publicState,
+        );
+        return _evaluateTaxFreeParkingLanding(
+          operationId: operationId,
+          inputHash: inputHash,
+          playerId: playerId,
+          expectedStateVersion: expectedStateVersion,
+          expectedLandingIndex: expectedLandingIndex,
+          transitionTime: transitionTime,
+          view: view,
+          catalog: catalog,
+        );
+      },
+    );
+    final decision = transaction.decision;
+    return AuthorityExecutionResult<api.AuthorityCommandReply>(
+      value: decision.reply,
+      outcome: decision.outcome,
+      reason: decision.reason,
+      metrics: transaction.metrics,
+    );
+  }
+
   Future<AuthorityExecutionResult<api.AuthorityCommandReply>>
   _executeRoomCommand({
     required IngressContext context,
@@ -1057,6 +1118,77 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     return _persistableDecision(
       actorUid: actorUid,
       request: request,
+      evaluation: evaluated,
+    );
+  }
+
+  static FirstPlayableGameTransactionDecision _evaluateTaxFreeParkingLanding({
+    required String operationId,
+    required String inputHash,
+    required String playerId,
+    required int expectedStateVersion,
+    required int expectedLandingIndex,
+    required DateTime transitionTime,
+    required FirstPlayableGameTransactionView view,
+    required RulesCatalog catalog,
+  }) {
+    const actorUid = 'authority-system';
+    final prior = view.storedReceipt;
+    if (prior != null) {
+      final exactDuplicate =
+          prior.actorUid == actorUid &&
+          prior.receipt.commandId == operationId &&
+          prior.receipt.inputHashVersion == api.SemanticFingerprintV1.version &&
+          prior.receipt.inputHash == inputHash;
+      if (exactDuplicate) {
+        return FirstPlayableGameTransactionDecision(
+          reply: FirstPlayableResponseAdapter.duplicate(prior.receipt),
+          outcome: AuthorityOutcome.duplicate,
+          reason: AuthorityReason.duplicateCommand,
+        );
+      }
+      final version = view.publicState.header.stateVersion;
+      return FirstPlayableGameTransactionDecision(
+        reply: api.AuthorityCommandReply(
+          commandId: operationId,
+          status: api.AuthorityCommandStatus.rejected,
+          versionBefore: version,
+          versionAfter: version,
+          errorCode: 'commandIdCollision',
+          publicResult: <String, Object?>{
+            'commandId': operationId,
+            'operationId': operationId,
+            'status': 'rejected',
+            'stateVersionBefore': version,
+            'stateVersionAfter': version,
+            'errorCode': 'commandIdCollision',
+          },
+        ),
+        outcome: AuthorityOutcome.collision,
+        reason: AuthorityReason.commandIdCollision,
+      );
+    }
+
+    final evaluation = AuthorityTaxFreeParkingPlanner.evaluateSystem(
+      operationId: operationId,
+      expectedStateVersion: expectedStateVersion,
+      playerId: playerId,
+      expectedLandingIndex: expectedLandingIndex,
+      state: view.publicState,
+      catalog: catalog,
+      transitionTime: transitionTime,
+    );
+    final reply = FirstPlayableResponseAdapter.taxFreeParking(evaluation);
+    final evaluated = switch (evaluation) {
+      AuthorityTaxFreeParkingAccepted(:final plan) => _EvaluatedGameCommand(
+        reply: reply,
+        publicStateAfter: plan.stateAfter,
+      ),
+      AuthorityTaxFreeParkingRejected() => _EvaluatedGameCommand(reply: reply),
+    };
+    return _persistableSystemDecision(
+      actorUid: actorUid,
+      inputHash: inputHash,
       evaluation: evaluated,
     );
   }
@@ -1763,6 +1895,36 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       publicStateAfter: evaluation.publicStateAfter,
       privateRngAfter: evaluation.privateRngAfter,
       receiptToPersist: receipt,
+    );
+  }
+
+  static FirstPlayableGameTransactionDecision _persistableSystemDecision({
+    required String actorUid,
+    required String inputHash,
+    required _EvaluatedGameCommand evaluation,
+  }) {
+    final reply = evaluation.reply;
+    final reason = reply.errorCode == 'staleVersion'
+        ? AuthorityReason.staleVersion
+        : AuthorityReason.none;
+    return FirstPlayableGameTransactionDecision(
+      reply: reply,
+      outcome: reply.status == api.AuthorityCommandStatus.accepted
+          ? AuthorityOutcome.success
+          : reason == AuthorityReason.staleVersion
+          ? AuthorityOutcome.stale
+          : AuthorityOutcome.rejected,
+      reason: reason,
+      publicStateAfter: evaluation.publicStateAfter,
+      receiptToPersist: StoredAuthorityCommandReceipt(
+        actorUid: actorUid,
+        receipt: reconnect_planner.DurableCommandReceipt(
+          commandId: reply.commandId,
+          inputHashVersion: api.SemanticFingerprintV1.version,
+          inputHash: inputHash,
+          publicResult: reply.publicResult,
+        ),
+      ),
     );
   }
 

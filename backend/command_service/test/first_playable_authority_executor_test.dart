@@ -16,6 +16,7 @@ import 'package:test/test.dart';
 import 'support/synthetic_buy_auction_fixture.dart';
 import 'support/synthetic_bankruptcy_fixture.dart';
 import 'support/synthetic_roll_fixture.dart';
+import 'support/synthetic_tax_free_parking_fixture.dart';
 
 service.FirstPlayableRulesCatalogRepository _catalogRepository(
   RulesCatalog catalog,
@@ -252,6 +253,51 @@ void main() {
     expect(store.privateRng, same(privateRng));
     expect(store.writeCount, 1);
   });
+
+  test(
+    'automatic Free Parking persists confirmed result exactly once',
+    () async {
+      final privateRng = syntheticRollPrivateState();
+      final store = _MemoryStore(
+        state: syntheticTaxFreeParkingState(position: 33, pot: 263),
+        catalog: syntheticTaxFreeParkingCatalog(),
+        privateRng: privateRng,
+      );
+      final executor = service.FirstPlayableAuthorityExecutor(
+        store: store,
+        rulesCatalogRepository: _catalogRepository(store.catalog),
+      );
+
+      Future<ingress.AuthorityExecutionResult<api.AuthorityCommandReply>>
+      execute({int landing = 33}) => executor.executeTaxFreeParkingLanding(
+        gameId: 'game-us019',
+        operationId: 'landing-free-1',
+        playerId: 'p1',
+        expectedStateVersion: 1,
+        expectedLandingIndex: landing,
+        transitionTime: syntheticTaxFreeParkingTime,
+      );
+
+      final accepted = await execute();
+      final duplicate = await execute();
+      final collision = await execute(landing: 31);
+
+      expect(accepted.outcome, observability.AuthorityOutcome.success);
+      expect(accepted.value.status, api.AuthorityCommandStatus.accepted);
+      expect(accepted.value.publicResult['kind'], 'freeParkingCollected');
+      expect(accepted.value.publicResult['amount'], 263);
+      expect(accepted.value.publicResult, isNot(contains('state')));
+      expect(accepted.value.snapshot!.stateVersion, 2);
+      expect(store.state.players.first.cash, 763);
+      expect(store.state.freeParkingPot, 0);
+      expect(store.privateRng, same(privateRng));
+      expect(store.lastAcceptedGameDecision!.privateRngAfter, isNull);
+      expect(duplicate.outcome, observability.AuthorityOutcome.duplicate);
+      expect(duplicate.value.publicResult, accepted.value.publicResult);
+      expect(collision.outcome, observability.AuthorityOutcome.collision);
+      expect(store.writeCount, 1);
+    },
+  );
 
   test('reconnect resolves lost ACK from the same private receipt', () async {
     final store = _MemoryStore(

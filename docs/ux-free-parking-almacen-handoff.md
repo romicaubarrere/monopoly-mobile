@@ -38,3 +38,12 @@ The short scale-in cue is decorative only. `MediaQuery.disableAnimations` reduce
 - No Engine, rules, backend, persistence, RNG, movement, economy calculation, authority, deadline, or exactly-once behavior changes.
 - Automated widget evidence can cover confirmed-only presentation, no invented breakdown, no gameplay CTA, semantics, reduced motion, and compact 360dp / ~130% text scale.
 - Manual VoiceOver/TalkBack, physical-device motion/haptics, final character art, and human usability remain separate evidence layers and are not claimed by this slice.
+
+## Authority wiring
+
+`FreeParkingEventSurface.authorityConfirmed` is the Layer A → Layer U entry
+point. It accepts only a coherent accepted result or the durable replay of that
+accepted result, validates operation identity, versions, event kind and pot
+transfer fields, and fails closed for rejected or malformed envelopes. The
+amount shown remains the exact caller-confirmed Authority amount; Flutter does
+not reconstruct it from board content, balances or DEC-065 placeholders.
