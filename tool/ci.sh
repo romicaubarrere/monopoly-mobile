@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-flutter --version
-dart --version
-flutter pub get --enforce-lockfile
-
-dart format apps packages backend
-git diff --exit-code -- apps packages backend
+python3 -B tool/preflight.py --format-only
 dart run tool/check_spec_registry.dart
 
-# Governance tests are deterministic/offline: no Atlassian call or credential.
+# Tooling tests need no Atlassian call or credential; formatter fixtures use the pinned SDK.
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tool/test -p '*_test.py'
 
 dart analyze packages/game_core packages/game_contracts packages/backend_api backend/command_service
