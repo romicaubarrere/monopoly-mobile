@@ -73,7 +73,7 @@ jobs:
             -fail-level=error
 
       - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed apps packages backend
+        run: python3 -B tool/preflight.py --format-only
 
   workflow-review:
     name: review / github-actions

@@ -15,6 +15,9 @@ Qué NO cambia:
 
 Tests ejecutados:
 
+- [ ] `./tool/preflight.py` pasó con el SDK fijado en el commit final.
+- [ ] Revisé el diff; no necesito un workflow temporal para descubrir el formato.
+
 Evidencia visual:
 
 Schema / migration impact:
