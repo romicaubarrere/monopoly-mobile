@@ -83,6 +83,10 @@ void main() {
       expect(logs.events.last['reason'], 'none');
       expect(logs.events.last['schemaVersion'], 1);
       expect(logs.events.last['stateVersion'], 1);
+      expect(
+        logs.events.last['snapshotBytes'],
+        utf8.encode(reconnect.snapshot.toCanonicalJson()).length,
+      );
       // This memory fake returns metrics but does not publish captured I/O.
       // Its zero counters are not evidence of real Firestore operations.
       expect(logs.events.last['firestoreReadCount'], 0);

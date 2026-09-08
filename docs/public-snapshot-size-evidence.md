@@ -54,6 +54,12 @@ It is not billed storage, total network egress or the entire persisted game.
 It does **not** redefine or populate the existing unmeasured runtime
 `snapshotBytes=0` or `coldStart=false` defaults.
 
+The separate [reconnect size measurement](reconnect-snapshot-size-metrics.md)
+now records the canonical UTF-8 size of a validated public game snapshot in
+successful HTTP recovery events. That runtime sample has its own execution and
+failure boundaries; this offline report does not fill unmeasured runtime values
+or establish production-size distributions.
+
 ## Reproduce and review
 
 With the pinned Flutter 3.47.0 / Dart 3.13.0 SDK, from the repository root:

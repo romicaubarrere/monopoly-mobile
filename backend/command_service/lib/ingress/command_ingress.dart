@@ -62,10 +62,14 @@ final class CommandIngress {
   /// Observes one authenticated reconnect execution, including public egress
   /// validation performed by [execute]. Success describes this server boundary,
   /// not a command disposition, delivered ACK, or client reconciliation success.
+  /// [snapshotBytes] measures only the successful final public snapshot. It is
+  /// diagnostic extraction, not an additive store counter; callers that omit it
+  /// retain the unmeasured zero default. Extraction failure omits the event.
   /// See docs/reconnect-authority-metrics.md for the measurement boundary.
   Future<T> handleRecovery<T>({
     required Future<T> Function() execute,
     required ({int schemaVersion, int stateVersion}) Function(T) versions,
+    int Function(T)? snapshotBytes,
   }) async {
     DateTime? startedAt;
     try {
@@ -80,6 +84,9 @@ final class CommandIngress {
         capture.metrics,
         startedAt,
         versions: () => versions(result),
+        snapshotBytes: snapshotBytes == null
+            ? null
+            : () => snapshotBytes(result),
       );
       return result;
     } on Object {
@@ -92,6 +99,7 @@ final class CommandIngress {
     AuthorityExecutionMetrics metrics,
     DateTime? startedAt, {
     ({int schemaVersion, int stateVersion}) Function()? versions,
+    int Function()? snapshotBytes,
   }) {
     try {
       if (startedAt == null) return;
@@ -112,7 +120,7 @@ final class CommandIngress {
           firestoreWriteCount: metrics.firestoreWriteCount,
           bytesRead: metrics.bytesRead,
           bytesWritten: metrics.bytesWritten,
-          snapshotBytes: 0,
+          snapshotBytes: snapshotBytes?.call() ?? 0,
           coldStart: false,
           schemaVersion: confirmedVersions?.schemaVersion,
           stateVersion: confirmedVersions?.stateVersion,
