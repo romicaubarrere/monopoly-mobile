@@ -102,11 +102,11 @@ identity, callback or mutable accumulator is retained in the capture. Invalid
 negative/overflowing snapshots are ignored, and failure-event construction and
 sink failures cannot replace the original authority exception.
 
-This instruments executor work inside command ingress, not every HTTP request.
-Reconnect and public room/game GET endpoints bypass `CommandIngress` and remain
-separate observability work. Their store reads can contribute if explicitly
-awaited inside an existing capture, without adding standalone recovery events.
-No production telemetry, billing or NFR-wide closure is claimed.
+This instruments executor work inside ingress, not every HTTP request. The
+[reconnect follow-up](reconnect-authority-metrics.md) now captures authenticated
+POST reconnect execution and public validation as a separate recovery event.
+Public room/game GETs still bypass capture and remain separate observability
+work. No production telemetry, billing or NFR-wide closure is claimed.
 
 ## Verification
 
@@ -159,7 +159,7 @@ PASS. Merge acceptance requires all eight remote jobs on the exact PR head.
 
 ## Remaining work
 
-[Ticket #19](https://trello.com/c/dk2nQOYj) remains open for recovery/GET/pre-ingress
+[Ticket #19](https://trello.com/c/dk2nQOYj) remains open for GET/pre-ingress
 telemetry, measured snapshot sizes and reconnect/takeover traces, production
 cold/warm p50/p95, NFR-48 materialization and genuine budget/limit/cost evidence.
 `minInstances=0` and emulator-first remain the baseline. This correction does

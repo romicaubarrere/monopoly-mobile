@@ -32,6 +32,7 @@ void main() {
           host: firestoreHost!,
         ),
       );
+      final logs = _RecordingLogs();
       final runtime = FirstPlayableAuthorityRuntime(
         identityVerifier: FirebaseAuthEmulatorIdentityVerifier(
           projectId: projectId,
@@ -42,7 +43,7 @@ void main() {
           activeRulesVersion: syntheticRollCatalog().rulesVersion,
           catalogs: <RulesCatalog>[syntheticRollCatalog()],
         ),
-        observability: BestEffortAuthorityObservability(_DiscardLogs()),
+        observability: BestEffortAuthorityObservability(logs),
         roomEntryMaterialFactory: _roomEntryMaterial,
         startMaterialFactory: _startMaterial,
         now: () => DateTime.utc(2026, 8, 27, 5),
@@ -178,6 +179,7 @@ void main() {
 
       final lostAckRetry = await auctionRoll.actor.client.send(declineRequest);
       expect(lostAckRetry.status, AuthorityCommandStatus.duplicate);
+      final eventsBeforeRecovery = logs.events.length;
       final reconnect = await auctionRoll.actor.client.reconnect(
         AuthorityReconnectRequest(
           gameId: auctionGame.gameId,
@@ -196,9 +198,70 @@ void main() {
           anyOf(contains(hostToken), contains(guestToken), contains('uid')),
         ),
       );
+      expect(logs.events, hasLength(eventsBeforeRecovery + 1));
+      final recoveryEvent = logs.events.last;
+      _expectRecoveryMetrics(recoveryEvent, reads: 3);
+      expect(recoveryEvent['outcome'], 'success');
+      expect(recoveryEvent['reason'], 'none');
+      expect(recoveryEvent['schemaVersion'], reconnect.snapshot.schemaVersion);
+      expect(recoveryEvent['stateVersion'], bid.versionAfter);
+      expect(recoveryEvent, hasLength(14));
+
+      await expectLater(
+        outsider.reconnect(
+          AuthorityReconnectRequest(
+            gameId: auctionGame.gameId,
+            observedStateVersion: reconnect.snapshot.stateVersion,
+          ),
+        ),
+        throwsA(
+          isA<AuthorityTransportException>().having(
+            (error) => error.code,
+            'code',
+            'actorForbidden',
+          ),
+        ),
+      );
+      expect(logs.events, hasLength(eventsBeforeRecovery + 2));
+      final forbiddenEvent = logs.events.last;
+      _expectRecoveryMetrics(forbiddenEvent, reads: 2);
+      expect(forbiddenEvent['outcome'], 'internalFailure');
+      expect(forbiddenEvent['reason'], 'internalError');
+      expect(forbiddenEvent, isNot(contains('schemaVersion')));
+      expect(forbiddenEvent, isNot(contains('stateVersion')));
+      expect(forbiddenEvent, hasLength(12));
+      final recoveryLogs = jsonEncode([recoveryEvent, forbiddenEvent]);
+      for (final privateValue in [
+        hostToken,
+        guestToken,
+        outsiderToken,
+        'uid',
+        'BUY001',
+        'AUC001',
+        auctionGame.gameId,
+        declineRequest.commandId,
+        declineRequest.inputHash,
+        base64Encode(syntheticRollSeed),
+      ]) {
+        expect(recoveryLogs, isNot(contains(privateValue)));
+      }
     },
     skip: skipReason,
   );
+}
+
+void _expectRecoveryMetrics(Map<String, Object> event, {required int reads}) {
+  expect(event['operation'], 'recovery');
+  expect(event['retryCount'], 0);
+  expect(event['conflictCount'], 0);
+  expect(event['firestoreReadCount'], reads);
+  expect(event['firestoreWriteCount'], 0);
+  // The scripted peer separately proves byte-exact transfer totals. This real
+  // emulator gate proves the runtime publishes measured, nonzero payload I/O.
+  expect(event['bytesRead'], greaterThan(0));
+  expect(event['bytesWritten'], greaterThan(0));
+  expect(event['snapshotBytes'], 0);
+  expect(event['coldStart'], isFalse);
 }
 
 Future<_StartedGame> _startGame({
@@ -450,9 +513,11 @@ final class _RolledProperty {
   final String propertyId;
 }
 
-final class _DiscardLogs implements AuthorityLogSink {
+final class _RecordingLogs implements AuthorityLogSink {
+  final events = <Map<String, Object>>[];
+
   @override
-  void write(Map<String, Object> fields) {}
+  void write(Map<String, Object> fields) => events.add(fields);
 }
 
 final class _Ids implements AuthorityCommandIdSource {
