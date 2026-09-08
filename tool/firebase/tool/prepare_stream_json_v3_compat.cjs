@@ -1,6 +1,6 @@
 'use strict';
 
-// firebase-tools 15.28.1 imports stream-json 1.x CommonJS entry points.
+// firebase-tools 15.29.0 imports stream-json 1.x CommonJS entry points.
 // stream-json 3.5.0 fixes the reported OSV but is ESM-only, lower-cases its
 // paths, and exposes Node streams through .asStream() helpers. Adapt the exact
 // legacy imports and stream factories after npm ci, before the emulator CLI loads.
@@ -17,7 +17,7 @@ const streamJsonPackagePath = join(
 );
 const streamJsonVersion = JSON.parse(readFileSync(streamJsonPackagePath, 'utf8')).version;
 
-if (firebaseToolsVersion !== '15.28.1' || streamJsonVersion !== '3.5.0') {
+if (firebaseToolsVersion !== '15.29.0' || streamJsonVersion !== '3.5.0') {
   throw new Error(
     `Unsupported Firebase stream-json compatibility target: firebase-tools@${firebaseToolsVersion}, stream-json@${streamJsonVersion}`,
   );
@@ -93,22 +93,27 @@ const rewrites = [
   },
 ];
 
-for (const { file, replacements } of rewrites) {
+// Prevalidate every target before any write. Upstream drift must not leave a
+// partly adapted installation. This is not an atomic filesystem transaction;
+// an I/O failure during writes still requires a clean npm ci before retrying.
+const prepared = rewrites.map(({ file, replacements }) => {
   const filePath = join(firebaseToolsRoot, file);
   const original = readFileSync(filePath, 'utf8');
   let rewritten = original;
 
   for (const [before, after] of replacements) {
-    if (rewritten.includes(after)) {
-      continue;
-    }
-    if (!rewritten.includes(before)) {
-      throw new Error(`Expected firebase-tools import not found: ${file}: ${before}`);
+    const beforeCount = rewritten.split(before).length - 1;
+    const afterCount = rewritten.split(after).length - 1;
+    if (beforeCount === 0 && afterCount === 1) continue;
+    if (beforeCount !== 1 || afterCount !== 0) {
+      throw new Error(`Unexpected firebase-tools compatibility target: ${file}: ${before}`);
     }
     rewritten = rewritten.replace(before, after);
   }
 
-  if (rewritten !== original) {
-    writeFileSync(filePath, rewritten);
-  }
+  return { filePath, original, rewritten };
+});
+
+for (const { filePath, original, rewritten } of prepared) {
+  if (rewritten !== original) writeFileSync(filePath, rewritten);
 }
