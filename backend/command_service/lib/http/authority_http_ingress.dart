@@ -89,6 +89,7 @@ final class AuthorityHttpIngress {
             // this server-execution metric and does not prove a client ACK.
             return (
               wire: validatedAuthorityPublicWireObject(reply.toWireJson()),
+              snapshot: reply.snapshot,
               schemaVersion: reply.snapshot.schemaVersion,
               stateVersion: reply.snapshot.stateVersion,
             );
@@ -97,6 +98,10 @@ final class AuthorityHttpIngress {
             schemaVersion: reply.schemaVersion,
             stateVersion: reply.stateVersion,
           ),
+          // One canonical public snapshot, not the reconnect/receipt envelope,
+          // Firestore payloads or HTTP delivery. Extraction remains fail-open.
+          snapshotBytes: (reply) =>
+              utf8.encode(reply.snapshot.toCanonicalJson()).length,
         );
         await _writeJson(request.response, HttpStatus.ok, result.wire);
         return;

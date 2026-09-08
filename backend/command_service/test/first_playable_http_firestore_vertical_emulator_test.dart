@@ -205,6 +205,10 @@ void main() {
       expect(recoveryEvent['reason'], 'none');
       expect(recoveryEvent['schemaVersion'], reconnect.snapshot.schemaVersion);
       expect(recoveryEvent['stateVersion'], bid.versionAfter);
+      expect(
+        recoveryEvent['snapshotBytes'],
+        utf8.encode(reconnect.snapshot.toCanonicalJson()).length,
+      );
       expect(recoveryEvent, hasLength(14));
 
       await expectLater(
@@ -227,6 +231,7 @@ void main() {
       _expectRecoveryMetrics(forbiddenEvent, reads: 2);
       expect(forbiddenEvent['outcome'], 'internalFailure');
       expect(forbiddenEvent['reason'], 'internalError');
+      expect(forbiddenEvent['snapshotBytes'], 0);
       expect(forbiddenEvent, isNot(contains('schemaVersion')));
       expect(forbiddenEvent, isNot(contains('stateVersion')));
       expect(forbiddenEvent, hasLength(12));
@@ -260,7 +265,6 @@ void _expectRecoveryMetrics(Map<String, Object> event, {required int reads}) {
   // emulator gate proves the runtime publishes measured, nonzero payload I/O.
   expect(event['bytesRead'], greaterThan(0));
   expect(event['bytesWritten'], greaterThan(0));
-  expect(event['snapshotBytes'], 0);
   expect(event['coldStart'], isFalse);
 }
 

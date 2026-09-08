@@ -47,7 +47,8 @@ emit the recovery event. HTTP response writing remains outside the capture.
 | Six additive counters | The existing per-operation capture totals for completed adapter I/O, without summing returned metrics a second time. |
 | `schemaVersion`, `stateVersion` | Versions from the validated successful public game snapshot only. Absent on failure. |
 | `latencyMs` | Server time spent inside this execution/validation boundary, excluding authentication, request parsing and HTTP response delivery. Backward clock movement clamps to zero. |
-| `snapshotBytes=0`, `coldStart=false` | Existing unmeasured defaults, not measurements or proof. |
+| `snapshotBytes` | Successful HTTP reconnect now measures canonical UTF-8 bytes of its validated public game snapshot; see the [size boundary](reconnect-snapshot-size-metrics.md). Failures and generic callers without an extractor retain the unmeasured zero fallback. |
+| `coldStart=false` | Existing unmeasured default, not a measurement or proof. |
 
 Consumers must filter by `operation`: recovery `success` is **not** an accepted
 game command, completed client reconciliation, delivered ACK, product
@@ -82,6 +83,11 @@ Diagnostic clock, version extraction, event construction and sink errors cannot
 alter the executor result/exception or cause a second error event. When those
 diagnostics fail, the event is omitted rather than inventing measurements. This
 does not remove the separate authority-clock requirement at HTTP request entry.
+
+The [snapshot-size follow-up](reconnect-snapshot-size-metrics.md) applies the
+same fail-open boundary to an optional final-result size extractor. It does not
+add snapshot sizes to captured I/O counters or interpret a failed execution's
+zero fallback as a measured state size.
 
 ## Verification
 
@@ -118,7 +124,8 @@ Android Tier-1.
 
 [Ticket #19](https://trello.com/c/dk2nQOYj) remains open. Public room/game GETs and
 pre-ingress errors are not instrumented here. Polling volume/cost policy must
-be considered before expanding events to GETs. Snapshot-size boundaries,
+be considered before expanding events to GETs. Snapshot-size coverage beyond
+the measured successful reconnect boundary,
 client reconnect/takeover traces, cold/warm p50/p95, NFR-48 materialization and
 real budget/limit/cost evidence remain separate work.
 
