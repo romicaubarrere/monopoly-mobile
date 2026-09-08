@@ -80,6 +80,52 @@ offline tests; no new CI job, dependency, credential or cloud service is needed.
 Keep `./tool/preflight.py`, the real Firebase Emulator gate and all eight
 exact-head remote checks, including Android Tier-1, before merge.
 
+### Secret scanning of these public hashes
+
+`detect-secrets==1.5.0` flags the report's SHA-256 strings as high entropy.
+These are reproducible hashes of the selected synthetic public snapshots, not
+credentials. The 16 occurrences contain 14 distinct values; repeated values
+share one detector identity. The standard root `.secrets.baseline` records only
+those 14 exact identities for this report path and the `Hex High Entropy String`
+detector, audited with `is_secret: false`. Its `hashed_secret` fields are the
+detector's SHA-1 hashes of the SHA-256 **text**, not snapshot hashes directly;
+`is_verified: false` alone would not record a false-positive audit.
+
+Before the required `security / changed-secrets` job loads that baseline,
+`tool/secret_baseline_guard.py` compares its complete plugin/filter configuration
+with the pinned hook's defaults obtained in an isolated Python subprocess. It
+then independently recomputes all 16 public snapshot byte lengths and digests,
+requires equality with the entire report, and checks every baseline entry,
+including its file, type, first line and audit flag. Unknown fields, duplicate
+JSON keys, extra exceptions, changed hashes and weakened settings fail closed.
+The Dart generator-equality, privacy and canonical-serialization tests remain
+required; the Python guard is not a new runtime/domain serializer or sanitizer.
+
+No detector is disabled, no JSON comment/string pragma or file/line pattern
+exclusion is added, and all added/modified files are still scanned. A new
+credential in this same JSON or an unapproved hash still fails the real hook.
+Even an approved value under a password field remains subject to the keyword
+detector. Required integration tests run the actual pinned hook in temporary Git
+repositories and fail, rather than skip, if the detector is unavailable. Pure
+policy tests also run in Foundation without installing a Python dependency.
+
+To reproduce the security checks in an environment with the existing pinned
+`detect-secrets==1.5.0` dependency installed:
+
+```sh
+python -B tool/secret_baseline_guard.py
+python -B -m unittest discover -s tool/security_test -p '*_test.py' -v
+detect-secrets-hook --baseline .secrets.baseline -- backend/command_service/test/fixtures/public_snapshot_sizes.json
+```
+
+When a reviewed fixture legitimately changes, first verify its generator and
+update/review the report as above. A baseline update is a separate explicit
+false-positive audit of those reproducible public hashes, never an automatic
+`scan --baseline` step in CI. A changed line/removed finding that makes the hook
+rewrite the baseline returns exit 3 and still fails the job; it is not silently
+accepted. The guard's fixed 16-occurrence/14-identity scope also requires explicit
+review if the curated coverage or duplicate-state structure changes.
+
 ## Interpretation and remaining evidence
 
 This report currently spans **1,668–2,186 bytes**. Every selected snapshot is
