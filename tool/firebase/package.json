@@ -19,6 +19,7 @@
   },
   "overrides": {
     "@opentelemetry/core": "2.8.0",
+    "csv-parse": "7.0.2",
     "qs": "6.16.0",
     "stream-json": "3.5.0",
     "gaxios@6.7.1": {
