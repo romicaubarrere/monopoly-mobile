@@ -59,6 +59,71 @@ final class CommandIngress {
   final BestEffortAuthorityObservability _observability;
   final DateTime Function() _now;
 
+  /// Observes one authenticated reconnect execution, including public egress
+  /// validation performed by [execute]. Success describes this server boundary,
+  /// not a command disposition, delivered ACK, or client reconciliation success.
+  /// See docs/reconnect-authority-metrics.md for the measurement boundary.
+  Future<T> handleRecovery<T>({
+    required Future<T> Function() execute,
+    required ({int schemaVersion, int stateVersion}) Function(T) versions,
+  }) async {
+    DateTime? startedAt;
+    try {
+      startedAt = _now();
+    } on Object {
+      // A diagnostic clock is not authority for the recovery operation.
+    }
+    final capture = AuthorityExecutionMetricsCapture();
+    try {
+      final result = await capture.run(execute);
+      _emitRecovery(
+        capture.metrics,
+        startedAt,
+        versions: () => versions(result),
+      );
+      return result;
+    } on Object {
+      _emitRecovery(capture.metrics, startedAt);
+      rethrow;
+    }
+  }
+
+  void _emitRecovery(
+    AuthorityExecutionMetrics metrics,
+    DateTime? startedAt, {
+    ({int schemaVersion, int stateVersion}) Function()? versions,
+  }) {
+    try {
+      if (startedAt == null) return;
+      final confirmedVersions = versions?.call();
+      _observability.emit(
+        AuthorityLogEvent(
+          operation: AuthorityOperation.recovery,
+          outcome: versions == null
+              ? AuthorityOutcome.internalFailure
+              : AuthorityOutcome.success,
+          reason: versions == null
+              ? AuthorityReason.internalError
+              : AuthorityReason.none,
+          latencyMs: _elapsedMs(startedAt, _now()),
+          retryCount: metrics.retryCount,
+          conflictCount: metrics.conflictCount,
+          firestoreReadCount: metrics.firestoreReadCount,
+          firestoreWriteCount: metrics.firestoreWriteCount,
+          bytesRead: metrics.bytesRead,
+          bytesWritten: metrics.bytesWritten,
+          snapshotBytes: 0,
+          coldStart: false,
+          schemaVersion: confirmedVersions?.schemaVersion,
+          stateVersion: confirmedVersions?.stateVersion,
+        ),
+      );
+    } on Object {
+      // Clock, metadata, event construction and sink failures cannot alter the
+      // original result/exception or turn success into a second error event.
+    }
+  }
+
   Future<T> handle<T>({
     required IngressCommandEnvelope command,
     required AuthorityExecutor<T> execute,
