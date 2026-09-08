@@ -39,8 +39,10 @@ recovery calls cannot share it. The returned metrics are immutable values.
 These are **logical adapter counts, not billed Firestore operations**. Payload
 bytes exclude headers, TLS/HTTP framing, incomplete exchanges, listener fan-out,
 storage/index overhead and provider billing rules. They are not snapshot sizes
-or total network egress. The existing `snapshotBytes` and `coldStart` defaults
-remain unmeasured; this increment does not turn them into runtime evidence.
+or total network egress. The adapter's `snapshotBytes` and `coldStart` defaults
+remain unmeasured. The separate [reconnect size follow-up](reconnect-snapshot-size-metrics.md)
+measures the validated final public snapshot outside the store/capture; it does
+not derive a size from these transport counters.
 
 A failed commit does not become a confirmed write because its request was sent.
 Rollback failures remain best-effort; a complete error response contributes only

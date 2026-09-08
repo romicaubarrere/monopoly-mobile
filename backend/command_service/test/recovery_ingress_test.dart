@@ -27,44 +27,50 @@ const _second = AuthorityExecutionMetrics(
 );
 
 void main() {
-  test(
-    'success sums captured counters once and takes only validated versions',
-    () async {
-      final sink = _Sink();
-      var now = DateTime.utc(2026, 9, 8);
-      final ingress = _ingress(sink, now: () => now);
-      final value = Object();
-      final result = await ingress.handleRecovery(
-        execute: () async {
-          AuthorityExecutionMetricsCapture.record(_first);
-          await Future<void>.value();
-          AuthorityExecutionMetricsCapture.record(_second);
-          now = now.add(const Duration(milliseconds: 37));
-          return value;
-        },
-        versions: (_) => (schemaVersion: 1, stateVersion: 7),
-      );
+  test('success sums counters once and extracts final size separately after capture seals', () async {
+    final sink = _Sink();
+    var now = DateTime.utc(2026, 9, 8);
+    final ingress = _ingress(sink, now: () => now);
+    final value = Object();
+    var sizeCalls = 0;
+    final result = await ingress.handleRecovery(
+      execute: () async {
+        AuthorityExecutionMetricsCapture.record(_first);
+        await Future<void>.value();
+        AuthorityExecutionMetricsCapture.record(_second);
+        now = now.add(const Duration(milliseconds: 37));
+        return value;
+      },
+      versions: (_) => (schemaVersion: 1, stateVersion: 7),
+      snapshotBytes: (result) {
+        expect(result, same(value));
+        sizeCalls += 1;
+        // Diagnostic extraction is outside the closed operation capture.
+        AuthorityExecutionMetricsCapture.record(_second);
+        return 217;
+      },
+    );
 
-      expect(result, same(value));
-      expect(sink.calls, 1);
-      expect(sink.events.single, <String, Object>{
-        'operation': 'recovery',
-        'outcome': 'success',
-        'reason': 'none',
-        'latencyMs': 37,
-        'retryCount': 11,
-        'conflictCount': 22,
-        'firestoreReadCount': 33,
-        'firestoreWriteCount': 44,
-        'bytesRead': 55,
-        'bytesWritten': 66,
-        'snapshotBytes': 0,
-        'coldStart': false,
-        'schemaVersion': 1,
-        'stateVersion': 7,
-      });
-    },
-  );
+    expect(result, same(value));
+    expect(sink.calls, 1);
+    expect(sizeCalls, 1);
+    expect(sink.events.single, <String, Object>{
+      'operation': 'recovery',
+      'outcome': 'success',
+      'reason': 'none',
+      'latencyMs': 37,
+      'retryCount': 11,
+      'conflictCount': 22,
+      'firestoreReadCount': 33,
+      'firestoreWriteCount': 44,
+      'bytesRead': 55,
+      'bytesWritten': 66,
+      'snapshotBytes': 217,
+      'coldStart': false,
+      'schemaVersion': 1,
+      'stateVersion': 7,
+    });
+  });
 
   test(
     'failure retains counters but no result versions, identity or raw error',
@@ -76,6 +82,7 @@ void main() {
       Object? caught;
       StackTrace? caughtStack;
       var versionCalls = 0;
+      var sizeCalls = 0;
 
       try {
         await ingress.handleRecovery<Object>(
@@ -88,6 +95,10 @@ void main() {
             versionCalls += 1;
             return (schemaVersion: 1, stateVersion: 7);
           },
+          snapshotBytes: (_) {
+            sizeCalls += 1;
+            throw StateError('size extraction must not run after failure');
+          },
         );
       } on Object catch (error, trace) {
         caught = error;
@@ -97,6 +108,7 @@ void main() {
       expect(caught, same(original));
       expect(caughtStack.toString(), stack.toString());
       expect(versionCalls, 0);
+      expect(sizeCalls, 0);
       expect(sink.events.single, <String, Object>{
         'operation': 'recovery',
         'outcome': 'internalFailure',
@@ -133,6 +145,7 @@ void main() {
       expect(sink.events, hasLength(2));
       expect(sink.events.last['firestoreReadCount'], 0);
       expect(sink.events.last['bytesRead'], 0);
+      expect(sink.events.last['snapshotBytes'], 0);
       expect(sink.events.last['outcome'], 'success');
       expect(sink.events.last['reason'], 'none');
     },
@@ -146,17 +159,26 @@ void main() {
         final ingress = _ingress(sink);
         final original = StateError('synthetic original');
         final value = Object();
-        final operation = _run(ingress, () async {
-          AuthorityExecutionMetricsCapture.record(_first);
-          if (fails) throw original;
-          return value;
-        });
+        var sizeCalls = 0;
+        final operation = _run(
+          ingress,
+          () async {
+            AuthorityExecutionMetricsCapture.record(_first);
+            if (fails) throw original;
+            return value;
+          },
+          snapshotBytes: (_) {
+            sizeCalls += 1;
+            return 147;
+          },
+        );
         if (fails) {
           await expectLater(operation, throwsA(same(original)));
         } else {
           expect(await operation, same(value));
         }
         expect(sink.calls, 1);
+        expect(sizeCalls, fails ? 0 : 1);
       },
     );
 
@@ -192,6 +214,37 @@ void main() {
         },
       );
     }
+  }
+
+  for (final badSize in ['throw', 'negative']) {
+    test(
+      'invalid diagnostic size $badSize preserves success without another event',
+      () async {
+        final sink = _Sink();
+        final ingress = _ingress(sink);
+        final value = Object();
+        var executions = 0;
+        var sizeCalls = 0;
+        final result = await _run(
+          ingress,
+          () async {
+            executions += 1;
+            AuthorityExecutionMetricsCapture.record(_first);
+            return value;
+          },
+          snapshotBytes: (_) {
+            sizeCalls += 1;
+            if (badSize == 'throw') throw StateError('private diagnostic size');
+            return -1;
+          },
+        );
+        expect(result, same(value));
+        expect(executions, 1);
+        expect(sizeCalls, 1);
+        expect(sink.calls, 0);
+        expect(sink.events, isEmpty);
+      },
+    );
   }
 
   test(
@@ -246,13 +299,13 @@ void main() {
         await resume.future;
         AuthorityExecutionMetricsCapture.record(_first);
         return 'first';
-      });
+      }, snapshotBytes: (value) => value.length);
       await started.future;
       expect(
         await _run(ingress, () async {
           AuthorityExecutionMetricsCapture.record(_second);
           return 'second';
-        }),
+        }, snapshotBytes: (value) => value.length),
         'second',
       );
       resume.complete();
@@ -260,6 +313,7 @@ void main() {
       expect(sink.events, hasLength(2));
       expect(sink.events.map((e) => e['firestoreReadCount']), [30, 6]);
       expect(sink.events.map((e) => e['bytesRead']), [50, 10]);
+      expect(sink.events.map((e) => e['snapshotBytes']), [6, 5]);
     },
   );
 
@@ -271,12 +325,13 @@ void main() {
       await _run(ingress, () async {
         AuthorityExecutionMetricsCapture.record(_second);
         return Object();
-      });
+      }, snapshotBytes: (_) => 202);
       AuthorityExecutionMetricsCapture.record(_first);
       return Object();
-    });
+    }, snapshotBytes: (_) => 101);
     expect(sink.events, hasLength(2));
     expect(sink.events.map((e) => e['firestoreReadCount']), [30, 6]);
+    expect(sink.events.map((e) => e['snapshotBytes']), [202, 101]);
   });
 
   test(
@@ -292,23 +347,28 @@ void main() {
           AuthorityExecutionMetricsCapture.record(_second);
         });
         return Object();
-      });
+      }, snapshotBytes: (_) => 303);
       await _run(ingress, () async {
         late.complete();
         await callback;
         return Object();
-      });
+      }, snapshotBytes: (_) => 404);
       expect(sink.events, hasLength(2));
       expect(sink.events.map((e) => e['firestoreReadCount']), [3, 0]);
+      expect(sink.events.map((e) => e['snapshotBytes']), [303, 404]);
     },
   );
 }
 
-Future<T> _run<T>(CommandIngress ingress, Future<T> Function() execute) =>
-    ingress.handleRecovery(
-      execute: execute,
-      versions: (_) => (schemaVersion: 1, stateVersion: 7),
-    );
+Future<T> _run<T>(
+  CommandIngress ingress,
+  Future<T> Function() execute, {
+  int Function(T)? snapshotBytes,
+}) => ingress.handleRecovery(
+  execute: execute,
+  versions: (_) => (schemaVersion: 1, stateVersion: 7),
+  snapshotBytes: snapshotBytes,
+);
 
 CommandIngress _ingress(_Sink sink, {DateTime Function()? now}) =>
     CommandIngress(

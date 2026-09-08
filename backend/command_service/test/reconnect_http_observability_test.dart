@@ -53,7 +53,7 @@ void main() {
           }
         }
         final event = harness.onlyEvent;
-        _expectSuccess(event);
+        _expectSuccess(event, harness.peer.publicState);
         _expectTransfers(event, harness.peer.onlyTransfer);
         expect(event['firestoreReadCount'], expectedAction == null ? 2 : 3);
         expect(harness.peer.methods, <String>[
@@ -82,7 +82,7 @@ void main() {
           response.body['commandResolution']! as Map<String, Object?>;
       expect(resolution['action'], 'failClosed');
       expect(resolution, isNot(contains('publicResult')));
-      _expectSuccess(harness.onlyEvent);
+      _expectSuccess(harness.onlyEvent, harness.peer.publicState);
       _expectTransfers(harness.onlyEvent, harness.peer.onlyTransfer);
       expect(harness.onlyEvent['firestoreReadCount'], 3);
       _expectSafe(response, harness.onlyEvent);
@@ -127,6 +127,29 @@ void main() {
       },
     );
   }
+
+  test('a public snapshot with a private receipt still fails before size extraction', () async {
+    final harness = await _Harness.start(
+      disposition: api.ReconnectDisposition.uncertainConfirmed,
+    );
+    addTearDown(harness.close);
+    final receipt =
+        harness.peer.documents['games/$_gameId/commands/$_commandId']!;
+    (receipt['resultSummary']! as Map<String, Object?>)['token'] =
+        'private-fixture-value';
+
+    final response = await harness.reconnect();
+
+    _expectHttpError(
+      response,
+      HttpStatus.badRequest,
+      'privateMaterialForbidden',
+    );
+    _expectFailure(harness.onlyEvent);
+    _expectTransfers(harness.onlyEvent, harness.peer.onlyTransfer);
+    expect(harness.onlyEvent['firestoreReadCount'], 3);
+    _expectSafe(response, harness.onlyEvent);
+  });
 
   for (final method in <String>['batchGet', 'rollback']) {
     test(
@@ -173,7 +196,7 @@ void main() {
         } else {
           expect(response.status, HttpStatus.ok);
           expect(response.body['disposition'], 'upToDate');
-          _expectSuccess(harness.onlyEvent);
+          _expectSuccess(harness.onlyEvent, harness.peer.publicState);
         }
         _expectTransfers(harness.onlyEvent, harness.peer.onlyTransfer);
         _expectSafe(response, harness.onlyEvent);
@@ -218,7 +241,8 @@ void main() {
       expect(commandEvent['outcome'], 'duplicate');
       expect(commandEvent['firestoreReadCount'], 3);
       expect(commandEvent['firestoreWriteCount'], 0);
-      _expectSuccess(recoveryEvent);
+      expect(commandEvent['snapshotBytes'], 0);
+      _expectSuccess(recoveryEvent, harness.peer.publicState);
       expect(recoveryEvent['firestoreReadCount'], 2);
       _expectTransfers(
         commandEvent,
@@ -236,6 +260,90 @@ void main() {
       _expectSafe(replies[1], recoveryEvent);
     },
   );
+
+  test(
+    'snapshot size counts UTF-8 and JSON escaping without logging content',
+    () async {
+      final harness = await _Harness.start();
+      addTearDown(harness.close);
+      final turn =
+          harness.peer.publicState['turnState']! as Map<String, Object?>;
+      turn['measurementFixture'] = 'a';
+      final ascii = CanonicalDomainJson.encode(harness.peer.publicState);
+      turn['measurementFixture'] = 'ñ🎲\n"\\';
+      final expectedJson = ascii.replaceFirst(
+        '"measurementFixture":"a"',
+        r'"measurementFixture":"ñ🎲\n\"\\"',
+      );
+      expect(expectedJson, isNot(ascii));
+
+      final response = await harness.reconnect();
+
+      expect(response.status, HttpStatus.ok);
+      expect(response.body['snapshot'], harness.peer.publicState);
+      expect(
+        harness.onlyEvent['snapshotBytes'],
+        utf8.encode(expectedJson).length,
+      );
+      expect(
+        utf8.encode(expectedJson).length,
+        greaterThan(expectedJson.length),
+      );
+      _expectSuccess(harness.onlyEvent, harness.peer.publicState);
+      _expectTransfers(harness.onlyEvent, harness.peer.onlyTransfer);
+      _expectSafe(response, harness.onlyEvent);
+      expect(
+        jsonEncode(harness.onlyEvent),
+        isNot(contains('measurementFixture')),
+      );
+    },
+  );
+
+  test('changing only a durable receipt changes payload bytes but not snapshot size', () async {
+    final harness = await _Harness.start(
+      disposition: api.ReconnectDisposition.uncertainConfirmed,
+    );
+    addTearDown(harness.close);
+    final before = await harness.reconnect();
+    final receipt =
+        harness.peer.documents['games/$_gameId/commands/$_commandId']!;
+    final result = receipt['resultSummary']! as Map<String, Object?>;
+    final publicText = List<String>.filled(20, 'public ñ🎲\n"').join();
+    result['measurementFixture'] = publicText;
+
+    final after = await harness.reconnect();
+
+    expect(before.status, HttpStatus.ok);
+    expect(after.status, HttpStatus.ok);
+    expect(after.body['snapshot'], before.body['snapshot']);
+    final resolution = after.body['commandResolution']! as Map<String, Object?>;
+    expect(
+      (resolution['publicResult']! as Map)['measurementFixture'],
+      publicText,
+    );
+    expect(
+      utf8.encode(jsonEncode(after.body)).length,
+      greaterThan(utf8.encode(jsonEncode(before.body)).length),
+    );
+    expect(harness.sink.events, hasLength(2));
+    expect(
+      harness.sink.events.last['snapshotBytes'],
+      harness.sink.events.first['snapshotBytes'],
+    );
+    expect(
+      harness.sink.events.last['bytesRead'],
+      greaterThan(harness.sink.events.first['bytesRead']! as int),
+    );
+    final transfers = harness.peer.transfers.values.toList();
+    for (var index = 0; index < harness.sink.events.length; index += 1) {
+      final event = harness.sink.events[index];
+      _expectSuccess(event, harness.peer.publicState);
+      _expectTransfers(event, transfers[index]);
+      _expectSafe(index == 0 ? before : after, event);
+      expect(event['firestoreReadCount'], 3);
+      expect(jsonEncode(event), isNot(contains('measurementFixture')));
+    }
+  });
 
   test('public GET still bypasses recovery observability', () async {
     final harness = await _Harness.start();
@@ -292,12 +400,19 @@ void main() {
   });
 }
 
-void _expectSuccess(Map<String, Object> event) {
+void _expectSuccess(Map<String, Object> event, Map<String, Object?> snapshot) {
   expect(event['operation'], 'recovery');
   expect(event['outcome'], 'success');
   expect(event['reason'], 'none');
   expect(event['schemaVersion'], 1);
   expect(event['stateVersion'], 1);
+  // Independent domain encoder; production uses AuthorityPublicSnapshot's
+  // canonical serializer. Neither expression measures the whole HTTP reply.
+  expect(
+    event['snapshotBytes'],
+    utf8.encode(CanonicalDomainJson.encode(snapshot)).length,
+  );
+  expect(event['snapshotBytes'], greaterThan(0));
   expect(
     event.keys,
     unorderedEquals(<String>[..._baseFields, 'schemaVersion', 'stateVersion']),
@@ -309,6 +424,7 @@ void _expectFailure(Map<String, Object> event) {
   expect(event['operation'], 'recovery');
   expect(event['outcome'], 'internalFailure');
   expect(event['reason'], 'internalError');
+  expect(event['snapshotBytes'], 0);
   expect(event.keys, unorderedEquals(_baseFields));
   _expectDefaults(event);
 }
@@ -317,7 +433,6 @@ void _expectDefaults(Map<String, Object> event) {
   expect(event['retryCount'], 0);
   expect(event['conflictCount'], 0);
   expect(event['firestoreWriteCount'], 0);
-  expect(event['snapshotBytes'], 0);
   expect(event['coldStart'], isFalse);
   expect(
     event['latencyMs'],
