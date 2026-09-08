@@ -277,76 +277,89 @@ final class FirstPlayableFirestoreRestStore
     if (commandId != null) {
       _requirePathSegment(commandId, 'invalidCommandId');
     }
-    final transaction = await _beginTransaction(readOnly: true);
-    try {
-      final publicPath = 'games/$gameId';
-      final privatePath = 'gameSecrets/$gameId';
-      final receiptPath = commandId == null
-          ? null
-          : 'games/$gameId/commands/$commandId';
-      final read = await transaction.batchGet(<String>[
-        publicPath,
-        privatePath,
-        ?receiptPath,
-      ]);
-      final view = _decodeGame(
-        publicGame: read[publicPath],
-        privateGame: read[privatePath],
-        receipt: receiptPath == null ? null : read[receiptPath],
-        expectedGameId: gameId,
-        expectedCommandId: commandId,
+    return _measuredOperation((metrics) async {
+      final transaction = await _beginTransaction(
+        readOnly: true,
+        metrics: metrics,
       );
-      await transaction.rollback();
-      return FirstPlayableGameReadResult(
-        view: view,
-        metrics: transaction.metrics(
-          attempt: 0,
-          schemaVersion: view.publicState.header.schemaVersion,
-          stateVersion: view.publicState.header.stateVersion,
-        ),
-      );
-    } on Object {
-      await transaction.rollbackBestEffort();
-      rethrow;
-    }
+      try {
+        final publicPath = 'games/$gameId';
+        final privatePath = 'gameSecrets/$gameId';
+        final receiptPath = commandId == null
+            ? null
+            : 'games/$gameId/commands/$commandId';
+        final read = await transaction.batchGet(<String>[
+          publicPath,
+          privatePath,
+          ?receiptPath,
+        ]);
+        final view = _decodeGame(
+          publicGame: read[publicPath],
+          privateGame: read[privatePath],
+          receipt: receiptPath == null ? null : read[receiptPath],
+          expectedGameId: gameId,
+          expectedCommandId: commandId,
+        );
+        await transaction.rollback();
+        return FirstPlayableGameReadResult(
+          view: view,
+          metrics: transaction.metrics(
+            attempt: 0,
+            schemaVersion: view.publicState.header.schemaVersion,
+            stateVersion: view.publicState.header.stateVersion,
+          ),
+        );
+      } on Object {
+        await transaction.rollbackBestEffort();
+        rethrow;
+      }
+    });
   }
 
   @override
   Future<FirstPlayableRoomReadResult> readRoom({required String roomId}) async {
     _requirePathSegment(roomId, 'invalidRoomId');
-    final transaction = await _beginTransaction(readOnly: true);
-    try {
-      final publicPath = 'rooms/$roomId';
-      final privatePath = 'roomSecrets/$roomId';
-      final read = await transaction.batchGet(<String>[
-        publicPath,
-        privatePath,
-      ]);
-      final view = _decodeRoomTransaction(
-        read[publicPath],
-        read[privatePath],
-        null,
+    return _measuredOperation((metrics) async {
+      final transaction = await _beginTransaction(
+        readOnly: true,
+        metrics: metrics,
       );
-      await transaction.rollback();
-      return FirstPlayableRoomReadResult(
-        view: view,
-        metrics: transaction.metrics(
-          attempt: 0,
-          schemaVersion: FirstPlayablePersistenceCodec.schemaVersion,
-          stateVersion: view.roomVersion,
-        ),
-      );
-    } on Object {
-      await transaction.rollbackBestEffort();
-      rethrow;
-    }
+      try {
+        final publicPath = 'rooms/$roomId';
+        final privatePath = 'roomSecrets/$roomId';
+        final read = await transaction.batchGet(<String>[
+          publicPath,
+          privatePath,
+        ]);
+        final view = _decodeRoomTransaction(
+          read[publicPath],
+          read[privatePath],
+          null,
+        );
+        await transaction.rollback();
+        return FirstPlayableRoomReadResult(
+          view: view,
+          metrics: transaction.metrics(
+            attempt: 0,
+            schemaVersion: FirstPlayablePersistenceCodec.schemaVersion,
+            stateVersion: view.roomVersion,
+          ),
+        );
+      } on Object {
+        await transaction.rollbackBestEffort();
+        rethrow;
+      }
+    });
   }
 
   Future<T> _retryingTransaction<T>(
     Future<T> Function(_FirestoreRestTransaction transaction, int attempt) body,
-  ) async {
+  ) => _measuredOperation((metrics) async {
+    // One accumulator per logical operation, never per store or final attempt.
+    // Conflicted attempts still performed reads and exchanged payload bytes.
     for (var attempt = 0; attempt < _config.maxAttempts; attempt += 1) {
-      final transaction = await _beginTransaction();
+      metrics.retryCount = attempt;
+      final transaction = await _beginTransaction(metrics: metrics);
       try {
         return await body(transaction, attempt);
       } on _FirestoreRestException catch (error) {
@@ -363,12 +376,27 @@ final class FirstPlayableFirestoreRestStore
       }
     }
     throw const FirstPlayableFirestoreStoreViolation('transactionConflict');
+  });
+
+  Future<T> _measuredOperation<T>(
+    Future<T> Function(_FirestoreOperationMetrics metrics) body,
+  ) async {
+    final metrics = _FirestoreOperationMetrics();
+    try {
+      return await body(metrics);
+    } finally {
+      // One immutable numeric snapshot, including final best-effort cleanup.
+      // No wrapping or translating exceptions on this diagnostic path.
+      AuthorityExecutionMetricsCapture.record(metrics.snapshot());
+    }
   }
 
   Future<_FirestoreRestTransaction> _beginTransaction({
     bool readOnly = false,
+    required _FirestoreOperationMetrics metrics,
   }) async {
     final response = await _request(
+      metrics: metrics,
       method: 'POST',
       suffix: '/documents:beginTransaction',
       body: <String, Object?>{
@@ -385,12 +413,12 @@ final class FirstPlayableFirestoreRestStore
     return _FirestoreRestTransaction(
       store: this,
       id: transaction,
-      initialBytesRead: response.bytesRead,
-      initialBytesWritten: response.bytesWritten,
+      operationMetrics: metrics,
     );
   }
 
   Future<_FirestoreResponse> _request({
+    required _FirestoreOperationMetrics metrics,
     required String method,
     required String suffix,
     Map<String, Object?>? body,
@@ -420,13 +448,29 @@ final class FirstPlayableFirestoreRestStore
       <int>[],
       (buffer, chunk) => buffer..addAll(chunk),
     );
+    // Count payloads for completed HTTP exchanges before decoding/classifying
+    // errors. Headers, transport overhead and incomplete exchanges are excluded;
+    // these are measured adapter bytes, not billed egress or document storage.
+    metrics.bytesRead += bytes.length;
+    metrics.bytesWritten += encoded?.length ?? 0;
+    Never fail(String code) {
+      final error = _FirestoreRestException(response.statusCode, code);
+      // Count classified operation conflicts, including terminal/read-only/begin
+      // failures. Rollback errors contribute bytes but not diagnostic conflicts;
+      // the existing retry behavior (including no-write closing) is unchanged.
+      if (error.isConflict && suffix != '/documents:rollback') {
+        metrics.conflictCount += 1;
+      }
+      throw error;
+    }
+
     final text = utf8.decode(bytes);
     Object? decoded;
     if (text.isNotEmpty) {
       try {
         decoded = jsonDecode(text);
       } on FormatException {
-        throw _FirestoreRestException(response.statusCode, 'invalidJson');
+        fail('invalidJson');
       }
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -435,14 +479,12 @@ final class FirstPlayableFirestoreRestStore
         final error = decoded['error'];
         if (error is Map) code = error['status']?.toString();
       }
-      throw _FirestoreRestException(response.statusCode, code ?? 'httpError');
+      fail(code ?? 'httpError');
     }
     return _FirestoreResponse(
       value: decoded is Map<String, Object?>
           ? decoded
           : <String, Object?>{'responses': decoded},
-      bytesRead: bytes.length,
-      bytesWritten: encoded?.length ?? 0,
     );
   }
 
@@ -609,21 +651,36 @@ final class FirstPlayableFirestoreRestStore
   }
 }
 
+/// Logical document counts and completed HTTP payloads across every attempt.
+/// This deliberately contains no document, identity, token or error text.
+final class _FirestoreOperationMetrics {
+  int retryCount = 0;
+  int conflictCount = 0;
+  int readCount = 0;
+  int writeCount = 0;
+  int bytesRead = 0;
+  int bytesWritten = 0;
+
+  AuthorityExecutionMetrics snapshot() => AuthorityExecutionMetrics(
+    retryCount: retryCount,
+    conflictCount: conflictCount,
+    firestoreReadCount: readCount,
+    firestoreWriteCount: writeCount,
+    bytesRead: bytesRead,
+    bytesWritten: bytesWritten,
+  );
+}
+
 final class _FirestoreRestTransaction {
   _FirestoreRestTransaction({
     required this.store,
     required this.id,
-    required int initialBytesRead,
-    required int initialBytesWritten,
-  }) : bytesRead = initialBytesRead,
-       bytesWritten = initialBytesWritten;
+    required this.operationMetrics,
+  });
 
   final FirstPlayableFirestoreRestStore store;
   final String id;
-  int readCount = 0;
-  int writeCount = 0;
-  int bytesRead;
-  int bytesWritten;
+  final _FirestoreOperationMetrics operationMetrics;
   bool _closed = false;
 
   Future<Map<String, Map<String, Object?>?>> batchGet(
@@ -635,6 +692,7 @@ final class _FirestoreRestTransaction {
       );
     }
     final response = await store._request(
+      metrics: operationMetrics,
       method: 'POST',
       suffix: '/documents:batchGet',
       body: <String, Object?>{
@@ -642,9 +700,7 @@ final class _FirestoreRestTransaction {
         'transaction': id,
       },
     );
-    bytesRead += response.bytesRead;
-    bytesWritten += response.bytesWritten;
-    readCount += paths.length;
+    operationMetrics.readCount += paths.length;
     final rawResponses = response.value['responses'];
     if (rawResponses is! List<Object?>) {
       throw const FirstPlayableFirestoreStoreViolation(
@@ -698,26 +754,25 @@ final class _FirestoreRestTransaction {
       await rollback();
       return;
     }
-    final response = await store._request(
+    await store._request(
+      metrics: operationMetrics,
       method: 'POST',
       suffix: '/documents:commit',
       body: <String, Object?>{'writes': writes, 'transaction': id},
     );
-    bytesRead += response.bytesRead;
-    bytesWritten += response.bytesWritten;
-    writeCount += writes.length;
+    // Aborted/failed commits are not confirmed document writes.
+    operationMetrics.writeCount += writes.length;
     _closed = true;
   }
 
   Future<void> rollback() async {
     if (_closed) return;
-    final response = await store._request(
+    await store._request(
+      metrics: operationMetrics,
       method: 'POST',
       suffix: '/documents:rollback',
       body: <String, Object?>{'transaction': id},
     );
-    bytesRead += response.bytesRead;
-    bytesWritten += response.bytesWritten;
     _closed = true;
   }
 
@@ -736,25 +791,19 @@ final class _FirestoreRestTransaction {
   }) => AuthorityExecutionMetrics(
     retryCount: attempt,
     conflictCount: attempt,
-    firestoreReadCount: readCount,
-    firestoreWriteCount: writeCount,
-    bytesRead: bytesRead,
-    bytesWritten: bytesWritten,
+    firestoreReadCount: operationMetrics.readCount,
+    firestoreWriteCount: operationMetrics.writeCount,
+    bytesRead: operationMetrics.bytesRead,
+    bytesWritten: operationMetrics.bytesWritten,
     schemaVersion: schemaVersion,
     stateVersion: stateVersion,
   );
 }
 
 final class _FirestoreResponse {
-  const _FirestoreResponse({
-    required this.value,
-    required this.bytesRead,
-    required this.bytesWritten,
-  });
+  const _FirestoreResponse({required this.value});
 
   final Map<String, Object?> value;
-  final int bytesRead;
-  final int bytesWritten;
 }
 
 final class _FirestoreRestException implements Exception {

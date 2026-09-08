@@ -77,16 +77,28 @@ final class AuthorityHttpIngress {
       if (request.method == 'POST' &&
           _matches(path, const <String>['v1', 'authority', 'reconnect'])) {
         final wire = await _readJsonObject(request);
-        final result = await _executor.reconnect(
-          context: context,
-          identity: identity,
-          request: AuthorityReconnectRequest.fromWireJson(wire),
+        final reconnectRequest = AuthorityReconnectRequest.fromWireJson(wire);
+        final result = await _commandIngress.handleRecovery(
+          execute: () async {
+            final reply = await _executor.reconnect(
+              context: context,
+              identity: identity,
+              request: reconnectRequest,
+            );
+            // Validate before the recovery event. HTTP delivery remains outside
+            // this server-execution metric and does not prove a client ACK.
+            return (
+              wire: validatedAuthorityPublicWireObject(reply.toWireJson()),
+              schemaVersion: reply.snapshot.schemaVersion,
+              stateVersion: reply.snapshot.stateVersion,
+            );
+          },
+          versions: (reply) => (
+            schemaVersion: reply.schemaVersion,
+            stateVersion: reply.stateVersion,
+          ),
         );
-        await _writeJson(
-          request.response,
-          HttpStatus.ok,
-          validatedAuthorityPublicWireObject(result.toWireJson()),
-        );
+        await _writeJson(request.response, HttpStatus.ok, result.wire);
         return;
       }
       if (request.method == 'GET' &&
