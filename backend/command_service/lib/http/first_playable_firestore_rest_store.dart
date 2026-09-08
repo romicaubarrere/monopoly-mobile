@@ -345,8 +345,11 @@ final class FirstPlayableFirestoreRestStore
   Future<T> _retryingTransaction<T>(
     Future<T> Function(_FirestoreRestTransaction transaction, int attempt) body,
   ) async {
+    // One accumulator per logical operation, never per store or final attempt.
+    // Conflicted attempts still performed reads and exchanged payload bytes.
+    final metrics = _FirestoreOperationMetrics();
     for (var attempt = 0; attempt < _config.maxAttempts; attempt += 1) {
-      final transaction = await _beginTransaction();
+      final transaction = await _beginTransaction(metrics: metrics);
       try {
         return await body(transaction, attempt);
       } on _FirestoreRestException catch (error) {
@@ -367,8 +370,11 @@ final class FirstPlayableFirestoreRestStore
 
   Future<_FirestoreRestTransaction> _beginTransaction({
     bool readOnly = false,
+    _FirestoreOperationMetrics? metrics,
   }) async {
+    final operationMetrics = metrics ?? _FirestoreOperationMetrics();
     final response = await _request(
+      metrics: operationMetrics,
       method: 'POST',
       suffix: '/documents:beginTransaction',
       body: <String, Object?>{
@@ -385,12 +391,12 @@ final class FirstPlayableFirestoreRestStore
     return _FirestoreRestTransaction(
       store: this,
       id: transaction,
-      initialBytesRead: response.bytesRead,
-      initialBytesWritten: response.bytesWritten,
+      operationMetrics: operationMetrics,
     );
   }
 
   Future<_FirestoreResponse> _request({
+    required _FirestoreOperationMetrics metrics,
     required String method,
     required String suffix,
     Map<String, Object?>? body,
@@ -420,6 +426,11 @@ final class FirstPlayableFirestoreRestStore
       <int>[],
       (buffer, chunk) => buffer..addAll(chunk),
     );
+    // Count payloads for completed HTTP exchanges before decoding/classifying
+    // errors. Headers, transport overhead and incomplete exchanges are excluded;
+    // these are measured adapter bytes, not billed egress or document storage.
+    metrics.bytesRead += bytes.length;
+    metrics.bytesWritten += encoded?.length ?? 0;
     final text = utf8.decode(bytes);
     Object? decoded;
     if (text.isNotEmpty) {
@@ -441,8 +452,6 @@ final class FirstPlayableFirestoreRestStore
       value: decoded is Map<String, Object?>
           ? decoded
           : <String, Object?>{'responses': decoded},
-      bytesRead: bytes.length,
-      bytesWritten: encoded?.length ?? 0,
     );
   }
 
@@ -609,21 +618,25 @@ final class FirstPlayableFirestoreRestStore
   }
 }
 
+/// Logical document counts and completed HTTP payloads across every attempt.
+/// This deliberately contains no document, identity, token or error text.
+final class _FirestoreOperationMetrics {
+  int readCount = 0;
+  int writeCount = 0;
+  int bytesRead = 0;
+  int bytesWritten = 0;
+}
+
 final class _FirestoreRestTransaction {
   _FirestoreRestTransaction({
     required this.store,
     required this.id,
-    required int initialBytesRead,
-    required int initialBytesWritten,
-  }) : bytesRead = initialBytesRead,
-       bytesWritten = initialBytesWritten;
+    required this.operationMetrics,
+  });
 
   final FirstPlayableFirestoreRestStore store;
   final String id;
-  int readCount = 0;
-  int writeCount = 0;
-  int bytesRead;
-  int bytesWritten;
+  final _FirestoreOperationMetrics operationMetrics;
   bool _closed = false;
 
   Future<Map<String, Map<String, Object?>?>> batchGet(
@@ -635,6 +648,7 @@ final class _FirestoreRestTransaction {
       );
     }
     final response = await store._request(
+      metrics: operationMetrics,
       method: 'POST',
       suffix: '/documents:batchGet',
       body: <String, Object?>{
@@ -642,9 +656,7 @@ final class _FirestoreRestTransaction {
         'transaction': id,
       },
     );
-    bytesRead += response.bytesRead;
-    bytesWritten += response.bytesWritten;
-    readCount += paths.length;
+    operationMetrics.readCount += paths.length;
     final rawResponses = response.value['responses'];
     if (rawResponses is! List<Object?>) {
       throw const FirstPlayableFirestoreStoreViolation(
@@ -698,26 +710,25 @@ final class _FirestoreRestTransaction {
       await rollback();
       return;
     }
-    final response = await store._request(
+    await store._request(
+      metrics: operationMetrics,
       method: 'POST',
       suffix: '/documents:commit',
       body: <String, Object?>{'writes': writes, 'transaction': id},
     );
-    bytesRead += response.bytesRead;
-    bytesWritten += response.bytesWritten;
-    writeCount += writes.length;
+    // Aborted/failed commits are not confirmed document writes.
+    operationMetrics.writeCount += writes.length;
     _closed = true;
   }
 
   Future<void> rollback() async {
     if (_closed) return;
-    final response = await store._request(
+    await store._request(
+      metrics: operationMetrics,
       method: 'POST',
       suffix: '/documents:rollback',
       body: <String, Object?>{'transaction': id},
     );
-    bytesRead += response.bytesRead;
-    bytesWritten += response.bytesWritten;
     _closed = true;
   }
 
@@ -736,25 +747,19 @@ final class _FirestoreRestTransaction {
   }) => AuthorityExecutionMetrics(
     retryCount: attempt,
     conflictCount: attempt,
-    firestoreReadCount: readCount,
-    firestoreWriteCount: writeCount,
-    bytesRead: bytesRead,
-    bytesWritten: bytesWritten,
+    firestoreReadCount: operationMetrics.readCount,
+    firestoreWriteCount: operationMetrics.writeCount,
+    bytesRead: operationMetrics.bytesRead,
+    bytesWritten: operationMetrics.bytesWritten,
     schemaVersion: schemaVersion,
     stateVersion: stateVersion,
   );
 }
 
 final class _FirestoreResponse {
-  const _FirestoreResponse({
-    required this.value,
-    required this.bytesRead,
-    required this.bytesWritten,
-  });
+  const _FirestoreResponse({required this.value});
 
   final Map<String, Object?> value;
-  final int bytesRead;
-  final int bytesWritten;
 }
 
 final class _FirestoreRestException implements Exception {
