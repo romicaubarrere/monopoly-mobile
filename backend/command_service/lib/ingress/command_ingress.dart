@@ -1,4 +1,7 @@
+import '../observability/authority_execution_metrics.dart';
 import '../observability/authority_observability.dart';
+
+export '../observability/authority_execution_metrics.dart';
 
 /// Captured exactly once per logical ingress request and reused across retries.
 final class IngressContext {
@@ -21,32 +24,6 @@ final class IngressCommandEnvelope {
   final String commandId;
   final int inputHashVersion;
   final int expectedVersion;
-}
-
-final class AuthorityExecutionMetrics {
-  const AuthorityExecutionMetrics({
-    this.retryCount = 0,
-    this.conflictCount = 0,
-    this.firestoreReadCount = 0,
-    this.firestoreWriteCount = 0,
-    this.bytesRead = 0,
-    this.bytesWritten = 0,
-    this.snapshotBytes = 0,
-    this.schemaVersion,
-    this.stateVersion,
-    this.coldStart = false,
-  });
-
-  final int retryCount;
-  final int conflictCount;
-  final int firestoreReadCount;
-  final int firestoreWriteCount;
-  final int bytesRead;
-  final int bytesWritten;
-  final int snapshotBytes;
-  final int? schemaVersion;
-  final int? stateVersion;
-  final bool coldStart;
 }
 
 final class AuthorityExecutionResult<T> {
@@ -112,9 +89,10 @@ final class CommandIngress {
     final context =
         ingressContext ?? IngressContext(requestReceivedAt: _now().toUtc());
     final startedAt = _now();
+    final capture = AuthorityExecutionMetricsCapture();
 
     try {
-      final result = await execute(context, command);
+      final result = await capture.run(() => execute(context, command));
       final metrics = result.metrics;
 
       _observability.emit(
@@ -141,25 +119,30 @@ final class CommandIngress {
 
       return result.value;
     } on Object {
-      _observability.emit(
-        AuthorityLogEvent(
-          operation: switch (command.kind) {
-            IngressCommandKind.room => AuthorityOperation.roomCommand,
-            IngressCommandKind.game => AuthorityOperation.gameCommand,
-          },
-          outcome: AuthorityOutcome.internalFailure,
-          reason: AuthorityReason.internalError,
-          latencyMs: _elapsedMs(startedAt, _now()),
-          retryCount: 0,
-          conflictCount: 0,
-          firestoreReadCount: 0,
-          firestoreWriteCount: 0,
-          bytesRead: 0,
-          bytesWritten: 0,
-          snapshotBytes: 0,
-          coldStart: false,
-        ),
-      );
+      final metrics = capture.metrics;
+      try {
+        _observability.emit(
+          AuthorityLogEvent(
+            operation: switch (command.kind) {
+              IngressCommandKind.room => AuthorityOperation.roomCommand,
+              IngressCommandKind.game => AuthorityOperation.gameCommand,
+            },
+            outcome: AuthorityOutcome.internalFailure,
+            reason: AuthorityReason.internalError,
+            latencyMs: _elapsedMs(startedAt, _now()),
+            retryCount: metrics.retryCount,
+            conflictCount: metrics.conflictCount,
+            firestoreReadCount: metrics.firestoreReadCount,
+            firestoreWriteCount: metrics.firestoreWriteCount,
+            bytesRead: metrics.bytesRead,
+            bytesWritten: metrics.bytesWritten,
+            snapshotBytes: 0,
+            coldStart: false,
+          ),
+        );
+      } on Object {
+        // Even event construction must not mask the original authority error.
+      }
       rethrow;
     }
   }

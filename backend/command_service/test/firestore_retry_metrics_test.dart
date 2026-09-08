@@ -201,6 +201,353 @@ void main() {
     expect(peer.rollbacks, 3);
     expect(peer.confirmedWrites, 0);
   });
+
+  for (final family in _Family.values) {
+    test(
+      '${family.name} terminal conflicts retain all I/O in ingress',
+      () async {
+        final peer = await _RestPeer.start(commitConflicts: 5);
+        addTearDown(peer.close);
+        final event = await _failureEvent(
+          () => peer.execute(family),
+          expectedError: _storeError('transactionConflict'),
+        );
+
+        expect(event['firestoreReadCount'], family.reads * 3);
+        expect(event['firestoreWriteCount'], 0);
+        expect(event['retryCount'], 2);
+        expect(event['conflictCount'], 3);
+        expect(peer.commitCalls, 3);
+        expect(peer.rollbacks, 3);
+        peer.expectEventTransfers(event);
+      },
+    );
+
+    for (final method in <String>['batchGet', 'commit']) {
+      test('${family.name} terminal $method retains completed bytes', () async {
+        final peer = await _RestPeer.start(failMethod: method);
+        addTearDown(peer.close);
+        final event = await _failureEvent(
+          () => peer.execute(family),
+          expectedError: _storeError('firestoreUnavailable'),
+        );
+
+        expect(
+          event['firestoreReadCount'],
+          method == 'commit' ? family.reads : 0,
+        );
+        expect(event['firestoreWriteCount'], 0);
+        expect(event['retryCount'], 0);
+        expect(event['conflictCount'], 0);
+        expect(peer.rollbacks, 1);
+        peer.expectEventTransfers(event);
+      });
+    }
+  }
+
+  for (final priorConflicts in <int>[0, 1]) {
+    for (final fault in <_Fault>[
+      _Fault.unavailable,
+      _Fault.aborted,
+      _Fault.invalidBegin,
+    ]) {
+      test(
+        'begin $fault after $priorConflicts conflicts does not add retries',
+        () async {
+          final peer = await _RestPeer.start(
+            commitConflicts: priorConflicts,
+            failMethod: 'beginTransaction',
+            failAfter: priorConflicts,
+            fault: fault,
+          );
+          addTearDown(peer.close);
+          final event = await _failureEvent(
+            () => peer.execute(_Family.game),
+            expectedError: fault == _Fault.invalidBegin
+                ? _storeError('invalidFirestoreResponse')
+                : predicate<Object>(
+                    (error) =>
+                        error.runtimeType.toString() ==
+                        '_FirestoreRestException',
+                  ),
+          );
+
+          expect(event['firestoreReadCount'], priorConflicts * 3);
+          expect(event['firestoreWriteCount'], 0);
+          expect(event['retryCount'], priorConflicts);
+          expect(
+            event['conflictCount'],
+            priorConflicts + (fault == _Fault.aborted ? 1 : 0),
+          );
+          expect(peer.calls['beginTransaction'], priorConflicts + 1);
+          expect(peer.rollbacks, priorConflicts);
+          peer.expectEventTransfers(event);
+        },
+      );
+    }
+  }
+
+  for (final fault in <_Fault>[_Fault.invalidJson, _Fault.invalidUtf8]) {
+    test(
+      'complete malformed $fault payload is counted before decoding',
+      () async {
+        final peer = await _RestPeer.start(
+          failMethod: 'batchGet',
+          fault: fault,
+        );
+        addTearDown(peer.close);
+        final event = await _failureEvent(() => peer.execute(_Family.game));
+        expect(event['firestoreReadCount'], 0);
+        peer.expectEventTransfers(event);
+      },
+    );
+  }
+
+  test(
+    'incomplete exchange is excluded without discarding prior completed I/O',
+    () async {
+      final peer = await _RestPeer.start(
+        failMethod: 'batchGet',
+        fault: _Fault.truncated,
+      );
+      addTearDown(peer.close);
+      final event = await _failureEvent(() => peer.execute(_Family.game));
+      expect(event['firestoreReadCount'], 0);
+      expect(
+        event['bytesRead'],
+        peer.responseBytes - peer.incompleteResponseBytes,
+      );
+      expect(
+        event['bytesWritten'],
+        peer.requestBytes - peer.incompleteRequestBytes,
+      );
+      expect(peer.rollbacks, 1);
+    },
+  );
+
+  test(
+    'evaluation failure and failed cleanup preserve the original exception',
+    () async {
+      final peer = await _RestPeer.start(rollbackFailures: 1);
+      addTearDown(peer.close);
+      final original = StateError('private-error uid-p1 Bearer secret');
+      final event = await _failureEvent(
+        () => peer.execute(_Family.game, onEvaluate: () => throw original),
+        expectedError: same(original),
+      );
+      expect(event['firestoreReadCount'], 3);
+      expect(event['firestoreWriteCount'], 0);
+      expect(peer.commitCalls, 0);
+      peer.expectEventTransfers(event);
+    },
+  );
+
+  test(
+    'successful operations preceding executor failure are retained once',
+    () async {
+      final peer = await _RestPeer.start();
+      addTearDown(peer.close);
+      final original = StateError('after successful persistence');
+      final event = await _failureEvent(() async {
+        await peer.execute(_Family.room);
+        await peer.execute(_Family.game);
+        throw original;
+      }, expectedError: same(original));
+      expect(event['firestoreReadCount'], 6);
+      expect(event['firestoreWriteCount'], 2);
+      peer.expectEventTransfers(event);
+    },
+  );
+
+  for (final game in <bool>[false, true]) {
+    test(
+      'read-only ${game ? 'game' : 'room'} failure contributes inside a capture',
+      () async {
+        final peer = await _RestPeer.start(rollbackFailures: 2);
+        addTearDown(peer.close);
+        final event = await _failureEvent(() async {
+          if (game) {
+            return (await peer.store.readGame(gameId: 'game-vp0')).metrics;
+          }
+          return (await peer.store.readRoom(roomId: 'room-vp0')).metrics;
+        });
+        expect(event['firestoreReadCount'], 2);
+        expect(event['firestoreWriteCount'], 0);
+        expect(peer.rollbacks, 2);
+        peer.expectEventTransfers(event);
+      },
+    );
+  }
+
+  test(
+    'read-only operation conflict is counted without introducing retry',
+    () async {
+      final peer = await _RestPeer.start(
+        failMethod: 'batchGet',
+        fault: _Fault.aborted,
+      );
+      addTearDown(peer.close);
+      final event = await _failureEvent(
+        () async => (await peer.store.readGame(gameId: 'game-vp0')).metrics,
+      );
+      expect(event['retryCount'], 0);
+      expect(event['conflictCount'], 1);
+      expect(peer.calls['beginTransaction'], 1);
+      peer.expectEventTransfers(event);
+    },
+  );
+
+  test(
+    'cleanup conflict is measured in bytes but not transaction conflicts',
+    () async {
+      final peer = await _RestPeer.start(
+        failMethod: 'rollback',
+        fault: _Fault.aborted,
+      );
+      addTearDown(peer.close);
+      final original = StateError('evaluation');
+      final event = await _failureEvent(
+        () => peer.execute(_Family.game, onEvaluate: () => throw original),
+        expectedError: same(original),
+      );
+      expect(event['retryCount'], 0);
+      expect(event['conflictCount'], 0);
+      expect(event['firestoreReadCount'], 3);
+      peer.expectEventTransfers(event);
+    },
+  );
+
+  test(
+    'no-write rollback conflicts preserve the existing bounded retry path',
+    () async {
+      final peer = await _RestPeer.start(
+        failMethod: 'rollback',
+        fault: _Fault.aborted,
+      );
+      addTearDown(peer.close);
+      final event = await _failureEvent(
+        () => peer.execute(_Family.game, noWrite: true),
+        expectedError: _storeError('transactionConflict'),
+      );
+      expect(peer.calls['beginTransaction'], 3);
+      expect(peer.commitCalls, 0);
+      expect(peer.calls['rollback'], 6);
+      expect(event['firestoreReadCount'], 9);
+      expect(event['firestoreWriteCount'], 0);
+      expect(event['retryCount'], 2);
+      // The existing runner retries a failed no-write close; this diagnostic
+      // counter excludes rollback errors, including its best-effort cleanup.
+      expect(event['conflictCount'], 0);
+      peer.expectEventTransfers(event);
+    },
+  );
+
+  test(
+    'one failed request does not borrow a concurrent successful operation',
+    () async {
+      final peer = await _RestPeer.start();
+      addTearDown(peer.close);
+      final original = StateError('one request only');
+      final failure = _failureEvent(
+        () => peer.execute(_Family.room, onEvaluate: () => throw original),
+        expectedError: same(original),
+      );
+      final successfulCapture = AuthorityExecutionMetricsCapture();
+      final success = await successfulCapture.run(
+        () => peer.execute(_Family.game),
+      );
+      final failedEvent = await failure;
+      expect(failedEvent['firestoreReadCount'], 3);
+      expect(failedEvent['firestoreWriteCount'], 0);
+      expect(successfulCapture.metrics.firestoreReadCount, 3);
+      expect(successfulCapture.metrics.firestoreWriteCount, 1);
+      expect(successfulCapture.metrics.bytesRead, success.bytesRead);
+      expect(
+        (failedEvent['bytesRead']! as int) + success.bytesRead,
+        peer.responseBytes,
+      );
+      expect(
+        (failedEvent['bytesWritten']! as int) + success.bytesWritten,
+        peer.requestBytes,
+      );
+    },
+  );
+}
+
+Matcher _storeError(String code) => isA<FirstPlayableFirestoreStoreViolation>()
+    .having((error) => error.code, 'safe code', code);
+
+Future<Map<String, Object>> _failureEvent(
+  Future<AuthorityExecutionMetrics> Function() execute, {
+  Matcher? expectedError,
+}) async {
+  final sink = _Sink();
+  final ingress = CommandIngress(
+    observability: BestEffortAuthorityObservability(sink),
+  );
+  await expectLater(
+    ingress.handle<void>(
+      command: const IngressCommandEnvelope(
+        kind: IngressCommandKind.game,
+        commandId: 'cmd-metrics',
+        inputHashVersion: 1,
+        expectedVersion: 0,
+      ),
+      execute: (context, command) async {
+        await execute();
+        return const AuthorityExecutionResult(
+          value: null,
+          outcome: AuthorityOutcome.success,
+          reason: AuthorityReason.none,
+        );
+      },
+    ),
+    throwsA(expectedError ?? isA<Object>()),
+  );
+  expect(sink.events, hasLength(1));
+  final event = sink.events.single;
+  expect(
+    event.keys,
+    unorderedEquals(<String>[
+      'operation',
+      'outcome',
+      'reason',
+      'latencyMs',
+      'retryCount',
+      'conflictCount',
+      'firestoreReadCount',
+      'firestoreWriteCount',
+      'bytesRead',
+      'bytesWritten',
+      'snapshotBytes',
+      'coldStart',
+    ]),
+  );
+  expect(event['outcome'], 'internalFailure');
+  expect(event['reason'], 'internalError');
+  expect(event['snapshotBytes'], 0);
+  expect(event['coldStart'], false);
+  final logged = jsonEncode(event);
+  for (final secret in <String>[
+    'uid-p1',
+    'cmd-metrics',
+    'seedBytes',
+    'streamCounters',
+    'Bearer',
+    'private-error',
+  ]) {
+    expect(logged, isNot(contains(secret)));
+  }
+  return event;
+}
+
+enum _Fault {
+  unavailable,
+  aborted,
+  invalidJson,
+  invalidUtf8,
+  invalidBegin,
+  truncated,
 }
 
 enum _Family {
@@ -219,6 +566,9 @@ final class _RestPeer {
     required this.batchConflicts,
     required this.rollbackFailures,
     required this.interleaveCommits,
+    required this.failMethod,
+    required this.failAfter,
+    required this.fault,
   }) {
     store = FirstPlayableFirestoreRestStore(
       config: FirstPlayableFirestoreRestConfig.emulator(
@@ -236,12 +586,18 @@ final class _RestPeer {
     int batchConflicts = 0,
     int rollbackFailures = 0,
     bool interleaveCommits = false,
+    String? failMethod,
+    int failAfter = 0,
+    _Fault fault = _Fault.unavailable,
   }) async => _RestPeer(
     await HttpServer.bind(InternetAddress.loopbackIPv4, 0),
     commitConflicts: commitConflicts,
     batchConflicts: batchConflicts,
     rollbackFailures: rollbackFailures,
     interleaveCommits: interleaveCommits,
+    failMethod: failMethod,
+    failAfter: failAfter,
+    fault: fault,
   );
 
   final HttpServer server;
@@ -251,6 +607,12 @@ final class _RestPeer {
   int batchConflicts;
   int rollbackFailures;
   final bool interleaveCommits;
+  final String? failMethod;
+  final int failAfter;
+  final _Fault fault;
+  final Map<String, int> calls = <String, int>{};
+  int incompleteRequestBytes = 0;
+  int incompleteResponseBytes = 0;
   final Completer<void> _commitsArrived = Completer<void>();
   int _begins = 0;
   int commitCalls = 0;
@@ -352,6 +714,11 @@ final class _RestPeer {
     );
   }
 
+  void expectEventTransfers(Map<String, Object> event) {
+    expect(event['bytesRead'], responseBytes);
+    expect(event['bytesWritten'], requestBytes);
+  }
+
   Future<void> close() async {
     client.close(force: true);
     await server.close(force: true);
@@ -365,6 +732,42 @@ final class _RestPeer {
     requestBytes += bytes.length;
     final body = jsonDecode(utf8.decode(bytes)) as Map<String, Object?>;
     final method = request.uri.path.split(':').last;
+    final call = calls.update(method, (count) => count + 1, ifAbsent: () => 1);
+    if (method == failMethod && call > failAfter) {
+      if (method == 'commit') commitCalls += 1;
+      if (fault == _Fault.truncated) {
+        incompleteRequestBytes += bytes.length;
+        incompleteResponseBytes += 2;
+        responseBytes += 2;
+        final socket = await request.response.detachSocket(writeHeaders: false);
+        socket.write(
+          'HTTP/1.1 200 OK\r\nContent-Length: 100\r\nConnection: close\r\n\r\n{}',
+        );
+        await socket.flush();
+        await socket.close();
+        return;
+      }
+      final status = switch (fault) {
+        _Fault.unavailable => HttpStatus.serviceUnavailable,
+        _Fault.aborted => HttpStatus.conflict,
+        _ => HttpStatus.ok,
+      };
+      final encoded = switch (fault) {
+        _Fault.invalidJson => utf8.encode('{not-json'),
+        _Fault.invalidUtf8 => <int>[255],
+        _Fault.invalidBegin => utf8.encode('{}'),
+        _ => utf8.encode(
+          jsonEncode(
+            _error(fault == _Fault.aborted ? 'ABORTED' : 'UNAVAILABLE'),
+          ),
+        ),
+      };
+      responseBytes += encoded.length;
+      request.response.statusCode = status;
+      request.response.add(encoded);
+      await request.response.close();
+      return;
+    }
     Object response = <String, Object?>{};
     var status = HttpStatus.ok;
     switch (method) {
