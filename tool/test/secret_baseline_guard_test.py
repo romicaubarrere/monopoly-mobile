@@ -24,6 +24,23 @@ def public_test_value(message):
 
 
 class SecretBaselineGuardTests(unittest.TestCase):
+    def test_required_job_installs_detector_in_venv_visible_to_isolated_python(self):
+        workflow = (ROOT / ".github/workflows/pr-review.yml").read_text(encoding="utf-8")
+        job = workflow.split("  secret-review:", 1)[1].split("  dependency-review:", 1)[0]
+        install = job.split("      - name: Install detect-secrets", 1)[1].split(
+            "      - name: Validate the audited public-fixture baseline", 1)[0]
+        # User-site installs disappear under the guard's intentional Python -I.
+        # Keep install, isolated import smoke, and later steps on one interpreter.
+        self.assertIn('mktemp -d "${RUNNER_TEMP}/detect-secrets.XXXXXX"', install)
+        self.assertIn('python -m venv "${secret_venv}"', install)
+        self.assertIn('"${secret_venv}/bin/python" -m pip install', install)
+        self.assertIn("'detect-secrets==1.5.0'", install)
+        self.assertIn('"${secret_venv}/bin/python" -I -B -c', install)
+        self.assertIn('"${secret_venv}/bin" >> "${GITHUB_PATH}"', install)
+        self.assertNotIn("--user", install)
+        self.assertNotIn("--system-site-packages", install)
+        self.assertNotIn("continue-on-error", job)
+
     def setUp(self):
         self.baseline = guard.decode((ROOT / guard.BASELINE).read_text(encoding="utf-8"))
         self.report_text = (ROOT / guard.REPORT).read_text(encoding="utf-8")

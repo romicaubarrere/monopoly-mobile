@@ -109,6 +109,15 @@ detector. Required integration tests run the actual pinned hook in temporary Git
 repositories and fail, rather than skip, if the detector is unavailable. Pure
 policy tests also run in Foundation without installing a Python dependency.
 
+The CI job installs the pinned detector in a fresh virtual environment under
+`RUNNER_TEMP` and places that interpreter on `GITHUB_PATH` for subsequent steps.
+An isolated import smoke check runs before publishing that path. A user-site
+pip install is insufficient: Python's intentional `-I` mode excludes user-site
+packages, which previously made the Linux job reject the baseline as
+`pinnedDetectorUnavailable`. The fix changes the installation location, not
+the isolation or detector configuration; see Python's [isolated-mode](https://docs.python.org/3/using/cmdline.html#cmdoption-I)
+and [virtual-environment](https://docs.python.org/3/library/venv.html) documentation.
+
 To reproduce the security checks in an environment with the existing pinned
 `detect-secrets==1.5.0` dependency installed:
 
