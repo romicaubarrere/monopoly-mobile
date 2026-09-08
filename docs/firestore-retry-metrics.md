@@ -93,6 +93,12 @@ HTTP mapping. The selected scope leaves both interfaces and original error
 identity/stack intact. `AuthorityExecutionMetrics` moved to a dedicated file and
 is re-exported from its existing ingress import path for source compatibility.
 
+The subsequent [command diagnostic isolation correction](command-observability-isolation.md)
+also protects diagnostic timing and successful event construction. Diagnostics
+cannot prevent execution after a valid authority context exists or replace an
+executor result with a false failure. The separate authority-time requirement
+and the success/failure accounting conventions above remain unchanged.
+
 Only `zoneValues` is supplied to Dart's [runZoned](https://api.dart.dev/dart-async/runZoned.html):
 no error handler or new error zone is installed. A capture is single-use and
 seals when its awaited execution ends. Nested captures shadow their parent;

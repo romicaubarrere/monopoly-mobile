@@ -153,21 +153,54 @@ final class CommandIngress {
 
     final context =
         ingressContext ?? IngressContext(requestReceivedAt: _now().toUtc());
-    final startedAt = _now();
-    final capture = AuthorityExecutionMetricsCapture();
-
+    DateTime? startedAt;
     try {
-      final result = await capture.run(() => execute(context, command));
-      final metrics = result.metrics;
+      startedAt = _now();
+    } on Object {
+      // The diagnostic clock is optional; the authority timestamp above is not.
+    }
+    final capture = AuthorityExecutionMetricsCapture();
+    final AuthorityExecutionResult<T> result;
+    try {
+      result = await capture.run(() => execute(context, command));
+    } on Object {
+      _emitCommand(
+        command.kind,
+        capture.metrics,
+        startedAt,
+        outcome: AuthorityOutcome.internalFailure,
+        reason: AuthorityReason.internalError,
+      );
+      rethrow;
+    }
 
+    _emitCommand(
+      command.kind,
+      result.metrics,
+      startedAt,
+      outcome: result.outcome,
+      reason: result.reason,
+    );
+    return result.value;
+  }
+
+  void _emitCommand(
+    IngressCommandKind kind,
+    AuthorityExecutionMetrics metrics,
+    DateTime? startedAt, {
+    required AuthorityOutcome outcome,
+    required AuthorityReason reason,
+  }) {
+    try {
+      if (startedAt == null) return;
       _observability.emit(
         AuthorityLogEvent(
-          operation: switch (command.kind) {
+          operation: switch (kind) {
             IngressCommandKind.room => AuthorityOperation.roomCommand,
             IngressCommandKind.game => AuthorityOperation.gameCommand,
           },
-          outcome: result.outcome,
-          reason: result.reason,
+          outcome: outcome,
+          reason: reason,
           latencyMs: _elapsedMs(startedAt, _now()),
           retryCount: metrics.retryCount,
           conflictCount: metrics.conflictCount,
@@ -181,34 +214,9 @@ final class CommandIngress {
           stateVersion: metrics.stateVersion,
         ),
       );
-
-      return result.value;
     } on Object {
-      final metrics = capture.metrics;
-      try {
-        _observability.emit(
-          AuthorityLogEvent(
-            operation: switch (command.kind) {
-              IngressCommandKind.room => AuthorityOperation.roomCommand,
-              IngressCommandKind.game => AuthorityOperation.gameCommand,
-            },
-            outcome: AuthorityOutcome.internalFailure,
-            reason: AuthorityReason.internalError,
-            latencyMs: _elapsedMs(startedAt, _now()),
-            retryCount: metrics.retryCount,
-            conflictCount: metrics.conflictCount,
-            firestoreReadCount: metrics.firestoreReadCount,
-            firestoreWriteCount: metrics.firestoreWriteCount,
-            bytesRead: metrics.bytesRead,
-            bytesWritten: metrics.bytesWritten,
-            snapshotBytes: 0,
-            coldStart: false,
-          ),
-        );
-      } on Object {
-        // Even event construction must not mask the original authority error.
-      }
-      rethrow;
+      // Invalid diagnostics cannot change the executor result/exception or
+      // trigger a second event that incorrectly reports an authority failure.
     }
   }
 
