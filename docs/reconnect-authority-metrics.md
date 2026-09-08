@@ -124,8 +124,10 @@ Android Tier-1.
 
 [Ticket #19](https://trello.com/c/dk2nQOYj) remains open. Public room/game GETs and
 pre-ingress errors are not instrumented here. Polling volume/cost policy must
-be considered before expanding events to GETs. Snapshot-size coverage beyond
-the measured successful reconnect boundary,
+be considered before expanding events to GETs. The separate
+[offline public fixture size report](public-snapshot-size-evidence.md) records
+16 existing synthetic snapshot occurrences; it is not runtime measurement.
+Snapshot-size coverage beyond the measured successful reconnect boundary,
 client reconnect/takeover traces, cold/warm p50/p95, NFR-48 materialization and
 real budget/limit/cost evidence remain separate work.
 

@@ -162,7 +162,10 @@ PASS. Merge acceptance requires all eight remote jobs on the exact PR head.
 ## Remaining work
 
 [Ticket #19](https://trello.com/c/dk2nQOYj) remains open for GET/pre-ingress
-telemetry, measured snapshot sizes and reconnect/takeover traces, production
+telemetry, runtime snapshot sizes and reconnect/takeover traces, production
 cold/warm p50/p95, NFR-48 materialization and genuine budget/limit/cost evidence.
 `minInstances=0` and emulator-first remain the baseline. This correction does
 not close NFR-19/26/28/33/34 globally or reconstruct missing DEC-065 content.
+The separate [public fixture size report](public-snapshot-size-evidence.md)
+records 16 existing synthetic snapshot occurrences offline, not runtime sizes
+or billed storage.
