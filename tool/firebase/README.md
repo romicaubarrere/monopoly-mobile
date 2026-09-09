@@ -50,3 +50,6 @@ The pinned CLI 15.29.0 uses a strictly validated stream-json 3.5.0 adapter and a
 csv-parse 7.0.2 security override. See [upgrade provenance, compatibility tests
 and measurement limits](../../docs/firebase-cli-15-29-compatibility.md). These
 remain development dependencies; no package or service is deployed by the gate.
+
+Morgan is separately fixed at 1.12.0 for Unicode log-injection protection. See
+[the narrow patch and installed-consumer regression](../../docs/morgan-log-safety.md).
