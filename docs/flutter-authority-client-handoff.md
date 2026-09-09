@@ -88,8 +88,10 @@ environment, requires canonical base64 decoding to at least 32 bytes, and never
 accepts the key from Flutter, an HTTP request, Firestore, logs, or repository
 configuration. Room-code TTL remains an explicit infrastructure value rather
 than client input.
-The executor returns the Create code transiently, persists only its hash, and
-reconstructs the same code for an exact lost-ACK retry. Join accepts a locator
+The executor returns an accepted Create code transiently, persists only its hash,
+and reconstructs the same code for an exact lost-ACK retry. A rejected Create
+replay preserves its original result without adding a code; see the
+[rejected Create replay boundary](rejected-create-replay.md). Join accepts a locator
 only while `expiresAt > requestReceivedAt`, requires an open room, validates the
 next seat against the canonical preset/catalog, and updates public/private
 membership once. A changed fingerprint, actor or material hash is a collision

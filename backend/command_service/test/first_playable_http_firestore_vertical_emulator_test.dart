@@ -614,9 +614,218 @@ void main() {
                   : 'commandIdCollision',
             },
       });
+      await _verifyCreateReplay(
+        host: host,
+        guest: guest,
+        logs: logs,
+        config: firestoreConfig,
+      );
     },
     skip: skipReason,
   );
+}
+
+AuthorityCommandRequest _createReplayRequest(
+  String name,
+  Map<String, Object?> presetDraft,
+) => AuthorityCommandRequest.room(
+  RoomCommand(
+    commandId: 'create-replay-$name',
+    schemaVersion: 1,
+    clientInstanceId: 'create-replay-client',
+    type: RoomCommandType.createRoom,
+    payload: {'presetDraft': presetDraft},
+  ),
+);
+
+Future<void> _verifyCreateReplay({
+  required WireAuthorityClient host,
+  required WireAuthorityClient guest,
+  required _RecordingLogs logs,
+  required FirstPlayableFirestoreRestConfig config,
+}) async {
+  const validPreset = <String, Object?>{'presetId': 'express'};
+  final acceptedRequest = _createReplayRequest('accepted', validPreset);
+  final accepted = await host.send(acceptedRequest);
+  expect(accepted.status, AuthorityCommandStatus.accepted);
+  expect(accepted.publicResult.containsKey('roomCode'), isTrue);
+  expect(logs.events.last['firestoreWriteCount'], 4);
+  final acceptedBefore = await _createReplayFingerprint(
+    config,
+    acceptedRequest,
+    'accepted',
+  );
+  final acceptedReplay = await host.send(acceptedRequest);
+  expect(acceptedReplay.status, AuthorityCommandStatus.duplicate);
+  expect(acceptedReplay.isRejectedOutcome, isFalse);
+  expect(
+    CanonicalDomainJson.encode(acceptedReplay.publicResult) ==
+        CanonicalDomainJson.encode(accepted.publicResult),
+    isTrue,
+  );
+  expect(logs.events.last['firestoreReadCount'], 4);
+  expect(logs.events.last['firestoreWriteCount'], 0);
+  expect(logs.events.last['snapshotBytes'], 0);
+  final observed = <String, Map<String, Object?>>{};
+  for (final name in ['invalid', 'occupied']) {
+    final request = _createReplayRequest(
+      name,
+      name == 'invalid' ? const {} : validPreset,
+    );
+    final rejected = await host.send(request);
+    expect(rejected.status, AuthorityCommandStatus.rejected);
+    expect(
+      rejected.errorCode,
+      name == 'invalid' ? 'invalidPresetDraft' : 'roomCodeUnavailable',
+    );
+    expect(rejected.publicResult.containsKey('roomCode'), isFalse);
+    expect(logs.events.last['firestoreReadCount'], 4);
+    expect(logs.events.last['firestoreWriteCount'], 1);
+    expect(logs.events.last['snapshotBytes'], 0);
+    final before = await _createReplayFingerprint(config, request, 'rejected');
+    final replay = await host.send(request);
+    final event = logs.events.last;
+    observed[name] = {
+      'status': replay.status.wireValue,
+      'rejected': replay.isRejectedOutcome,
+      'sameError': replay.errorCode == rejected.errorCode,
+      'sameVersions':
+          replay.versionBefore == rejected.versionBefore &&
+          replay.versionAfter == rejected.versionAfter,
+      'sameResult':
+          CanonicalDomainJson.encode(replay.publicResult) ==
+          CanonicalDomainJson.encode(rejected.publicResult),
+      'codeAbsent': !replay.publicResult.containsKey('roomCode'),
+      'reads': event['firestoreReadCount'],
+      'writes': event['firestoreWriteCount'],
+      'snapshotBytes': event['snapshotBytes'],
+    };
+    for (final variant in ['actor', 'hash']) {
+      final collision = await (variant == 'actor' ? guest : host).send(
+        variant == 'actor'
+            ? request
+            : _createReplayRequest(
+                name,
+                name == 'invalid' ? validPreset : const {},
+              ),
+      );
+      expect(collision.status, AuthorityCommandStatus.rejected);
+      expect(collision.errorCode, 'commandIdCollision');
+      expect(collision.publicResult.containsKey('roomCode'), isFalse);
+      expect(collision.publicResult.containsKey('actorPlayerId'), isFalse);
+      expect(logs.events.last['firestoreWriteCount'], 0);
+      expect(logs.events.last['snapshotBytes'], 0);
+    }
+    expect(
+      await _createReplayFingerprint(config, request, 'rejected') == before,
+      isTrue,
+      reason: 'rejected Create replay/collision must not write documents',
+    );
+  }
+  expect(
+    await _createReplayFingerprint(config, acceptedRequest, 'accepted') ==
+        acceptedBefore,
+    isTrue,
+    reason: 'rejected candidate must not alter the occupied room or locator',
+  );
+  // Defer the new result checks until both rejection paths and every existing
+  // gameplay/control assertion have executed, including during RED.
+  expect(observed, {
+    for (final name in ['invalid', 'occupied'])
+      name: {
+        'status': 'duplicate',
+        'rejected': true,
+        'sameError': true,
+        'sameVersions': true,
+        'sameResult': true,
+        'codeAbsent': true,
+        'reads': 4,
+        'writes': 0,
+        'snapshotBytes': 0,
+      },
+  });
+}
+
+Future<String> _createReplayFingerprint(
+  FirstPlayableFirestoreRestConfig config,
+  AuthorityCommandRequest request,
+  String expectedStatus,
+) async {
+  if (!config.isEmulator ||
+      config.projectId != 'demo-board-game-local' ||
+      !const ['127.0.0.1', '::1'].contains(config.endpoint.host)) {
+    throw StateError('privateEvidenceRequiresNumericLoopbackDemoEmulator');
+  }
+  final material = await _roomEntryMaterial(
+    request.asRoomCommand,
+    DateTime.utc(2026, 8, 27, 5),
+  );
+  final client = HttpClient();
+  final documents = <String, Object?>{};
+  try {
+    for (final path in [
+      'roomCodes/${material.codeHash}',
+      'rooms/${material.roomId}',
+      'roomSecrets/${material.roomId}',
+      'roomCommands/${request.commandId}',
+    ]) {
+      final read = await client.getUrl(
+        config.endpoint.replace(
+          path:
+              '/v1/projects/${config.projectId}/databases/'
+              '${config.databaseId}/documents/$path',
+        ),
+      );
+      read.headers.set(HttpHeaders.authorizationHeader, 'Bearer owner');
+      final response = await read.close();
+      if (response.statusCode == HttpStatus.notFound &&
+          !path.startsWith('roomCommands/')) {
+        await response.drain<void>();
+        documents[path] = null;
+        continue;
+      }
+      if (response.statusCode != HttpStatus.ok) {
+        await response.drain<void>();
+        throw StateError('createReplayEvidenceUnavailable');
+      }
+      late String raw;
+      late Map<String, Object?> decoded;
+      try {
+        raw = await utf8.decoder.bind(response).join();
+        final value = jsonDecode(raw);
+        if (value is! Map<String, Object?>) {
+          throw StateError('invalidCreateReplayEvidenceDocument');
+        }
+        decoded = value;
+      } on Object {
+        // FormatException may include the private response near its offset.
+        throw StateError('invalidCreateReplayEvidenceDocument');
+      }
+      expect(
+        raw.contains(material.roomCode),
+        isFalse,
+        reason: 'Create code is transient, never a persisted value',
+      );
+      if (path.startsWith('roomCommands/')) {
+        final fields = decoded['fields'];
+        final status = fields is Map<String, Object?> ? fields['status'] : null;
+        final value = status is Map<String, Object?>
+            ? status['stringValue']
+            : null;
+        expect(value == expectedStatus, isTrue);
+      }
+      documents[path] = decoded;
+    }
+    try {
+      return sha256
+          .convert(utf8.encode(CanonicalDomainJson.encode(documents)))
+          .toString();
+    } on Object {
+      throw StateError('createReplayEvidenceFingerprintUnavailable');
+    }
+  } finally {
+    client.close(force: true);
+  }
 }
 
 void _expectRoomCommandMetrics(
@@ -1117,6 +1326,26 @@ Future<FirstPlayableRoomEntryMaterial> _roomEntryMaterial(
   RoomCommand command,
   DateTime receivedAt,
 ) async {
+  if (command.commandId.startsWith('create-replay-')) {
+    final material = await _createReplayFactory.roomEntry(command, receivedAt);
+    if (command.commandId != 'create-replay-occupied') return material;
+    // Explicit synthetic candidate collision, not a discovered HMAC collision.
+    // Keep this attempt's own room/player IDs while occupying an existing code.
+    final occupied = await _createReplayFactory.roomEntry(
+      _createReplayRequest('accepted', const {
+        'presetId': 'express',
+      }).asRoomCommand,
+      receivedAt,
+    );
+    return FirstPlayableRoomEntryMaterial(
+      kind: material.kind,
+      roomCode: occupied.roomCode,
+      codeHash: occupied.codeHash,
+      playerId: material.playerId,
+      roomId: material.roomId,
+      expiresAt: material.expiresAt,
+    );
+  }
   final prefix = command.commandId.startsWith('buy-') ? 'buy' : 'auction';
   final roomCode = prefix == 'buy' ? 'BUY001' : 'AUC001';
   final create = command.type == RoomCommandType.createRoom;
@@ -1131,6 +1360,11 @@ Future<FirstPlayableRoomEntryMaterial> _roomEntryMaterial(
     expiresAt: create ? receivedAt.add(const Duration(hours: 1)) : null,
   );
 }
+
+final _createReplayFactory = FirstPlayableAuthorityMaterialFactory(
+  key: List<int>.generate(32, (index) => index),
+  roomCodeTtl: const Duration(hours: 1),
+);
 
 Future<FirstPlayableStartMaterial> _startMaterial(RoomCommand command) async {
   final prefix = command.commandId.startsWith('buy-') ? 'buy' : 'auction';
