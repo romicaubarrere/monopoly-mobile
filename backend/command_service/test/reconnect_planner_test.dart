@@ -16,6 +16,7 @@ void main() {
     int clientStateVersion = 0,
     UncertainCommandIdentity? command,
     DurableCommandReceipt? receipt,
+    String? receiptActorUid = 'uid-p1',
   }) => AuthorityReconnectPlanner.reconcile(
     authenticatedActorUid: 'uid-p1',
     actorPlayerId: 'p1',
@@ -24,6 +25,7 @@ void main() {
     authoritativeState: state,
     uncertainCommand: command,
     durableReceipt: receipt,
+    durableReceiptActorUid: receipt == null ? null : receiptActorUid,
   );
 
   test('older client receives the complete authoritative public snapshot', () {
@@ -120,6 +122,7 @@ void main() {
         memberUidByPlayerId: memberUidByPlayerId,
         clientStateVersion: 0,
         authoritativeState: state,
+        durableReceiptActorUid: null,
       ),
       throwsA(
         isA<AuthorityReconnectViolation>().having(
@@ -148,5 +151,128 @@ void main() {
     final pending = snapshot['pendingDecision']! as Map<String, Object?>;
 
     expect(pending['deadlineAt'], before);
+  });
+
+  for (final status in ['accepted', 'rejected']) {
+    for (final hashDigit in ['0', 'a']) {
+      for (final ownsReceipt in [false, true]) {
+        test('$status hash $hashDigit ownership $ownsReceipt is explicit', () {
+          final hash = List<String>.filled(64, hashDigit).join();
+          final identity = UncertainCommandIdentity(
+            commandId: uncertain.commandId,
+            inputHashVersion: 1,
+            inputHash: hash,
+          );
+          final result = <String, Object?>{
+            'commandId': identity.commandId,
+            'status': status,
+            'stateVersionBefore': 0,
+            'stateVersionAfter': 1,
+            if (status == 'rejected') 'errorCode': 'staleVersion',
+          };
+          final receipt = DurableCommandReceipt(
+            commandId: identity.commandId,
+            inputHashVersion: 1,
+            inputHash: hash,
+            publicResult: result,
+          );
+          final before = state.toJson();
+          final plan = reconcile(
+            command: identity,
+            receipt: receipt,
+            receiptActorUid: ownsReceipt ? 'uid-p1' : 'uid-p2',
+          );
+          expect(plan.authoritativeState, same(state));
+          expect(state.toJson(), before);
+          expect(receipt.inputHash, hash);
+          expect(receipt.publicResult, same(result));
+          final resolution = plan.commandResolution!;
+          expect(resolution['commandId'], identity.commandId);
+          expect(resolution['inputHashVersion'], 1);
+          if (ownsReceipt) {
+            expect(
+              plan.disposition,
+              status == 'accepted'
+                  ? ReconnectDisposition.uncertainConfirmed
+                  : ReconnectDisposition.uncertainRejected,
+            );
+            expect(resolution['action'], 'useDurableResult');
+            expect(resolution['result'], result);
+          } else {
+            expect(plan.disposition, ReconnectDisposition.semanticCollision);
+            expect(resolution['action'], 'failClosed');
+            expect(resolution['errorCode'], 'commandIdCollision');
+            expect(resolution, isNot(contains('result')));
+            expect(plan.toCanonicalPublicJson(), isNot(contains('uid-p2')));
+          }
+        });
+      }
+    }
+  }
+
+  final receipt = DurableCommandReceipt(
+    commandId: uncertain.commandId,
+    inputHashVersion: 1,
+    inputHash: uncertain.inputHash,
+    publicResult: const <String, Object?>{'status': 'accepted'},
+  );
+  for (final binding in [
+    (name: 'missing owner', receipt: receipt, owner: null),
+    (name: 'empty owner', receipt: receipt, owner: ''),
+    (name: 'orphan owner', receipt: null, owner: 'uid-p1'),
+    (name: 'orphan empty owner', receipt: null, owner: ''),
+  ]) {
+    test('receipt binding rejects ${binding.name}', () {
+      expect(
+        () => AuthorityReconnectPlanner.reconcile(
+          authenticatedActorUid: 'uid-p1',
+          actorPlayerId: 'p1',
+          memberUidByPlayerId: memberUidByPlayerId,
+          clientStateVersion: 0,
+          authoritativeState: state,
+          uncertainCommand: uncertain,
+          durableReceipt: binding.receipt,
+          durableReceiptActorUid: binding.owner,
+        ),
+        throwsA(
+          isA<AuthorityReconnectViolation>().having(
+            (error) => error.code,
+            'code',
+            'invalidDurableReceiptActor',
+          ),
+        ),
+      );
+    });
+  }
+
+  test('client-ahead validation precedes receipt owner collision', () {
+    expect(
+      () => reconcile(
+        clientStateVersion: 2,
+        command: uncertain,
+        receipt: receipt,
+        receiptActorUid: 'uid-p2',
+      ),
+      throwsA(
+        isA<AuthorityReconnectViolation>().having(
+          (error) => error.code,
+          'code',
+          'clientVersionAheadOfAuthority',
+        ),
+      ),
+    );
+  });
+
+  test('orphan receipt validation remains before ownership classification', () {
+    expect(
+      () => reconcile(receipt: receipt, receiptActorUid: 'uid-p2'),
+      throwsA(
+        isA<AuthorityReconnectViolation>().having(
+          (error) => error.code,
+          'code',
+          'orphanDurableReceipt',
+        ),
+      ),
+    );
   });
 }

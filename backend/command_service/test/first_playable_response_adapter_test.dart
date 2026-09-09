@@ -30,6 +30,7 @@ void main() {
     authoritativeState: state,
     uncertainCommand: uncertain,
     durableReceipt: receipt,
+    durableReceiptActorUid: receipt == null ? null : 'uid-p1',
   );
 
   service.UncertainCommandIdentity plannerIdentity({String? inputHash}) =>

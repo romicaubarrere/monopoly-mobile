@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:board_backend_api/backend_api.dart';
-import 'package:board_command_service/command_service.dart';
+import 'package:board_command_service/command_service.dart'
+    hide ReconnectDisposition, UncertainCommandIdentity;
 import 'package:board_command_service/observability/authority_observability.dart';
 import 'package:board_game_contracts/game_contracts.dart';
 import 'package:board_game_core/game_core.dart';
@@ -26,12 +27,11 @@ void main() {
       final hostToken = await _anonymousIdToken(authHost!);
       final guestToken = await _anonymousIdToken(authHost);
       final outsiderToken = await _anonymousIdToken(authHost);
-      final store = FirstPlayableFirestoreRestStore(
-        config: FirstPlayableFirestoreRestConfig.emulator(
-          projectId: projectId,
-          host: firestoreHost!,
-        ),
+      final firestoreConfig = FirstPlayableFirestoreRestConfig.emulator(
+        projectId: projectId,
+        host: firestoreHost!,
       );
+      final store = FirstPlayableFirestoreRestStore(config: firestoreConfig);
       final logs = _RecordingLogs();
       final runtime = FirstPlayableAuthorityRuntime(
         identityVerifier: FirebaseAuthEmulatorIdentityVerifier(
@@ -250,9 +250,271 @@ void main() {
       ]) {
         expect(recoveryLogs, isNot(contains(privateValue)));
       }
+
+      // This new request is durably rejected, not just an invented receipt.
+      // The fixed authority time is before the auction's pending deadline.
+      final staleRequest = AuthorityCommandRequest.game(
+        GameCommand(
+          commandId: 'auction-stale-decline',
+          schemaVersion: 1,
+          expectedStateVersion: auctionRoll.snapshot.stateVersion,
+          clientInstanceId: '${auctionRoll.actor.playerId}-client',
+          gameId: auctionGame.gameId,
+          actorPlayerId: auctionRoll.actor.playerId,
+          type: GameCommandType.declineProperty,
+          payload: <String, Object?>{
+            'decisionId': auctionRoll.decisionId,
+            'propertyId': auctionRoll.propertyId,
+          },
+        ),
+      );
+      final stale = await auctionRoll.actor.client.send(staleRequest);
+      expect(stale.status, AuthorityCommandStatus.rejected);
+      expect(stale.errorCode, 'staleVersion');
+      expect(stale.versionAfter, bid.versionAfter);
+      expect(logs.events.last['firestoreWriteCount'], 1);
+
+      final otherMember =
+          auctionRoll.actor.playerId == auctionGame.host.playerId
+          ? auctionGame.guest
+          : auctionGame.host;
+      expect(otherMember.playerId != auctionRoll.actor.playerId, isTrue);
+      final observedCollisions = <String, Map<String, Object?>>{};
+      final actorBindingLogsStart = logs.events.length;
+      for (final receiptCase in [
+        (
+          name: 'accepted',
+          request: declineRequest,
+          reply: declined,
+          ownerDisposition: ReconnectDisposition.uncertainConfirmed,
+        ),
+        (
+          name: 'rejected',
+          request: staleRequest,
+          reply: stale,
+          ownerDisposition: ReconnectDisposition.uncertainRejected,
+        ),
+      ]) {
+        // Read-only local admin evidence includes the private receipt and RNG
+        // document; only their digests remain in memory, never test output.
+        final before = await _authorityDocumentFingerprints(
+          config: firestoreConfig,
+          gameId: auctionGame.gameId,
+          commandId: receiptCase.request.commandId,
+          expectedReceiptStatus: receiptCase.name,
+        );
+        final eventsBeforeAttempt = logs.events.length;
+        final zeroIdentity = UncertainCommandIdentity(
+          commandId: receiptCase.request.commandId,
+          inputHashVersion: 1,
+          inputHash: List<String>.filled(64, '0').join(),
+        );
+        final wrongActor = await otherMember.client.reconnect(
+          AuthorityReconnectRequest(
+            gameId: auctionGame.gameId,
+            observedStateVersion: reconnect.snapshot.stateVersion,
+            uncertainCommand: zeroIdentity,
+          ),
+        );
+        final afterWrongActor = await _authorityDocumentFingerprints(
+          config: firestoreConfig,
+          gameId: auctionGame.gameId,
+          commandId: receiptCase.request.commandId,
+          expectedReceiptStatus: receiptCase.name,
+        );
+        expect(
+          afterWrongActor == before,
+          isTrue,
+          reason: 'other-member reconnect must not change durable documents',
+        );
+        expect(
+          wrongActor.snapshot.toCanonicalJson() ==
+              reconnect.snapshot.toCanonicalJson(),
+          isTrue,
+          reason:
+              'other-member reconnect still returns the latest public state',
+        );
+        expect(logs.events, hasLength(eventsBeforeAttempt + 1));
+        final wrongActorEvent = logs.events.last;
+        _expectRecoveryMetrics(wrongActorEvent, reads: 3);
+        expect(wrongActorEvent['outcome'], 'success');
+        expect(wrongActorEvent['reason'], 'none');
+        expect(wrongActorEvent['stateVersion'], bid.versionAfter);
+        expect(
+          wrongActorEvent['snapshotBytes'],
+          utf8.encode(wrongActor.snapshot.toCanonicalJson()).length,
+        );
+
+        final owner = await auctionRoll.actor.client.reconnect(
+          AuthorityReconnectRequest(
+            gameId: auctionGame.gameId,
+            observedStateVersion: reconnect.snapshot.stateVersion,
+            uncertainCommand: receiptCase.request.uncertainIdentity,
+          ),
+        );
+        expect(owner.disposition, receiptCase.ownerDisposition);
+        expect(
+          owner.commandResolution?.action,
+          CommandResolutionAction.useDurableResult,
+        );
+        expect(
+          CanonicalDomainJson.encode(owner.commandResolution!.publicResult!) ==
+              CanonicalDomainJson.encode(receiptCase.reply.publicResult),
+          isTrue,
+          reason: 'the legitimate owner retains the exact durable result',
+        );
+        expect(
+          owner.snapshot.toCanonicalJson() ==
+              reconnect.snapshot.toCanonicalJson(),
+          isTrue,
+          reason:
+              'owner recovery uses the current snapshot, not receipt history',
+        );
+        final afterOwner = await _authorityDocumentFingerprints(
+          config: firestoreConfig,
+          gameId: auctionGame.gameId,
+          commandId: receiptCase.request.commandId,
+          expectedReceiptStatus: receiptCase.name,
+        );
+        expect(
+          afterOwner == before,
+          isTrue,
+          reason:
+              'owner reconnect must not change public, private or receipt data',
+        );
+        expect(logs.events, hasLength(eventsBeforeAttempt + 2));
+        final ownerEvent = logs.events.last;
+        _expectRecoveryMetrics(ownerEvent, reads: 3);
+        expect(ownerEvent['outcome'], 'success');
+        expect(ownerEvent['reason'], 'none');
+        expect(ownerEvent['stateVersion'], bid.versionAfter);
+        expect(
+          ownerEvent['snapshotBytes'],
+          utf8.encode(owner.snapshot.toCanonicalJson()).length,
+        );
+
+        // Collect both cases before asserting, so the original sentinel defect
+        // reports accepted AND rejected misclassification in one gate run.
+        final resolution = wrongActor.commandResolution;
+        observedCollisions[receiptCase.name] = <String, Object?>{
+          'disposition': wrongActor.disposition.wireValue,
+          'action': resolution?.action.wireValue,
+          'errorCode': resolution?.errorCode,
+          'resultAbsent': resolution?.publicResult == null,
+          'identityPreserved':
+              resolution?.identity.commandId == zeroIdentity.commandId &&
+              resolution?.identity.inputHash == zeroIdentity.inputHash,
+        };
+      }
+      final actorBindingLogs = jsonEncode(
+        logs.events.skip(actorBindingLogsStart).toList(),
+      );
+      for (final privateValue in [
+        hostToken,
+        guestToken,
+        outsiderToken,
+        'uid',
+        auctionGame.gameId,
+        declineRequest.commandId,
+        declineRequest.inputHash,
+        staleRequest.commandId,
+        staleRequest.inputHash,
+        base64Encode(syntheticRollSeed),
+      ]) {
+        expect(
+          actorBindingLogs.contains(privateValue),
+          isFalse,
+          reason: 'actor-binding diagnostics must not contain private material',
+        );
+      }
+      expect(observedCollisions, <String, Map<String, Object?>>{
+        for (final status in ['accepted', 'rejected'])
+          status: <String, Object?>{
+            'disposition': 'semanticCollision',
+            'action': 'failClosed',
+            'errorCode': 'commandIdCollision',
+            'resultAbsent': true,
+            'identityPreserved': true,
+          },
+      });
     },
     skip: skipReason,
   );
+}
+
+Future<({String publicGame, String privateGame, String receipt})>
+_authorityDocumentFingerprints({
+  required FirstPlayableFirestoreRestConfig config,
+  required String gameId,
+  required String commandId,
+  required String expectedReceiptStatus,
+}) async {
+  if (!config.isEmulator ||
+      config.projectId != 'demo-board-game-local' ||
+      !const ['127.0.0.1', '::1'].contains(config.endpoint.host)) {
+    throw StateError('privateEvidenceRequiresNumericLoopbackDemoEmulator');
+  }
+  final client = HttpClient();
+  Future<String> readFingerprint(
+    String document, {
+    bool receipt = false,
+  }) async {
+    final request = await client.getUrl(
+      config.endpoint.replace(
+        path:
+            '/v1/projects/${config.projectId}/databases/'
+            '${config.databaseId}/documents/$document',
+      ),
+    );
+    request.headers.set(HttpHeaders.authorizationHeader, 'Bearer owner');
+    final response = await request.close();
+    if (response.statusCode != HttpStatus.ok) {
+      await response.drain<void>();
+      throw StateError('durableEvidenceDocumentUnavailable');
+    }
+    late Map<String, Object?> documentJson;
+    try {
+      final decoded = jsonDecode(await utf8.decoder.bind(response).join());
+      if (decoded is! Map<String, Object?>) {
+        throw StateError('invalidDurableEvidenceDocument');
+      }
+      documentJson = decoded;
+    } on Object {
+      throw StateError('invalidDurableEvidenceDocument');
+    }
+    if (receipt) {
+      final fields = documentJson['fields'];
+      final status = fields is Map<String, Object?> ? fields['status'] : null;
+      final value = status is Map<String, Object?>
+          ? status['stringValue']
+          : null;
+      expect(
+        value == expectedReceiptStatus,
+        isTrue,
+        reason: 'the accepted or rejected receipt must already be persisted',
+      );
+    }
+    try {
+      return sha256
+          .convert(utf8.encode(CanonicalDomainJson.encode(documentJson)))
+          .toString();
+    } on Object {
+      throw StateError('durableEvidenceFingerprintUnavailable');
+    }
+  }
+
+  try {
+    return (
+      publicGame: await readFingerprint('games/$gameId'),
+      privateGame: await readFingerprint('gameSecrets/$gameId'),
+      receipt: await readFingerprint(
+        'games/$gameId/commands/$commandId',
+        receipt: true,
+      ),
+    );
+  } finally {
+    client.close(force: true);
+  }
 }
 
 void _expectRecoveryMetrics(Map<String, Object> event, {required int reads}) {
