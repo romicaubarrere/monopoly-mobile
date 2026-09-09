@@ -70,6 +70,11 @@ Tests must not claim that a factory is invoked just once across separate HTTP
 requests. The relevant replay properties are the same durable game/result,
 zero new writes and unchanged confirmed public/private state.
 
+[Ticket #109](durable-room-replay-dependencies.md) subsequently makes an existing
+receipt win over a completed preparation failure or unavailable room catalog.
+The factory is still awaited outside transaction retries; no timeout policy or
+cross-request material cache is introduced. Measurement remains unchanged.
+
 No new service, endpoint, SDK, dependency, scheduler, gameplay transition,
 authorization rule, persistence schema, wire field or cloud deployment occurs.
 `coldStart=false` remains unmeasured; the observability allowlist is unchanged.
