@@ -33,19 +33,17 @@ void main() {
       );
       final store = FirstPlayableFirestoreRestStore(config: firestoreConfig);
       final logs = _RecordingLogs();
+      final dependencies = _ReplayDependencies();
       final runtime = FirstPlayableAuthorityRuntime(
         identityVerifier: FirebaseAuthEmulatorIdentityVerifier(
           projectId: projectId,
           emulatorHost: authHost,
         ),
         store: store,
-        rulesCatalogRepository: PinnedFirstPlayableRulesCatalogRepository(
-          activeRulesVersion: syntheticRollCatalog().rulesVersion,
-          catalogs: <RulesCatalog>[syntheticRollCatalog()],
-        ),
+        rulesCatalogRepository: dependencies,
         observability: BestEffortAuthorityObservability(logs),
         roomEntryMaterialFactory: _roomEntryMaterial,
-        startMaterialFactory: _startMaterial,
+        startMaterialFactory: dependencies.startMaterial,
         now: () => DateTime.utc(2026, 8, 27, 5),
       );
       await expectLater(
@@ -86,6 +84,7 @@ void main() {
       final outsider = WireAuthorityClient(outsiderTransport);
       final acceptedSnapshotSizes =
           <String, ({Object? measured, int expected})>{};
+      final replayDependencyResults = <String, Map<String, Object?>>{};
       void recordAcceptedSnapshot(
         String label,
         AuthorityPublicSnapshot snapshot, {
@@ -132,6 +131,8 @@ void main() {
         guest: guest,
         logs: logs,
         firestoreConfig: firestoreConfig,
+        dependencies: dependencies,
+        replayDependencyResults: replayDependencyResults,
       );
       recordStartedSnapshot('buy StartGame', buyGame);
       await expectLater(
@@ -178,6 +179,8 @@ void main() {
         guest: guest,
         logs: logs,
         firestoreConfig: firestoreConfig,
+        dependencies: dependencies,
+        replayDependencyResults: replayDependencyResults,
       );
       recordStartedSnapshot('auction StartGame', auctionGame);
       final auctionRoll = await _rollToProperty(
@@ -503,6 +506,22 @@ void main() {
             entry.key: entry.value.expected,
         },
       );
+      // Collect every dependency fault before asserting the new behavior so a
+      // RED run still exercises the existing #105–107 controls in both games.
+      expect(replayDependencyResults, <String, Map<String, Object?>>{
+        for (final prefix in ['buy', 'auction'])
+          for (final fault in ['material', 'catalog', 'both'])
+            '$prefix/$fault': <String, Object?>{
+              'status': 'duplicate',
+              'sameResult': true,
+              'sameVersions': true,
+              'reads': 3,
+              'writes': 0,
+              'snapshotBytes': 0,
+              'outcome': 'duplicate',
+              'reason': 'duplicateCommand',
+            },
+      });
     },
     skip: skipReason,
   );
@@ -655,6 +674,8 @@ Future<_StartedGame> _startGame({
   required WireAuthorityClient guest,
   required _RecordingLogs logs,
   required FirstPlayableFirestoreRestConfig firestoreConfig,
+  required _ReplayDependencies dependencies,
+  required Map<String, Map<String, Object?>> replayDependencyResults,
 }) async {
   final createRequest = AuthorityCommandRequest.room(
     RoomCommand(
@@ -806,6 +827,67 @@ Future<_StartedGame> _startGame({
     replayedSnapshot.toCanonicalJson() == snapshot.toCanonicalJson(),
     isTrue,
   );
+  for (final fault in ['material', 'catalog', 'both']) {
+    final beforeFault = await _authorityDocumentFingerprints(
+      config: firestoreConfig,
+      gameId: gameId,
+      commandId: startRequest.commandId,
+      expectedReceiptStatus: 'accepted',
+      roomCommand: true,
+    );
+    final eventsBeforeFault = logs.events.length;
+    AuthorityCommandReply? faultReplay;
+    String? transportError;
+    dependencies.failMaterial = fault != 'catalog';
+    dependencies.failRoomCatalog = fault != 'material';
+    try {
+      faultReplay = await host.send(startRequest);
+    } on AuthorityTransportException catch (error) {
+      transportError = error.code;
+    } finally {
+      dependencies.failMaterial = false;
+      dependencies.failRoomCatalog = false;
+    }
+    expect(logs.events, hasLength(eventsBeforeFault + 1));
+    final event = logs.events.last;
+    replayDependencyResults['$prefix/$fault'] = <String, Object?>{
+      'status': faultReplay?.status.name ?? 'transport:$transportError',
+      'sameResult':
+          faultReplay != null &&
+          CanonicalDomainJson.encode(faultReplay.publicResult) ==
+              CanonicalDomainJson.encode(started.publicResult),
+      'sameVersions':
+          faultReplay?.versionBefore == started.versionBefore &&
+          faultReplay?.versionAfter == started.versionAfter,
+      'reads': event['firestoreReadCount'],
+      'writes': event['firestoreWriteCount'],
+      'snapshotBytes': event['snapshotBytes'],
+      'outcome': event['outcome'],
+      'reason': event['reason'],
+    };
+    final afterFault = await _authorityDocumentFingerprints(
+      config: firestoreConfig,
+      gameId: gameId,
+      commandId: startRequest.commandId,
+      expectedReceiptStatus: 'accepted',
+      roomCommand: true,
+    );
+    expect(
+      afterFault == beforeFault,
+      isTrue,
+      reason: 'dependency faults must not mutate public, RNG or receipt data',
+    );
+    final roomAfterFault = await guest.watchRoom(roomId).first;
+    final gameAfterFault = await guest.watchGame(gameId).first;
+    expect(
+      roomAfterFault.toCanonicalJson() == guestRoom.toCanonicalJson(),
+      isTrue,
+    );
+    expect(
+      gameAfterFault.toCanonicalJson() == snapshot.toCanonicalJson(),
+      isTrue,
+    );
+  }
   return _StartedGame(
     gameId: gameId,
     snapshot: snapshot,
@@ -894,6 +976,46 @@ Future<FirstPlayableStartMaterial> _startMaterial(RoomCommand command) async {
     gameId: '$prefix-game',
     seed: syntheticRollSeed,
   );
+}
+
+// Faults are test-only and enabled after the genuine StartGame commit. The
+// runtime still uses its real executor, REST store, Auth and HTTP transports.
+final class _ReplayDependencies implements FirstPlayableRulesCatalogRepository {
+  final _catalogs = PinnedFirstPlayableRulesCatalogRepository(
+    activeRulesVersion: syntheticRollCatalog().rulesVersion,
+    catalogs: <RulesCatalog>[syntheticRollCatalog()],
+  );
+  bool failMaterial = false;
+  bool failRoomCatalog = false;
+
+  Future<FirstPlayableStartMaterial> startMaterial(RoomCommand command) async {
+    if (failMaterial) throw StateError('syntheticStartMaterialUnavailable');
+    return _startMaterial(command);
+  }
+
+  @override
+  RulesCatalog catalogForNewRoom({required String presetId}) =>
+      _catalogs.catalogForNewRoom(presetId: presetId);
+
+  @override
+  RulesCatalog catalogForRoom({
+    required String rulesVersion,
+    required String presetId,
+  }) {
+    if (failRoomCatalog) {
+      throw const FirstPlayableRulesCatalogRepositoryViolation(
+        'rulesCatalogUnavailable',
+      );
+    }
+    return _catalogs.catalogForRoom(
+      rulesVersion: rulesVersion,
+      presetId: presetId,
+    );
+  }
+
+  @override
+  RulesCatalog catalogForGame(PublicGameState state) =>
+      _catalogs.catalogForGame(state);
 }
 
 Future<String> _anonymousIdToken(String emulatorHost) async {
