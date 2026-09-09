@@ -128,6 +128,7 @@ void main() {
       final buyGame = await _startGame(
         prefix: 'buy',
         roomCode: 'BUY001',
+        hostReadyBeforeJoin: true,
         host: host,
         guest: guest,
         logs: logs,
@@ -767,6 +768,7 @@ Future<_StartedGame> _startGame({
   required FirstPlayableFirestoreRestConfig firestoreConfig,
   required _ReplayDependencies dependencies,
   required Map<String, Map<String, Object?>> replayDependencyResults,
+  bool hostReadyBeforeJoin = false,
 }) async {
   final createRequest = AuthorityCommandRequest.room(
     RoomCommand(
@@ -793,43 +795,94 @@ Future<_StartedGame> _startGame({
   final hostContext = FirstPlayableAuthorityContext()
     ..applyCommandReply(createRequest, created);
 
-  final joined = await guest.send(
-    AuthorityCommandRequest.room(
-      RoomCommand(
-        commandId: '$prefix-join',
-        schemaVersion: 1,
-        clientInstanceId: '$prefix-guest-client',
-        type: RoomCommandType.joinRoom,
-        payload: <String, Object?>{'roomCode': roomCode},
-      ),
+  Future<AuthorityCommandReply> markHostReady(int version) async {
+    final request = _roomCommand(
+      commandId: '$prefix-ready-host',
+      roomId: roomId,
+      expectedVersion: version,
+      type: RoomCommandType.setReady,
+      ready: true,
+    );
+    final reply = await host.send(request);
+    expect(reply.status, AuthorityCommandStatus.accepted);
+    expect(logs.events.last['snapshotBytes'], 0);
+    hostContext.applyCommandReply(request, reply);
+    return reply;
+  }
+
+  final earlyReady = hostReadyBeforeJoin
+      ? await markHostReady(created.versionAfter)
+      : null;
+  final joinRequest = AuthorityCommandRequest.room(
+    RoomCommand(
+      commandId: '$prefix-join',
+      schemaVersion: 1,
+      clientInstanceId: '$prefix-guest-client',
+      type: RoomCommandType.joinRoom,
+      payload: <String, Object?>{'roomCode': roomCode},
     ),
   );
+  final joined = await guest.send(joinRequest);
   expect(joined.status, AuthorityCommandStatus.accepted);
+  expect(
+    joined.versionBefore,
+    earlyReady?.versionAfter ?? created.versionAfter,
+  );
+  expect(joined.versionAfter, joined.versionBefore + 1);
+  expect(logs.events.last['firestoreReadCount'], 4);
+  expect(logs.events.last['firestoreWriteCount'], 3);
   expect(logs.events.last['snapshotBytes'], 0);
   final guestPlayerId = joined.publicResult['actorPlayerId']! as String;
 
-  final hostReadyRequest = _roomCommand(
-    commandId: '$prefix-ready-host',
-    roomId: roomId,
-    expectedVersion: joined.versionAfter,
-    type: RoomCommandType.setReady,
-    ready: true,
+  final hostReady = earlyReady ?? await markHostReady(joined.versionAfter);
+  final joinedRoom = await host.watchRoom(roomId).first;
+  final joinedMembers = (joinedRoom.snapshot['members']! as List<Object?>)
+      .cast<Map<String, Object?>>();
+  expect(joinedMembers, hasLength(2));
+  expect(
+    {for (final member in joinedMembers) member['playerId']: member['ready']},
+    {hostPlayerId: true, guestPlayerId: false},
   );
-  final hostReady = await host.send(hostReadyRequest);
-  expect(hostReady.status, AuthorityCommandStatus.accepted);
-  expect(logs.events.last['snapshotBytes'], 0);
-  hostContext.applyCommandReply(hostReadyRequest, hostReady);
   final guestReady = await guest.send(
     _roomCommand(
       commandId: '$prefix-ready-guest',
       roomId: roomId,
-      expectedVersion: hostReady.versionAfter,
+      expectedVersion: earlyReady == null
+          ? hostReady.versionAfter
+          : joined.versionAfter,
       type: RoomCommandType.setReady,
       ready: true,
     ),
   );
   expect(guestReady.status, AuthorityCommandStatus.accepted);
   expect(logs.events.last['snapshotBytes'], 0);
+  final roomBeforeJoinReplay = await guest.watchRoom(roomId).first;
+  expect(roomBeforeJoinReplay.roomVersion, 4);
+  final joinReplay = await guest.send(joinRequest);
+  expect(joinReplay.status, AuthorityCommandStatus.duplicate);
+  expect(joinReplay.versionBefore, joined.versionBefore);
+  expect(joinReplay.versionAfter, joined.versionAfter);
+  expect(
+    CanonicalDomainJson.encode(joinReplay.publicResult) ==
+        CanonicalDomainJson.encode(joined.publicResult),
+    isTrue,
+  );
+  expect(logs.events.last['firestoreReadCount'], 4);
+  expect(logs.events.last['firestoreWriteCount'], 0);
+  expect(logs.events.last['snapshotBytes'], 0);
+  final joinCollision = await host.send(joinRequest);
+  expect(joinCollision.status, AuthorityCommandStatus.rejected);
+  expect(joinCollision.errorCode, 'commandIdCollision');
+  expect(joinCollision.publicResult, isNot(contains('actorPlayerId')));
+  expect(logs.events.last['firestoreWriteCount'], 0);
+  expect(logs.events.last['snapshotBytes'], 0);
+  final roomAfterJoinReplay = await guest.watchRoom(roomId).first;
+  expect(
+    roomAfterJoinReplay.toCanonicalJson() ==
+        roomBeforeJoinReplay.toCanonicalJson(),
+    isTrue,
+    reason: 'Join replay/collision must not add a member or reset readiness',
+  );
   final pendingStore = _PendingStore();
   final hostSession = AuthorityClientSession(
     gateway: host,

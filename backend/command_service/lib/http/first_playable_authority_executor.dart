@@ -295,7 +295,8 @@ final class FirstPlayableRoomEntryMutation {
         .toList();
     if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(codeHash) ||
         roomId.isEmpty ||
-        roomVersion != this.membersAfter.length ||
+        roomVersion < 1 ||
+        create && roomVersion != this.membersAfter.length ||
         hostUid.isEmpty ||
         presetId.isEmpty ||
         rulesVersion.isEmpty ||
