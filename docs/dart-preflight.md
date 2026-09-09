@@ -31,6 +31,10 @@ analyzers, Dart/Flutter tests, observability/security smokes and architecture
 checks. Any failure stops the command with a nonzero exit code; a later gate
 cannot hide an earlier failure.
 
+The existing [GitHub Actions SHA guard](github-actions-sha-policy.md) checks
+direct action references, including steps with `name:` before `uses:`. Its
+documented lexical scope is separate from the actionlint workflow-syntax gate.
+
 Source formatting is read-only by default:
 
 ```bash
