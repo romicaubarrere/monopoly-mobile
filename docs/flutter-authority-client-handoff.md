@@ -64,11 +64,16 @@ duplicate/collision decisions perform zero writes.
 Create also freezes the server-selected `rulesVersion` in the public room.
 `PinnedFirstPlayableRulesCatalogRepository` owns the active immutable catalog
 for new rooms and resolves only that exact persisted version for Join,
-Ready/Start and gameplay. It verifies the persisted board identity and complete
-`ResolvedPresetConfig` before invoking Engine. Unknown versions, unknown
-presets, duplicate registry entries or mutated frozen config fail closed.
+new Ready/Start and gameplay attempts. It verifies the persisted board identity
+and complete `ResolvedPresetConfig` before invoking Engine. Unknown versions,
+unknown presets, duplicate registry entries or mutated frozen config fail closed.
 Flutter supplies only `presetId`; it never supplies catalog JSON or version
-selection.
+selection. A durable Ready/Start or human game-command replay resolves only the
+historical result before catalog lookup, without a replacement snapshot. GET,
+reconnect and new commands still validate the current catalog; valid stored
+documents and receipt identity are required even for replay. See the
+[game replay boundary](durable-game-replay-catalog.md) and
+[room replay boundary](durable-room-replay-dependencies.md).
 
 `FirstPlayableAuthorityMaterialFactory` derives room/player/game identifiers,
 the six-character room code, SHA-256 locator hash and Start seed with an
@@ -91,6 +96,12 @@ membership once. A changed fingerprint, actor or material hash is a collision
 with zero writes.
 
 ## Minimum Flutter repository behavior
+
+The mobile root now composes this existing repository through Riverpod and a
+`LiveFirstPlayableViewModel`; go_router paths contain locators only. The
+[state/routing/serialization handoff](mobile-state-routing-serialization.md)
+documents lifecycle, confirmed-state and membership guards. The repository and
+Authority contracts below remain the source of truth, not the router or widget.
 
 `FirstPlayableAuthorityClient.httpWithDeviceStorage` is the minimum mobile
 composition root. Flutter injects the Firebase ID-token provider, Authority
@@ -198,7 +209,11 @@ Production Firebase ID-token verification is now concrete:
 `GoogleFirebaseIdTokenSignatureVerifier.live()` validates RS256 signatures with
 Google's secure-token certificates. Its bounded HTTPS fetcher uses the canonical
 certificate endpoint, honors `Cache-Control: max-age`, coalesces concurrent
-refreshes and fails an unknown `kid` from a fresh cache without another fetch.
+refreshes and permits at most one controlled extra refresh for an unknown `kid`
+while the cache is fresh. Repeated unknown keys cannot replenish that budget;
+an expired cache requires a successful refresh before any key can be used.
+The [RS256 negative gate](firebase-rs256-negative-gate.md) documents the rotation,
+real-signature, fail-closed and separate-membership regression coverage.
 Envelope and claim checks remain in `FirebaseIdentityVerifier`, so audience,
 issuer, expiry, issue time, auth time and subject use the same injected clock and
 fail-closed error boundary. Token, signature and certificate material is never

@@ -13,9 +13,11 @@ export 'http/first_playable_persistence_codec.dart';
 export 'http/first_playable_authority_material_factory.dart';
 export 'http/first_playable_rules_catalog_repository.dart';
 export 'reconnect_planner.dart';
+export 'seat_continuity_policy.dart';
 export 'ready_start_planner.dart';
 export 'rng_operation_planner.dart';
 export 'roll_movement_planner.dart';
+export 'tax_free_parking_planner.dart';
 export 'security/firebase_identity_verifier.dart';
 export 'security/google_firebase_id_token_signature_verifier.dart';
 

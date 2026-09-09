@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: CI repository policy
         run: ./tool/check_ci_policy.sh
       - name: Secret and private-state artifact scan
@@ -24,12 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
+          # v2.23 nests the SDK in flutter/; do not restore immutable v2.21 caches.
+          cache-key: 'flutter-sdk-layout-v2-:os:-:channel:-:version:-:arch:-:hash:'
       - name: Foundation gates
         run: ./tool/ci.sh
 
@@ -37,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       # stream-json 3.5.0 is ESM-only and requires Node 22 or newer.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -46,24 +48,35 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+          # v2.23 nests the SDK in flutter/; do not restore immutable v2.21 caches.
+          cache-key: 'flutter-sdk-layout-v2-:os:-:channel:-:version:-:arch:-:hash:'
       - name: Runtime versions
         run: |
           node --version
           npm --version
           java -version
+          flutter --version
+          dart --version
+      - name: Resolve locked Dart workspace dependencies
+        run: flutter pub get --enforce-lockfile
       - name: Install pinned emulator test dependencies
         working-directory: tool/firebase
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Auth + Firestore emulator security tests
+      - name: Auth + Firestore JavaScript and Dart integration gates
         working-directory: tool/firebase
-        run: npm run emulators:test
+        run: npm run emulators:test:all
 
   android-tier1:
     name: android / tier1-first-playable
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24.19.0'
@@ -71,11 +84,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
+          # v2.23 nests the SDK in flutter/; do not restore immutable v2.21 caches.
+          cache-key: 'flutter-sdk-layout-v2-:os:-:channel:-:version:-:arch:-:hash:'
       - name: Enable KVM for the Android emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

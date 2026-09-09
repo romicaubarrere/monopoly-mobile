@@ -1,0 +1,1206 @@
+{
+  "tax": {
+    "initialState": {
+      "schemaVersion": 1,
+      "stateVersion": 1,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-us019",
+      "roomId": "room-us019",
+      "status": "active",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "resolvingLanding",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 500,
+          "position": 31,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 700,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p1",
+          "controller": "human",
+          "humanReclaimPending": false
+        },
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {},
+        "properties": []
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit"
+      },
+      "freeParkingPot": 29,
+      "deckPublicState": {},
+      "lastMutation": {
+        "type": "playerMoved"
+      }
+    },
+    "plans": {
+      "a": {
+        "operation": {
+          "operationId": "landing-tax-a",
+          "expectedStateVersion": 1,
+          "playerId": "p1",
+          "expectedLandingIndex": 31,
+          "transitionTime": "2026-08-25T05:30:00.000Z"
+        },
+        "inputHashMarker": "fixture-semantic-hash-v1-tax",
+        "stateAfter": {
+          "schemaVersion": 1,
+          "stateVersion": 2,
+          "rulesVersion": "synthetic-rules-vp0",
+          "rngVersion": "hmac_sha256_counter_v1",
+          "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+          "gameId": "game-us019",
+          "roomId": "room-us019",
+          "status": "active",
+          "presetConfig": {
+            "auctionBidSeconds": 6,
+            "auctionHardCapSeconds": 45,
+            "auctionPolicy": {
+              "minimumIncrement": 10
+            },
+            "buildWithoutGroup": false,
+            "debtDecisionSeconds": 20,
+            "economyVersion": "synthetic-economy-vp0",
+            "mandatoryDecisionSeconds": 12,
+            "presetCatalogVersion": "synthetic-presets-vp0",
+            "presetId": "express",
+            "reconnectGraceSeconds": 20,
+            "reconnectPolicy": {
+              "temporaryTakeover": true
+            },
+            "roundCap": 10,
+            "starterPolicy": "twoFromSameThreeGroupPaid",
+            "startingValue": 2000,
+            "tradeResponseSeconds": 20
+          },
+          "roundState": {
+            "round": 1
+          },
+          "turnState": {
+            "currentPlayerId": "p1",
+            "phase": "turnResolved",
+            "turnNumber": 1
+          },
+          "players": [
+            {
+              "playerId": "p1",
+              "seat": 0,
+              "kind": "human",
+              "status": "active",
+              "cash": 400,
+              "position": 31,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            },
+            {
+              "playerId": "p2",
+              "seat": 1,
+              "kind": "human",
+              "status": "active",
+              "cash": 700,
+              "position": 0,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            }
+          ],
+          "seatControllers": [
+            {
+              "playerId": "p1",
+              "controller": "human",
+              "humanReclaimPending": false
+            },
+            {
+              "playerId": "p2",
+              "controller": "human",
+              "humanReclaimPending": false
+            }
+          ],
+          "board": {
+            "boardDefinitionVersion": "synthetic-board-vp0",
+            "boardId": "synthetic-board"
+          },
+          "ownership": {
+            "byPropertyId": {},
+            "properties": []
+          },
+          "bank": {
+            "currencyUnit": "synthetic-unit"
+          },
+          "freeParkingPot": 129,
+          "deckPublicState": {},
+          "lastMutation": {
+            "operationId": "landing-tax-a",
+            "type": "taxPaid"
+          }
+        },
+        "resultSummary": {
+          "commandId": "landing-tax-a",
+          "operationId": "landing-tax-a",
+          "status": "accepted",
+          "stateVersionBefore": 1,
+          "stateVersionAfter": 2,
+          "kind": "taxPaid",
+          "amount": 100,
+          "events": [
+            {
+              "type": "taxPaid",
+              "data": {
+                "amount": 100,
+                "playerId": "p1",
+                "potAfter": 129,
+                "potBefore": 29,
+                "ruleRef": "tax-a"
+              }
+            }
+          ]
+        }
+      },
+      "b": {
+        "operation": {
+          "operationId": "landing-tax-b",
+          "expectedStateVersion": 1,
+          "playerId": "p1",
+          "expectedLandingIndex": 31,
+          "transitionTime": "2026-08-25T05:30:00.000Z"
+        },
+        "inputHashMarker": "fixture-semantic-hash-v1-tax",
+        "stateAfter": {
+          "schemaVersion": 1,
+          "stateVersion": 2,
+          "rulesVersion": "synthetic-rules-vp0",
+          "rngVersion": "hmac_sha256_counter_v1",
+          "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+          "gameId": "game-us019",
+          "roomId": "room-us019",
+          "status": "active",
+          "presetConfig": {
+            "auctionBidSeconds": 6,
+            "auctionHardCapSeconds": 45,
+            "auctionPolicy": {
+              "minimumIncrement": 10
+            },
+            "buildWithoutGroup": false,
+            "debtDecisionSeconds": 20,
+            "economyVersion": "synthetic-economy-vp0",
+            "mandatoryDecisionSeconds": 12,
+            "presetCatalogVersion": "synthetic-presets-vp0",
+            "presetId": "express",
+            "reconnectGraceSeconds": 20,
+            "reconnectPolicy": {
+              "temporaryTakeover": true
+            },
+            "roundCap": 10,
+            "starterPolicy": "twoFromSameThreeGroupPaid",
+            "startingValue": 2000,
+            "tradeResponseSeconds": 20
+          },
+          "roundState": {
+            "round": 1
+          },
+          "turnState": {
+            "currentPlayerId": "p1",
+            "phase": "turnResolved",
+            "turnNumber": 1
+          },
+          "players": [
+            {
+              "playerId": "p1",
+              "seat": 0,
+              "kind": "human",
+              "status": "active",
+              "cash": 400,
+              "position": 31,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            },
+            {
+              "playerId": "p2",
+              "seat": 1,
+              "kind": "human",
+              "status": "active",
+              "cash": 700,
+              "position": 0,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            }
+          ],
+          "seatControllers": [
+            {
+              "playerId": "p1",
+              "controller": "human",
+              "humanReclaimPending": false
+            },
+            {
+              "playerId": "p2",
+              "controller": "human",
+              "humanReclaimPending": false
+            }
+          ],
+          "board": {
+            "boardDefinitionVersion": "synthetic-board-vp0",
+            "boardId": "synthetic-board"
+          },
+          "ownership": {
+            "byPropertyId": {},
+            "properties": []
+          },
+          "bank": {
+            "currencyUnit": "synthetic-unit"
+          },
+          "freeParkingPot": 129,
+          "deckPublicState": {},
+          "lastMutation": {
+            "operationId": "landing-tax-b",
+            "type": "taxPaid"
+          }
+        },
+        "resultSummary": {
+          "commandId": "landing-tax-b",
+          "operationId": "landing-tax-b",
+          "status": "accepted",
+          "stateVersionBefore": 1,
+          "stateVersionAfter": 2,
+          "kind": "taxPaid",
+          "amount": 100,
+          "events": [
+            {
+              "type": "taxPaid",
+              "data": {
+                "amount": 100,
+                "playerId": "p1",
+                "potAfter": 129,
+                "potBefore": 29,
+                "ruleRef": "tax-a"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "debt": {
+    "initialState": {
+      "schemaVersion": 1,
+      "stateVersion": 1,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-us019",
+      "roomId": "room-us019",
+      "status": "active",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "resolvingLanding",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 99,
+          "position": 31,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 700,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p1",
+          "controller": "human",
+          "humanReclaimPending": false
+        },
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {},
+        "properties": []
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit"
+      },
+      "freeParkingPot": 29,
+      "deckPublicState": {},
+      "lastMutation": {
+        "type": "playerMoved"
+      }
+    },
+    "plans": {
+      "a": {
+        "operation": {
+          "operationId": "landing-debt-a",
+          "expectedStateVersion": 1,
+          "playerId": "p1",
+          "expectedLandingIndex": 31,
+          "transitionTime": "2026-08-25T05:30:00.000Z"
+        },
+        "inputHashMarker": "fixture-semantic-hash-v1-debt",
+        "stateAfter": {
+          "schemaVersion": 1,
+          "stateVersion": 2,
+          "rulesVersion": "synthetic-rules-vp0",
+          "rngVersion": "hmac_sha256_counter_v1",
+          "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+          "gameId": "game-us019",
+          "roomId": "room-us019",
+          "status": "active",
+          "presetConfig": {
+            "auctionBidSeconds": 6,
+            "auctionHardCapSeconds": 45,
+            "auctionPolicy": {
+              "minimumIncrement": 10
+            },
+            "buildWithoutGroup": false,
+            "debtDecisionSeconds": 20,
+            "economyVersion": "synthetic-economy-vp0",
+            "mandatoryDecisionSeconds": 12,
+            "presetCatalogVersion": "synthetic-presets-vp0",
+            "presetId": "express",
+            "reconnectGraceSeconds": 20,
+            "reconnectPolicy": {
+              "temporaryTakeover": true
+            },
+            "roundCap": 10,
+            "starterPolicy": "twoFromSameThreeGroupPaid",
+            "startingValue": 2000,
+            "tradeResponseSeconds": 20
+          },
+          "roundState": {
+            "round": 1
+          },
+          "turnState": {
+            "currentPlayerId": "p1",
+            "phase": "debtResolution",
+            "turnNumber": 1
+          },
+          "players": [
+            {
+              "playerId": "p1",
+              "seat": 0,
+              "kind": "human",
+              "status": "active",
+              "cash": 99,
+              "position": 31,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            },
+            {
+              "playerId": "p2",
+              "seat": 1,
+              "kind": "human",
+              "status": "active",
+              "cash": 700,
+              "position": 0,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            }
+          ],
+          "seatControllers": [
+            {
+              "playerId": "p1",
+              "controller": "human",
+              "humanReclaimPending": false
+            },
+            {
+              "playerId": "p2",
+              "controller": "human",
+              "humanReclaimPending": false
+            }
+          ],
+          "board": {
+            "boardDefinitionVersion": "synthetic-board-vp0",
+            "boardId": "synthetic-board"
+          },
+          "ownership": {
+            "byPropertyId": {},
+            "properties": []
+          },
+          "bank": {
+            "currencyUnit": "synthetic-unit"
+          },
+          "freeParkingPot": 29,
+          "deckPublicState": {},
+          "pendingDecision": {
+            "allowedPlayerIds": [
+              "p1"
+            ],
+            "createdAt": "2026-08-25T05:30:00.000Z",
+            "deadlineAt": "2026-08-25T05:30:20.000Z",
+            "decisionId": "landing-debt-a:debt:decision",
+            "kind": "debtResolution",
+            "stateVersionCreated": 2,
+            "timeoutPolicy": "declareBankruptcy"
+          },
+          "debtCase": {
+            "amountDue": 100,
+            "creditor": {
+              "kind": "bank"
+            },
+            "debtCaseId": "landing-debt-a:debt",
+            "debtorPlayerId": "p1",
+            "purpose": "taxToFreeParkingPot",
+            "ruleRef": "tax-a",
+            "status": "open"
+          },
+          "lastMutation": {
+            "operationId": "landing-debt-a",
+            "type": "taxDebtOpened"
+          }
+        },
+        "resultSummary": {
+          "commandId": "landing-debt-a",
+          "operationId": "landing-debt-a",
+          "status": "accepted",
+          "stateVersionBefore": 1,
+          "stateVersionAfter": 2,
+          "kind": "taxDebtOpened",
+          "amount": 100,
+          "events": [
+            {
+              "type": "taxDebtOpened",
+              "data": {
+                "amount": 100,
+                "availableCash": 99,
+                "debtCaseId": "landing-debt-a:debt",
+                "playerId": "p1",
+                "ruleRef": "tax-a"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "collection": {
+    "initialState": {
+      "schemaVersion": 1,
+      "stateVersion": 1,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-us019",
+      "roomId": "room-us019",
+      "status": "active",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "resolvingLanding",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 500,
+          "position": 33,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 700,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p1",
+          "controller": "human",
+          "humanReclaimPending": false
+        },
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {},
+        "properties": []
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit"
+      },
+      "freeParkingPot": 263,
+      "deckPublicState": {},
+      "lastMutation": {
+        "type": "playerMoved"
+      }
+    },
+    "plans": {
+      "a": {
+        "operation": {
+          "operationId": "landing-collection-a",
+          "expectedStateVersion": 1,
+          "playerId": "p1",
+          "expectedLandingIndex": 33,
+          "transitionTime": "2026-08-25T05:30:00.000Z"
+        },
+        "inputHashMarker": "fixture-semantic-hash-v1-collection",
+        "stateAfter": {
+          "schemaVersion": 1,
+          "stateVersion": 2,
+          "rulesVersion": "synthetic-rules-vp0",
+          "rngVersion": "hmac_sha256_counter_v1",
+          "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+          "gameId": "game-us019",
+          "roomId": "room-us019",
+          "status": "active",
+          "presetConfig": {
+            "auctionBidSeconds": 6,
+            "auctionHardCapSeconds": 45,
+            "auctionPolicy": {
+              "minimumIncrement": 10
+            },
+            "buildWithoutGroup": false,
+            "debtDecisionSeconds": 20,
+            "economyVersion": "synthetic-economy-vp0",
+            "mandatoryDecisionSeconds": 12,
+            "presetCatalogVersion": "synthetic-presets-vp0",
+            "presetId": "express",
+            "reconnectGraceSeconds": 20,
+            "reconnectPolicy": {
+              "temporaryTakeover": true
+            },
+            "roundCap": 10,
+            "starterPolicy": "twoFromSameThreeGroupPaid",
+            "startingValue": 2000,
+            "tradeResponseSeconds": 20
+          },
+          "roundState": {
+            "round": 1
+          },
+          "turnState": {
+            "currentPlayerId": "p1",
+            "phase": "turnResolved",
+            "turnNumber": 1
+          },
+          "players": [
+            {
+              "playerId": "p1",
+              "seat": 0,
+              "kind": "human",
+              "status": "active",
+              "cash": 763,
+              "position": 33,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            },
+            {
+              "playerId": "p2",
+              "seat": 1,
+              "kind": "human",
+              "status": "active",
+              "cash": 700,
+              "position": 0,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            }
+          ],
+          "seatControllers": [
+            {
+              "playerId": "p1",
+              "controller": "human",
+              "humanReclaimPending": false
+            },
+            {
+              "playerId": "p2",
+              "controller": "human",
+              "humanReclaimPending": false
+            }
+          ],
+          "board": {
+            "boardDefinitionVersion": "synthetic-board-vp0",
+            "boardId": "synthetic-board"
+          },
+          "ownership": {
+            "byPropertyId": {},
+            "properties": []
+          },
+          "bank": {
+            "currencyUnit": "synthetic-unit"
+          },
+          "freeParkingPot": 0,
+          "deckPublicState": {},
+          "lastMutation": {
+            "operationId": "landing-collection-a",
+            "type": "freeParkingCollected"
+          }
+        },
+        "resultSummary": {
+          "commandId": "landing-collection-a",
+          "operationId": "landing-collection-a",
+          "status": "accepted",
+          "stateVersionBefore": 1,
+          "stateVersionAfter": 2,
+          "kind": "freeParkingCollected",
+          "amount": 263,
+          "events": [
+            {
+              "type": "freeParkingCollected",
+              "data": {
+                "amount": 263,
+                "playerId": "p1",
+                "potAfter": 0,
+                "potBefore": 263
+              }
+            }
+          ]
+        }
+      },
+      "b": {
+        "operation": {
+          "operationId": "landing-collection-b",
+          "expectedStateVersion": 1,
+          "playerId": "p1",
+          "expectedLandingIndex": 33,
+          "transitionTime": "2026-08-25T05:30:00.000Z"
+        },
+        "inputHashMarker": "fixture-semantic-hash-v1-collection",
+        "stateAfter": {
+          "schemaVersion": 1,
+          "stateVersion": 2,
+          "rulesVersion": "synthetic-rules-vp0",
+          "rngVersion": "hmac_sha256_counter_v1",
+          "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+          "gameId": "game-us019",
+          "roomId": "room-us019",
+          "status": "active",
+          "presetConfig": {
+            "auctionBidSeconds": 6,
+            "auctionHardCapSeconds": 45,
+            "auctionPolicy": {
+              "minimumIncrement": 10
+            },
+            "buildWithoutGroup": false,
+            "debtDecisionSeconds": 20,
+            "economyVersion": "synthetic-economy-vp0",
+            "mandatoryDecisionSeconds": 12,
+            "presetCatalogVersion": "synthetic-presets-vp0",
+            "presetId": "express",
+            "reconnectGraceSeconds": 20,
+            "reconnectPolicy": {
+              "temporaryTakeover": true
+            },
+            "roundCap": 10,
+            "starterPolicy": "twoFromSameThreeGroupPaid",
+            "startingValue": 2000,
+            "tradeResponseSeconds": 20
+          },
+          "roundState": {
+            "round": 1
+          },
+          "turnState": {
+            "currentPlayerId": "p1",
+            "phase": "turnResolved",
+            "turnNumber": 1
+          },
+          "players": [
+            {
+              "playerId": "p1",
+              "seat": 0,
+              "kind": "human",
+              "status": "active",
+              "cash": 763,
+              "position": 33,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            },
+            {
+              "playerId": "p2",
+              "seat": 1,
+              "kind": "human",
+              "status": "active",
+              "cash": 700,
+              "position": 0,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            }
+          ],
+          "seatControllers": [
+            {
+              "playerId": "p1",
+              "controller": "human",
+              "humanReclaimPending": false
+            },
+            {
+              "playerId": "p2",
+              "controller": "human",
+              "humanReclaimPending": false
+            }
+          ],
+          "board": {
+            "boardDefinitionVersion": "synthetic-board-vp0",
+            "boardId": "synthetic-board"
+          },
+          "ownership": {
+            "byPropertyId": {},
+            "properties": []
+          },
+          "bank": {
+            "currencyUnit": "synthetic-unit"
+          },
+          "freeParkingPot": 0,
+          "deckPublicState": {},
+          "lastMutation": {
+            "operationId": "landing-collection-b",
+            "type": "freeParkingCollected"
+          }
+        },
+        "resultSummary": {
+          "commandId": "landing-collection-b",
+          "operationId": "landing-collection-b",
+          "status": "accepted",
+          "stateVersionBefore": 1,
+          "stateVersionAfter": 2,
+          "kind": "freeParkingCollected",
+          "amount": 263,
+          "events": [
+            {
+              "type": "freeParkingCollected",
+              "data": {
+                "amount": 263,
+                "playerId": "p1",
+                "potAfter": 0,
+                "potBefore": 263
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "zeroCollection": {
+    "initialState": {
+      "schemaVersion": 1,
+      "stateVersion": 1,
+      "rulesVersion": "synthetic-rules-vp0",
+      "rngVersion": "hmac_sha256_counter_v1",
+      "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+      "gameId": "game-us019",
+      "roomId": "room-us019",
+      "status": "active",
+      "presetConfig": {
+        "auctionBidSeconds": 6,
+        "auctionHardCapSeconds": 45,
+        "auctionPolicy": {
+          "minimumIncrement": 10
+        },
+        "buildWithoutGroup": false,
+        "debtDecisionSeconds": 20,
+        "economyVersion": "synthetic-economy-vp0",
+        "mandatoryDecisionSeconds": 12,
+        "presetCatalogVersion": "synthetic-presets-vp0",
+        "presetId": "express",
+        "reconnectGraceSeconds": 20,
+        "reconnectPolicy": {
+          "temporaryTakeover": true
+        },
+        "roundCap": 10,
+        "starterPolicy": "twoFromSameThreeGroupPaid",
+        "startingValue": 2000,
+        "tradeResponseSeconds": 20
+      },
+      "roundState": {
+        "round": 1
+      },
+      "turnState": {
+        "currentPlayerId": "p1",
+        "phase": "resolvingLanding",
+        "turnNumber": 1
+      },
+      "players": [
+        {
+          "playerId": "p1",
+          "seat": 0,
+          "kind": "human",
+          "status": "active",
+          "cash": 500,
+          "position": 33,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        },
+        {
+          "playerId": "p2",
+          "seat": 1,
+          "kind": "human",
+          "status": "active",
+          "cash": 700,
+          "position": 0,
+          "ownedPropertyIds": [],
+          "keepCards": [],
+          "inCucha": false,
+          "cuchaAttempts": 0,
+          "consecutiveDoubles": 0,
+          "connectivityStatus": "online"
+        }
+      ],
+      "seatControllers": [
+        {
+          "playerId": "p1",
+          "controller": "human",
+          "humanReclaimPending": false
+        },
+        {
+          "playerId": "p2",
+          "controller": "human",
+          "humanReclaimPending": false
+        }
+      ],
+      "board": {
+        "boardDefinitionVersion": "synthetic-board-vp0",
+        "boardId": "synthetic-board"
+      },
+      "ownership": {
+        "byPropertyId": {},
+        "properties": []
+      },
+      "bank": {
+        "currencyUnit": "synthetic-unit"
+      },
+      "freeParkingPot": 0,
+      "deckPublicState": {},
+      "lastMutation": {
+        "type": "playerMoved"
+      }
+    },
+    "plans": {
+      "a": {
+        "operation": {
+          "operationId": "landing-zero-collection-a",
+          "expectedStateVersion": 1,
+          "playerId": "p1",
+          "expectedLandingIndex": 33,
+          "transitionTime": "2026-08-25T05:30:00.000Z"
+        },
+        "inputHashMarker": "fixture-semantic-hash-v1-zero-collection",
+        "stateAfter": {
+          "schemaVersion": 1,
+          "stateVersion": 2,
+          "rulesVersion": "synthetic-rules-vp0",
+          "rngVersion": "hmac_sha256_counter_v1",
+          "rngCommitment": "0000000000000000000000000000000000000000000000000000000000000000",
+          "gameId": "game-us019",
+          "roomId": "room-us019",
+          "status": "active",
+          "presetConfig": {
+            "auctionBidSeconds": 6,
+            "auctionHardCapSeconds": 45,
+            "auctionPolicy": {
+              "minimumIncrement": 10
+            },
+            "buildWithoutGroup": false,
+            "debtDecisionSeconds": 20,
+            "economyVersion": "synthetic-economy-vp0",
+            "mandatoryDecisionSeconds": 12,
+            "presetCatalogVersion": "synthetic-presets-vp0",
+            "presetId": "express",
+            "reconnectGraceSeconds": 20,
+            "reconnectPolicy": {
+              "temporaryTakeover": true
+            },
+            "roundCap": 10,
+            "starterPolicy": "twoFromSameThreeGroupPaid",
+            "startingValue": 2000,
+            "tradeResponseSeconds": 20
+          },
+          "roundState": {
+            "round": 1
+          },
+          "turnState": {
+            "currentPlayerId": "p1",
+            "phase": "turnResolved",
+            "turnNumber": 1
+          },
+          "players": [
+            {
+              "playerId": "p1",
+              "seat": 0,
+              "kind": "human",
+              "status": "active",
+              "cash": 500,
+              "position": 33,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            },
+            {
+              "playerId": "p2",
+              "seat": 1,
+              "kind": "human",
+              "status": "active",
+              "cash": 700,
+              "position": 0,
+              "ownedPropertyIds": [],
+              "keepCards": [],
+              "inCucha": false,
+              "cuchaAttempts": 0,
+              "consecutiveDoubles": 0,
+              "connectivityStatus": "online"
+            }
+          ],
+          "seatControllers": [
+            {
+              "playerId": "p1",
+              "controller": "human",
+              "humanReclaimPending": false
+            },
+            {
+              "playerId": "p2",
+              "controller": "human",
+              "humanReclaimPending": false
+            }
+          ],
+          "board": {
+            "boardDefinitionVersion": "synthetic-board-vp0",
+            "boardId": "synthetic-board"
+          },
+          "ownership": {
+            "byPropertyId": {},
+            "properties": []
+          },
+          "bank": {
+            "currencyUnit": "synthetic-unit"
+          },
+          "freeParkingPot": 0,
+          "deckPublicState": {},
+          "lastMutation": {
+            "operationId": "landing-zero-collection-a",
+            "type": "freeParkingCollected"
+          }
+        },
+        "resultSummary": {
+          "commandId": "landing-zero-collection-a",
+          "operationId": "landing-zero-collection-a",
+          "status": "accepted",
+          "stateVersionBefore": 1,
+          "stateVersionAfter": 2,
+          "kind": "freeParkingCollected",
+          "amount": 0,
+          "events": [
+            {
+              "type": "freeParkingCollected",
+              "data": {
+                "amount": 0,
+                "playerId": "p1",
+                "potAfter": 0,
+                "potBefore": 0
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "privateSentinel": {
+    "rngVersion": "hmac_sha256_counter_v1",
+    "seedMarker": "authority-private-unchanged",
+    "streamCounters": {
+      "dice": 2
+    }
+  }
+}

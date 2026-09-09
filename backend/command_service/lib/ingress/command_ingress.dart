@@ -1,4 +1,7 @@
+import '../observability/authority_execution_metrics.dart';
 import '../observability/authority_observability.dart';
+
+export '../observability/authority_execution_metrics.dart';
 
 /// Captured exactly once per logical ingress request and reused across retries.
 final class IngressContext {
@@ -21,32 +24,6 @@ final class IngressCommandEnvelope {
   final String commandId;
   final int inputHashVersion;
   final int expectedVersion;
-}
-
-final class AuthorityExecutionMetrics {
-  const AuthorityExecutionMetrics({
-    this.retryCount = 0,
-    this.conflictCount = 0,
-    this.firestoreReadCount = 0,
-    this.firestoreWriteCount = 0,
-    this.bytesRead = 0,
-    this.bytesWritten = 0,
-    this.snapshotBytes = 0,
-    this.schemaVersion,
-    this.stateVersion,
-    this.coldStart = false,
-  });
-
-  final int retryCount;
-  final int conflictCount;
-  final int firestoreReadCount;
-  final int firestoreWriteCount;
-  final int bytesRead;
-  final int bytesWritten;
-  final int snapshotBytes;
-  final int? schemaVersion;
-  final int? stateVersion;
-  final bool coldStart;
 }
 
 final class AuthorityExecutionResult<T> {
@@ -82,6 +59,79 @@ final class CommandIngress {
   final BestEffortAuthorityObservability _observability;
   final DateTime Function() _now;
 
+  /// Observes one authenticated reconnect execution, including public egress
+  /// validation performed by [execute]. Success describes this server boundary,
+  /// not a command disposition, delivered ACK, or client reconciliation success.
+  /// [snapshotBytes] measures only the successful final public snapshot. It is
+  /// diagnostic extraction, not an additive store counter; callers that omit it
+  /// retain the unmeasured zero default. Extraction failure omits the event.
+  /// See docs/reconnect-authority-metrics.md for the measurement boundary.
+  Future<T> handleRecovery<T>({
+    required Future<T> Function() execute,
+    required ({int schemaVersion, int stateVersion}) Function(T) versions,
+    int Function(T)? snapshotBytes,
+  }) async {
+    DateTime? startedAt;
+    try {
+      startedAt = _now();
+    } on Object {
+      // A diagnostic clock is not authority for the recovery operation.
+    }
+    final capture = AuthorityExecutionMetricsCapture();
+    try {
+      final result = await capture.run(execute);
+      _emitRecovery(
+        capture.metrics,
+        startedAt,
+        versions: () => versions(result),
+        snapshotBytes: snapshotBytes == null
+            ? null
+            : () => snapshotBytes(result),
+      );
+      return result;
+    } on Object {
+      _emitRecovery(capture.metrics, startedAt);
+      rethrow;
+    }
+  }
+
+  void _emitRecovery(
+    AuthorityExecutionMetrics metrics,
+    DateTime? startedAt, {
+    ({int schemaVersion, int stateVersion}) Function()? versions,
+    int Function()? snapshotBytes,
+  }) {
+    try {
+      if (startedAt == null) return;
+      final confirmedVersions = versions?.call();
+      _observability.emit(
+        AuthorityLogEvent(
+          operation: AuthorityOperation.recovery,
+          outcome: versions == null
+              ? AuthorityOutcome.internalFailure
+              : AuthorityOutcome.success,
+          reason: versions == null
+              ? AuthorityReason.internalError
+              : AuthorityReason.none,
+          latencyMs: _elapsedMs(startedAt, _now()),
+          retryCount: metrics.retryCount,
+          conflictCount: metrics.conflictCount,
+          firestoreReadCount: metrics.firestoreReadCount,
+          firestoreWriteCount: metrics.firestoreWriteCount,
+          bytesRead: metrics.bytesRead,
+          bytesWritten: metrics.bytesWritten,
+          snapshotBytes: snapshotBytes?.call() ?? 0,
+          coldStart: false,
+          schemaVersion: confirmedVersions?.schemaVersion,
+          stateVersion: confirmedVersions?.stateVersion,
+        ),
+      );
+    } on Object {
+      // Clock, metadata, event construction and sink failures cannot alter the
+      // original result/exception or turn success into a second error event.
+    }
+  }
+
   Future<T> handle<T>({
     required IngressCommandEnvelope command,
     required AuthorityExecutor<T> execute,
@@ -111,20 +161,54 @@ final class CommandIngress {
 
     final context =
         ingressContext ?? IngressContext(requestReceivedAt: _now().toUtc());
-    final startedAt = _now();
-
+    DateTime? startedAt;
     try {
-      final result = await execute(context, command);
-      final metrics = result.metrics;
+      startedAt = _now();
+    } on Object {
+      // The diagnostic clock is optional; the authority timestamp above is not.
+    }
+    final capture = AuthorityExecutionMetricsCapture();
+    final AuthorityExecutionResult<T> result;
+    try {
+      result = await capture.run(() => execute(context, command));
+    } on Object {
+      _emitCommand(
+        command.kind,
+        capture.metrics,
+        startedAt,
+        outcome: AuthorityOutcome.internalFailure,
+        reason: AuthorityReason.internalError,
+      );
+      rethrow;
+    }
 
+    _emitCommand(
+      command.kind,
+      result.metrics,
+      startedAt,
+      outcome: result.outcome,
+      reason: result.reason,
+    );
+    return result.value;
+  }
+
+  void _emitCommand(
+    IngressCommandKind kind,
+    AuthorityExecutionMetrics metrics,
+    DateTime? startedAt, {
+    required AuthorityOutcome outcome,
+    required AuthorityReason reason,
+  }) {
+    try {
+      if (startedAt == null) return;
       _observability.emit(
         AuthorityLogEvent(
-          operation: switch (command.kind) {
+          operation: switch (kind) {
             IngressCommandKind.room => AuthorityOperation.roomCommand,
             IngressCommandKind.game => AuthorityOperation.gameCommand,
           },
-          outcome: result.outcome,
-          reason: result.reason,
+          outcome: outcome,
+          reason: reason,
           latencyMs: _elapsedMs(startedAt, _now()),
           retryCount: metrics.retryCount,
           conflictCount: metrics.conflictCount,
@@ -138,29 +222,9 @@ final class CommandIngress {
           stateVersion: metrics.stateVersion,
         ),
       );
-
-      return result.value;
     } on Object {
-      _observability.emit(
-        AuthorityLogEvent(
-          operation: switch (command.kind) {
-            IngressCommandKind.room => AuthorityOperation.roomCommand,
-            IngressCommandKind.game => AuthorityOperation.gameCommand,
-          },
-          outcome: AuthorityOutcome.internalFailure,
-          reason: AuthorityReason.internalError,
-          latencyMs: _elapsedMs(startedAt, _now()),
-          retryCount: 0,
-          conflictCount: 0,
-          firestoreReadCount: 0,
-          firestoreWriteCount: 0,
-          bytesRead: 0,
-          bytesWritten: 0,
-          snapshotBytes: 0,
-          coldStart: false,
-        ),
-      );
-      rethrow;
+      // Invalid diagnostics cannot change the executor result/exception or
+      // trigger a second event that incorrectly reports an authority failure.
     }
   }
 

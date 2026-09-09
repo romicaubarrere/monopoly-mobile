@@ -33,3 +33,16 @@ For each canonical mutation, retain:
 - rollback reference if recovery was needed.
 
 A successful API response is not sufficient proof that a canonical write was safe. Post-write fetch and invariant verification are mandatory.
+
+## Executable control
+
+`tool/canonical_document_guard.py` implements the status/evidence-only guard from
+Confluence acceptance contract `3735608` (G1–G10, CFG-GUARD-01..12), under Trello
+#70. See [operator instructions and evidence boundary](canonical-document-guard.md).
+It uses an explicit next-version REST write, not the connector's unrestricted
+full-body update action. A connector that cannot carry the expected version is
+not a compatible writer for this guard.
+
+This tool cannot intercept writes made directly through other clients. Adoption
+of the guarded path remains an operator responsibility; its offline tests do not
+prove that all external writers are technically prevented from bypassing it.

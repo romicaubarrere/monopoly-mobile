@@ -4,6 +4,7 @@ import '../bankruptcy_transition_planner.dart';
 import '../buy_auction_planner.dart';
 import '../reconnect_planner.dart' as planner;
 import '../roll_movement_planner.dart';
+import '../tax_free_parking_planner.dart';
 
 /// Maps the durable reconnect planner to the exact public contract consumed by
 /// Flutter.
@@ -78,6 +79,28 @@ abstract final class FirstPlayableResponseAdapter {
     ),
     AuthorityBankruptcyNoOp(:final reason) =>
       throw AuthorityBankruptcyViolation('nonCommandEvaluation:$reason'),
+  };
+
+  static api.AuthorityCommandReply taxFreeParking(
+    AuthorityTaxFreeParkingEvaluation evaluation,
+  ) => switch (evaluation) {
+    AuthorityTaxFreeParkingAccepted(:final plan) => api.AuthorityCommandReply(
+      commandId: plan.enginePlan.operationId,
+      status: api.AuthorityCommandStatus.accepted,
+      versionBefore: plan.enginePlan.stateVersionBefore,
+      versionAfter: plan.enginePlan.stateVersionAfter,
+      publicResult: plan.safeResultSummary,
+      snapshot: api.AuthorityPublicSnapshot(plan.stateAfter.toJson()),
+    ),
+    AuthorityTaxFreeParkingRejected(:final rejection) =>
+      api.AuthorityCommandReply(
+        commandId: rejection.operationId,
+        status: api.AuthorityCommandStatus.rejected,
+        versionBefore: rejection.stateVersionBefore,
+        versionAfter: rejection.stateVersionAfter,
+        errorCode: rejection.errorCode.wireValue,
+        publicResult: evaluation.publicResult,
+      ),
   };
 
   /// Replays a persisted command result without re-invoking Engine or RNG.

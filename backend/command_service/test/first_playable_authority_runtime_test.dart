@@ -75,9 +75,22 @@ void main() {
         reconnect.commandResolution!.action,
         CommandResolutionAction.useDurableResult,
       );
-      expect(logs.events, hasLength(2));
+      expect(logs.events, hasLength(3));
       expect(logs.events.first['outcome'], 'success');
-      expect(logs.events.last['outcome'], 'duplicate');
+      expect(logs.events[1]['outcome'], 'duplicate');
+      expect(logs.events.last['operation'], 'recovery');
+      expect(logs.events.last['outcome'], 'success');
+      expect(logs.events.last['reason'], 'none');
+      expect(logs.events.last['schemaVersion'], 1);
+      expect(logs.events.last['stateVersion'], 1);
+      expect(
+        logs.events.last['snapshotBytes'],
+        utf8.encode(reconnect.snapshot.toCanonicalJson()).length,
+      );
+      // This memory fake returns metrics but does not publish captured I/O.
+      // Its zero counters are not evidence of real Firestore operations.
+      expect(logs.events.last['firestoreReadCount'], 0);
+      expect(logs.events.last['firestoreWriteCount'], 0);
       expect(logs.events.expand((event) => event.keys), isNot(contains('uid')));
       expect(
         jsonEncode(logs.events),

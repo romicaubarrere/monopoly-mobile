@@ -1,3 +1,4 @@
+import 'package:board_backend_api/backend_api.dart';
 import 'package:flutter/material.dart';
 
 import '../../design_system/tokens.dart';
@@ -21,6 +22,22 @@ class FreeParkingEventSurface extends StatelessWidget {
     this.resultingBalanceLabel,
     this.breakdown = const [],
   });
+
+  /// Builds the accepted PR #48 presentation from a durable Authority result.
+  ///
+  /// Flutter validates the public envelope only. It never derives the award
+  /// from balances, the pot, board content or locally replayed events.
+  factory FreeParkingEventSurface.authorityConfirmed({
+    required AuthorityCommandReply reply,
+    Key? key,
+    String? resultingBalanceLabel,
+    List<FreeParkingBreakdownItem> breakdown = const [],
+  }) => FreeParkingEventSurface.confirmed(
+    key: key,
+    confirmedAmount: _confirmedFreeParkingAmount(reply),
+    resultingBalanceLabel: resultingBalanceLabel,
+    breakdown: breakdown,
+  );
 
   final int confirmedAmount;
   final String? resultingBalanceLabel;
@@ -158,6 +175,46 @@ class FreeParkingEventSurface extends StatelessWidget {
       ),
     );
   }
+}
+
+int _confirmedFreeParkingAmount(AuthorityCommandReply reply) {
+  final result = reply.publicResult;
+  final events = result['events'];
+  if (reply.isRejectedOutcome ||
+      result['status'] != AuthorityCommandStatus.accepted.wireValue ||
+      result['commandId'] != reply.commandId ||
+      result['operationId'] != reply.commandId ||
+      result['stateVersionBefore'] != reply.versionBefore ||
+      result['stateVersionAfter'] != reply.versionAfter ||
+      result['kind'] != 'freeParkingCollected' ||
+      result['amount'] is! int ||
+      (result['amount']! as int) < 0 ||
+      events is! List<Object?> ||
+      events.length != 1) {
+    throw const ClientAuthorityContractViolation(
+      'invalidConfirmedFreeParkingResult',
+    );
+  }
+  final event = events.single;
+  if (event is! Map<String, Object?> ||
+      event['type'] != 'freeParkingCollected') {
+    throw const ClientAuthorityContractViolation(
+      'invalidConfirmedFreeParkingResult',
+    );
+  }
+  final data = event['data'];
+  final amount = result['amount']! as int;
+  if (data is! Map<String, Object?> ||
+      data['playerId'] is! String ||
+      (data['playerId']! as String).isEmpty ||
+      data['amount'] != amount ||
+      data['potBefore'] != amount ||
+      data['potAfter'] != 0) {
+    throw const ClientAuthorityContractViolation(
+      'invalidConfirmedFreeParkingResult',
+    );
+  }
+  return amount;
 }
 
 class _ConfirmedBreakdown extends StatelessWidget {

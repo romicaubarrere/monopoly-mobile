@@ -22,3 +22,34 @@ cd tool/firebase
 npm ci --ignore-scripts --no-audit --no-fund
 npm run emulators:test
 ```
+
+This original command retains the JavaScript-only suite. The required CI job
+now uses the combined JavaScript + Dart gate:
+
+```bash
+# Node 24.19.0, Java 21, Python 3 and pinned Flutter 3.47.0/Dart 3.13 on PATH.
+# Resolve workspace dependencies at the repository root first:
+flutter pub get --enforce-lockfile
+npm --prefix tool/firebase ci --ignore-scripts --no-audit --no-fund
+env -u DEBUG npm --prefix tool/firebase run emulators:test:all
+```
+
+Run that block from the repository root with emulator ports available. The CLI
+starts a fresh local demo instance, runs JavaScript then Dart (not concurrently),
+propagates failure, and shuts down its emulators. No existing data is cleared or
+exported by this entrypoint. Dependencies stay lockfile-pinned; generated
+`tool/firebase/node_modules/` is ignored, not vendored.
+
+`DEBUG` is removed only for that local invocation: Firebase CLI debug output can
+dump the subprocess environment. Do not upload its raw debug logs. The Dart gate
+prints only fixed test identities and safe status codes, not raw test payloads.
+
+See [gate behavior, regression evidence and limitations](../../docs/dart-firebase-integration-gate.md).
+
+The pinned CLI 15.29.0 uses a strictly validated stream-json 3.5.0 adapter and a
+csv-parse 7.0.2 security override. See [upgrade provenance, compatibility tests
+and measurement limits](../../docs/firebase-cli-15-29-compatibility.md). These
+remain development dependencies; no package or service is deployed by the gate.
+
+Morgan is separately fixed at 1.12.0 for Unicode log-injection protection. See
+[the narrow patch and installed-consumer regression](../../docs/morgan-log-safety.md).

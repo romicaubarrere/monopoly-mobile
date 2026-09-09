@@ -1,6 +1,8 @@
 import 'package:board_backend_api/backend_api.dart';
 import 'package:board_game_core/game_core.dart';
 
+import 'security/human_controller_gate.dart';
+
 final class AuthorityBuyAuctionViolation implements Exception {
   const AuthorityBuyAuctionViolation(this.code);
 
@@ -96,6 +98,15 @@ abstract final class AuthorityBuyAuctionPlanner {
     if (authenticatedActorUid.isEmpty ||
         memberUidByPlayerId[command.actorPlayerId] != authenticatedActorUid) {
       throw const AuthorityBuyAuctionViolation('actorNotAuthenticatedMember');
+    }
+    if (HumanControllerGate.rejects(state, command.actorPlayerId)) {
+      return AuthorityBuyAuctionRejected(
+        BuyAuctionRejection(
+          commandId: command.commandId,
+          stateVersionBefore: state.header.stateVersion,
+          errorCode: BuyAuctionErrorCode.controllerNotHuman,
+        ),
+      );
     }
 
     final deadlineAt = _currentDeadlineAt(state);

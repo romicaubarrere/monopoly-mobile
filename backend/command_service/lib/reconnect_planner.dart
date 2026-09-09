@@ -110,6 +110,8 @@ final class AuthorityReconnectPlan {
 /// the durable operation record in one consistent read boundary. This planner
 /// then proves whether the client is current, must replace its snapshot, can
 /// resolve a lost acknowledgement, or must retry the same command identity.
+/// Receipt ownership is private metadata, compared independently of the hash.
+/// `durableReceiptActorUid` must be nonempty exactly when a receipt is present.
 abstract final class AuthorityReconnectPlanner {
   static AuthorityReconnectPlan reconcile({
     required String authenticatedActorUid,
@@ -117,6 +119,7 @@ abstract final class AuthorityReconnectPlanner {
     required Map<String, String> memberUidByPlayerId,
     required int clientStateVersion,
     required PublicGameState authoritativeState,
+    required String? durableReceiptActorUid,
     UncertainCommandIdentity? uncertainCommand,
     DurableCommandReceipt? durableReceipt,
   }) {
@@ -132,6 +135,10 @@ abstract final class AuthorityReconnectPlanner {
     }
     if (durableReceipt != null && uncertainCommand == null) {
       throw const AuthorityReconnectViolation('orphanDurableReceipt');
+    }
+    if ((durableReceipt == null) != (durableReceiptActorUid == null) ||
+        durableReceiptActorUid != null && durableReceiptActorUid.isEmpty) {
+      throw const AuthorityReconnectViolation('invalidDurableReceiptActor');
     }
 
     final baseDisposition =
@@ -155,7 +162,8 @@ abstract final class AuthorityReconnectPlanner {
         },
       );
     }
-    if (durableReceipt.commandId != uncertainCommand.commandId ||
+    if (durableReceiptActorUid != authenticatedActorUid ||
+        durableReceipt.commandId != uncertainCommand.commandId ||
         durableReceipt.inputHashVersion != uncertainCommand.inputHashVersion ||
         durableReceipt.inputHash != uncertainCommand.inputHash) {
       return AuthorityReconnectPlan(

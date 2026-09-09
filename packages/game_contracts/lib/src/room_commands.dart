@@ -1,5 +1,9 @@
 import 'dart:convert';
 
+import 'package:json_annotation/json_annotation.dart';
+
+part 'room_commands.g.dart';
+
 final class RoomContractViolation implements Exception {
   const RoomContractViolation(this.message);
 
@@ -9,6 +13,7 @@ final class RoomContractViolation implements Exception {
   String toString() => 'RoomContractViolation: $message';
 }
 
+@JsonEnum(valueField: 'wireValue')
 enum RoomCommandType {
   createRoom('CreateRoom'),
   joinRoom('JoinRoom'),
@@ -22,6 +27,7 @@ enum RoomCommandType {
   final String wireValue;
 }
 
+@JsonEnum(valueField: 'wireValue')
 enum RoomCommandStatus {
   accepted('accepted'),
   rejected('rejected'),
@@ -34,6 +40,7 @@ enum RoomCommandStatus {
 
 /// Pre-game command envelope. Authenticated identity is deliberately absent:
 /// authority derives the actor UID from the verified token.
+@JsonSerializable(disallowUnrecognizedKeys: true, includeIfNull: false)
 final class RoomCommand {
   RoomCommand({
     required this.commandId,
@@ -65,12 +72,29 @@ final class RoomCommand {
     _validatePayload();
   }
 
+  factory RoomCommand.fromJson(Map<String, Object?> json) {
+    try {
+      return _$RoomCommandFromJson(json);
+    } on RoomContractViolation {
+      rethrow;
+    } on Object {
+      throw const RoomContractViolation('Invalid RoomCommand JSON');
+    }
+  }
+
+  @JsonKey(required: true)
   final String commandId;
+  @JsonKey(required: true, fromJson: _requiredInteger)
   final int schemaVersion;
+  @JsonKey(fromJson: _optionalInteger)
   final int? expectedRoomVersion;
+  @JsonKey(required: true)
   final String clientInstanceId;
+  @JsonKey(required: true)
   final RoomCommandType type;
+  @JsonKey(required: true)
   final Map<String, Object?> payload;
+  @JsonKey(fromJson: _optionalUtcDate)
   final DateTime? sentAt;
 
   void _validatePayload() {
@@ -114,19 +138,12 @@ final class RoomCommand {
     }
   }
 
-  Map<String, Object?> toJson() => <String, Object?>{
-    'commandId': commandId,
-    'schemaVersion': schemaVersion,
-    if (expectedRoomVersion != null) 'expectedRoomVersion': expectedRoomVersion,
-    'clientInstanceId': clientInstanceId,
-    'type': type.wireValue,
-    'payload': payload,
-    if (sentAt != null) 'sentAt': sentAt!.toIso8601String(),
-  };
+  Map<String, Object?> toJson() => _$RoomCommandToJson(this);
 
   String toCanonicalJson() => _canonicalJson(toJson());
 }
 
+@JsonSerializable(disallowUnrecognizedKeys: true, includeIfNull: false)
 final class RoomCommandResult {
   RoomCommandResult({
     required this.commandId,
@@ -162,28 +179,55 @@ final class RoomCommandResult {
     if (gameId != null) _identifier(gameId!, 'gameId');
   }
 
+  factory RoomCommandResult.fromJson(Map<String, Object?> json) {
+    try {
+      return _$RoomCommandResultFromJson(json);
+    } on RoomContractViolation {
+      rethrow;
+    } on Object {
+      throw const RoomContractViolation('Invalid RoomCommandResult JSON');
+    }
+  }
+
+  @JsonKey(required: true)
   final String commandId;
+  @JsonKey(required: true)
   final RoomCommandStatus status;
+  @JsonKey(fromJson: _optionalInteger)
   final int? roomVersionBefore;
+  @JsonKey(fromJson: _optionalInteger)
   final int? roomVersionAfter;
   final String? errorCode;
   final Map<String, Object?>? roomSnapshot;
   final String? gameId;
+  @JsonKey(required: true, fromJson: _requiredUtcDate)
   final DateTime serverProcessedAt;
 
-  Map<String, Object?> toJson() => <String, Object?>{
-    'commandId': commandId,
-    'status': status.wireValue,
-    if (roomVersionBefore != null) 'roomVersionBefore': roomVersionBefore,
-    if (roomVersionAfter != null) 'roomVersionAfter': roomVersionAfter,
-    if (errorCode != null) 'errorCode': errorCode,
-    if (roomSnapshot != null) 'roomSnapshot': roomSnapshot,
-    if (gameId != null) 'gameId': gameId,
-    'serverProcessedAt': serverProcessedAt.toIso8601String(),
-  };
+  Map<String, Object?> toJson() => _$RoomCommandResultToJson(this);
 
   String toCanonicalJson() => _canonicalJson(toJson());
 }
+
+// Generated decoding must preserve the existing integer-only boundary. The
+// generator's default num.toInt conversion would silently truncate doubles.
+int _requiredInteger(Object? value) {
+  if (value is int) return value;
+  throw const RoomContractViolation('Room contract requires an integer');
+}
+
+int? _optionalInteger(Object? value) =>
+    value == null ? null : _requiredInteger(value);
+
+DateTime _requiredUtcDate(Object? value) {
+  if (value is String) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed != null) return parsed.toUtc();
+  }
+  throw const RoomContractViolation('Room contract requires a timestamp');
+}
+
+DateTime? _optionalUtcDate(Object? value) =>
+    value == null ? null : _requiredUtcDate(value);
 
 Map<String, Object?> _immutableJson(Map<String, Object?> value) =>
     Map<String, Object?>.unmodifiable(

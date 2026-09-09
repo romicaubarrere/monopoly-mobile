@@ -24,22 +24,24 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
+          # v2.23 nests the SDK in flutter/; do not restore immutable v2.21 caches.
+          cache-key: 'flutter-sdk-layout-v2-:os:-:channel:-:version:-:arch:-:hash:'
 
       - name: Resolve dependencies
         run: flutter pub get --enforce-lockfile
 
       - name: Setup reviewdog
-        uses: reviewdog/action-setup@d8edfce3dd5e1ec6978745e801f9c50b5ef80252 # v1.4.0
+        uses: reviewdog/action-setup@d8a7baabd7f3e8544ee4dbde3ee41d0011c3a93f # v1.5.0
         with:
           reviewdog_version: v0.21.0
 
@@ -73,7 +75,7 @@ jobs:
             -fail-level=error
 
       - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed apps packages backend
+        run: python3 -B tool/preflight.py --format-only
 
   workflow-review:
     name: review / github-actions
@@ -83,7 +85,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Install verified actionlint
         shell: bash
@@ -109,12 +111,29 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
 
       - name: Install detect-secrets
-        run: python -m pip install --disable-pip-version-check 'detect-secrets==1.5.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Python -I deliberately ignores user-site installs. Keep the pinned
+          # detector visible there without weakening isolated baseline checks.
+          secret_venv="$(mktemp -d "${RUNNER_TEMP}/detect-secrets.XXXXXX")"
+          python -m venv "${secret_venv}"
+          "${secret_venv}/bin/python" -m pip install --disable-pip-version-check 'detect-secrets==1.5.0'
+          "${secret_venv}/bin/python" -I -B -c 'import detect_secrets'
+          printf '%s\n' "${secret_venv}/bin" >> "${GITHUB_PATH}"
+
+      - name: Validate the audited public-fixture baseline
+        run: python -B tool/secret_baseline_guard.py
+
+      - name: Test baseline policy and real secret detection
+        run: |
+          python -B -m unittest discover -s tool/test -p 'secret_baseline_guard_test.py' -v
+          python -B -m unittest discover -s tool/security_test -p '*_test.py' -v
 
       - name: Scan added and modified files for secrets
         env:
@@ -128,7 +147,7 @@ jobs:
             echo 'No added or modified files to scan.'
             exit 0
           fi
-          detect-secrets-hook "${files[@]}"
+          detect-secrets-hook --baseline .secrets.baseline -- "${files[@]}"
 
   dependency-review:
     name: security / dependency-vulnerabilities
@@ -138,7 +157,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Scan Dart and npm lockfiles with OSV
         shell: bash
