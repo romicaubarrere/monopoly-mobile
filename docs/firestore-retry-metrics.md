@@ -40,11 +40,13 @@ These are **logical adapter counts, not billed Firestore operations**. Payload
 bytes exclude headers, TLS/HTTP framing, incomplete exchanges, listener fan-out,
 storage/index overhead and provider billing rules. They are not snapshot sizes
 or total network egress. The [committed game size follow-up](committed-game-snapshot-size-metrics.md)
-now supplies `snapshotBytes` for accepted `transactGame` transitions, separately
-from these additive counters. Other adapter paths retain the unmeasured zero
-default; `coldStart` remains unmeasured everywhere. The separate
+now supplies `snapshotBytes` for accepted `transactGame` transitions. The
+[StartGame follow-up](start-game-snapshot-size-metrics.md) measures the initial
+public game created by accepted StartGame. Both gauges are separate from these
+additive counters. Other adapter paths retain the unmeasured zero default;
+`coldStart` remains unmeasured everywhere. The separate
 [reconnect size follow-up](reconnect-snapshot-size-metrics.md) measures the
-validated final public snapshot outside the store/capture. Neither size is
+validated final public snapshot outside the store/capture. None of these sizes is
 derived from transport counters.
 
 A failed commit does not become a confirmed write because its request was sent.
