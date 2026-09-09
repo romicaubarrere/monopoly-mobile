@@ -39,10 +39,13 @@ recovery calls cannot share it. The returned metrics are immutable values.
 These are **logical adapter counts, not billed Firestore operations**. Payload
 bytes exclude headers, TLS/HTTP framing, incomplete exchanges, listener fan-out,
 storage/index overhead and provider billing rules. They are not snapshot sizes
-or total network egress. The adapter's `snapshotBytes` and `coldStart` defaults
-remain unmeasured. The separate [reconnect size follow-up](reconnect-snapshot-size-metrics.md)
-measures the validated final public snapshot outside the store/capture; it does
-not derive a size from these transport counters.
+or total network egress. The [committed game size follow-up](committed-game-snapshot-size-metrics.md)
+now supplies `snapshotBytes` for accepted `transactGame` transitions, separately
+from these additive counters. Other adapter paths retain the unmeasured zero
+default; `coldStart` remains unmeasured everywhere. The separate
+[reconnect size follow-up](reconnect-snapshot-size-metrics.md) measures the
+validated final public snapshot outside the store/capture. Neither size is
+derived from transport counters.
 
 A failed commit does not become a confirmed write because its request was sent.
 Rollback failures remain best-effort; a complete error response contributes only
@@ -68,7 +71,7 @@ The failure event sums only the six existing additive counters (retries,
 conflicts, document reads/writes and payload bytes). Successful ingress still
 uses `result.metrics` exactly as before, without summing it a second time. No
 failed operation is assigned an inferred final schema/state version. The
-existing `snapshotBytes=0` / `coldStart=false` remain unmeasured defaults.
+failure-capture `snapshotBytes=0` / `coldStart=false` remain unmeasured defaults.
 
 The promoted Persistence/Cost specifications require retries, conflicts and
 operation counts, but do not define a terminal-attempt formula. The following
@@ -168,7 +171,7 @@ PASS. Merge acceptance requires all eight remote jobs on the exact PR head.
 ## Remaining work
 
 [Ticket #19](https://trello.com/c/dk2nQOYj) remains open for GET/pre-ingress
-telemetry, runtime snapshot sizes and reconnect/takeover traces, production
+telemetry, remaining runtime size boundaries and reconnect/takeover traces, production
 cold/warm p50/p95, NFR-48 materialization and genuine budget/limit/cost evidence.
 `minInstances=0` and emulator-first remain the baseline. This correction does
 not close NFR-19/26/28/33/34 globally or reconstruct missing DEC-065 content.

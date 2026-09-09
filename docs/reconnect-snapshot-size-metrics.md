@@ -52,7 +52,8 @@ existing allowlisted numeric/enum fields.
 | Successful HTTP reconnect execution and public validation | Measured canonical UTF-8 bytes of that returned public game snapshot. |
 | Failed reconnect execution/public validation | Existing zero fallback; no confirmed final size is asserted. |
 | Generic recovery caller without a size extractor | Existing unmeasured zero fallback. |
-| Commands and other uninstrumented routes | Unchanged; this increment does not supply their sizes. |
+| Accepted REST game transitions | Separate [committed game measurement](committed-game-snapshot-size-metrics.md), not supplied or summed by reconnect. |
+| Other commands and uninstrumented routes | This increment does not supply their sizes; zero remains unmeasured. |
 
 Consumers must select the instrumented successful recovery boundary. Zero
 fallbacks are not measurements of empty snapshots; the event stream is not a
@@ -120,6 +121,6 @@ All eight remote checks must pass on the exact reviewed head, including Android
 Tier-1 and its evidence artifact. Verify the accepted tree and post-main CI.
 The [reconnect accounting contract](reconnect-authority-metrics.md) and
 [Firestore payload accounting](firestore-retry-metrics.md) remain separate
-measurements. Ticket #19 stays open for command/GET/pre-ingress boundaries,
+measurements. Ticket #19 stays open for remaining command/GET/pre-ingress boundaries,
 client takeover traces, NFR-48, cold/warm latency, complete p50/max samples and
 real limits/cost evidence. No missing DEC-065 content or new TV/NFR ID is invented.
