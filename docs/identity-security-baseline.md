@@ -9,3 +9,7 @@ The concrete RS256 provider and Google secure-token certificate fetch/cache are 
 Ticket #20 completes the negative acceptance gate and corrects key rotation against a fresh cache. A `kid` absent from the cached map can trigger one controlled extra refresh, shared by concurrent requests; further unknown keys cannot replenish that budget. A missing/empty token header `kid` is rejected before lookup. See [RS256 negative gate](firebase-rs256-negative-gate.md) for the canonical sources, exact cache semantics, reproducible tests and remaining production limits.
 
 App Check remains defense-in-depth after Auth and membership correctness. This baseline adds no App Check enforcement, production credentials, cloud workload, gameplay authorization shortcut, or mobile access to RNG seed/counters/future deck state. Token material is not placed in exception messages or observability fields.
+
+The later [reconnect receipt actor-binding correction](reconnect-receipt-actor-binding.md)
+compares the persisted owner independently of the caller's hash. Game membership
+permits the public snapshot, not replay of another actor's private receipt.

@@ -295,7 +295,8 @@ final class FirstPlayableRoomEntryMutation {
         .toList();
     if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(codeHash) ||
         roomId.isEmpty ||
-        roomVersion != this.membersAfter.length ||
+        roomVersion < 1 ||
+        create && roomVersion != this.membersAfter.length ||
         hostUid.isEmpty ||
         presetId.isEmpty ||
         rulesVersion.isEmpty ||
@@ -582,6 +583,13 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       gameId: command.gameId,
       commandId: command.commandId,
       evaluate: (view) {
+        final replay = _replayGameCommand(
+          actorUid: identity.uid,
+          request: request,
+          command: command,
+          view: view,
+        );
+        if (replay != null) return replay;
         final catalog = _rulesCatalogRepository.catalogForGame(
           view.publicState,
         );
@@ -755,13 +763,31 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       );
     }
     final roomId = command.payload['roomId']! as String;
-    final startMaterial = command.type == RoomCommandType.startGame
-        ? await _requireStartMaterialFactory()(command)
-        : null;
+    FirstPlayableStartMaterial? startMaterial;
+    ({Object error, StackTrace stack})? preparationFailure;
+    if (command.type == RoomCommandType.startGame) {
+      try {
+        startMaterial = await _requireStartMaterialFactory()(command);
+      } on Object catch (error, stack) {
+        // A committed receipt wins over unavailable new-attempt material.
+        // Keep preparation outside retries; do not catch store/catalog errors.
+        preparationFailure = (error: error, stack: stack);
+      }
+    }
     final transaction = await _store.transactRoom(
       roomId: roomId,
       commandId: command.commandId,
       evaluate: (view) {
+        final replay = _replayRoomCommand(
+          actorUid: identity.uid,
+          request: request,
+          command: command,
+          view: view,
+        );
+        if (replay != null) return replay;
+        if (preparationFailure case final failure?) {
+          Error.throwWithStackTrace(failure.error, failure.stack);
+        }
         final catalog = _rulesCatalogRepository.catalogForRoom(
           rulesVersion: view.rulesVersion,
           presetId: view.presetId,
@@ -858,16 +884,6 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     final playerId = _requirePlayerId(read.view, identity.uid);
     final uncertain = request.uncertainCommand;
     final stored = read.view.storedReceipt;
-    final durableReceipt = stored == null
-        ? null
-        : stored.actorUid == identity.uid
-        ? stored.receipt
-        : reconnect_planner.DurableCommandReceipt(
-            commandId: stored.receipt.commandId,
-            inputHashVersion: stored.receipt.inputHashVersion,
-            inputHash: List<String>.filled(64, '0').join(),
-            publicResult: stored.receipt.publicResult,
-          );
     final plan = reconnect_planner.AuthorityReconnectPlanner.reconcile(
       authenticatedActorUid: identity.uid,
       actorPlayerId: playerId,
@@ -881,7 +897,8 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
               inputHashVersion: uncertain.inputHashVersion,
               inputHash: uncertain.inputHash,
             ),
-      durableReceipt: durableReceipt,
+      durableReceipt: stored?.receipt,
+      durableReceiptActorUid: stored?.actorUid,
     );
     return FirstPlayableResponseAdapter.reconnect(plan: plan, request: request);
   }
@@ -943,13 +960,11 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     });
   }
 
-  static FirstPlayableGameTransactionDecision _evaluateGameCommand({
-    required IngressContext context,
+  static FirstPlayableGameTransactionDecision? _replayGameCommand({
     required String actorUid,
     required api.AuthorityCommandRequest request,
     required GameCommand command,
     required FirstPlayableGameTransactionView view,
-    required RulesCatalog catalog,
   }) {
     final prior = view.storedReceipt;
     if (prior != null) {
@@ -986,6 +1001,17 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       );
     }
 
+    return null;
+  }
+
+  static FirstPlayableGameTransactionDecision _evaluateGameCommand({
+    required IngressContext context,
+    required String actorUid,
+    required api.AuthorityCommandRequest request,
+    required GameCommand command,
+    required FirstPlayableGameTransactionView view,
+    required RulesCatalog catalog,
+  }) {
     final evaluation = switch (command.type) {
       GameCommandType.rollDice => _evaluateRoll(
         context: context,
@@ -1193,14 +1219,11 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     );
   }
 
-  static FirstPlayableRoomTransactionDecision _evaluateRoomCommand({
-    required IngressContext context,
+  static FirstPlayableRoomTransactionDecision? _replayRoomCommand({
     required String actorUid,
     required api.AuthorityCommandRequest request,
     required RoomCommand command,
     required FirstPlayableRoomTransactionView view,
-    required RulesCatalog catalog,
-    required FirstPlayableStartMaterial? startMaterial,
   }) {
     final prior = view.storedReceipt;
     if (prior != null) {
@@ -1218,6 +1241,18 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       }
       return _roomCollision(command, view.roomVersion);
     }
+    return null;
+  }
+
+  static FirstPlayableRoomTransactionDecision _evaluateRoomCommand({
+    required IngressContext context,
+    required String actorUid,
+    required api.AuthorityCommandRequest request,
+    required RoomCommand command,
+    required FirstPlayableRoomTransactionView view,
+    required RulesCatalog catalog,
+    required FirstPlayableStartMaterial? startMaterial,
+  }) {
     if (view.roomId != command.payload['roomId']) {
       throw const FirstPlayableAuthorityExecutorViolation('roomIdMismatch');
     }
@@ -1276,7 +1311,9 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       }
       final durable = FirstPlayableResponseAdapter.duplicate(prior.receipt);
       return FirstPlayableRoomEntryTransactionDecision(
-        reply: command.type == RoomCommandType.createRoom
+        reply:
+            command.type == RoomCommandType.createRoom &&
+                !durable.isRejectedOutcome
             ? api.AuthorityCommandReply(
                 commandId: durable.commandId,
                 status: durable.status,

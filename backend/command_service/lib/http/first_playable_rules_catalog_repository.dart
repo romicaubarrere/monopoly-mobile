@@ -12,9 +12,11 @@ final class FirstPlayableRulesCatalogRepositoryViolation implements Exception {
 /// Server-owned catalog boundary for the First Playable Authority.
 ///
 /// Flutter sends only the room preset identifier. New rooms are pinned to the
-/// server's active immutable catalog; every later room/game load resolves that
-/// exact persisted [rulesVersion]. Unknown or inconsistent persisted material
-/// fails closed before an Engine planner runs.
+/// server's active immutable catalog; new commands and current-state reads
+/// resolve that exact persisted [rulesVersion]. Unknown or inconsistent
+/// persisted material fails closed before an Engine planner runs. Replaying a
+/// durable Ready/Start or human game receipt resolves only its historical result
+/// and does not certify the current snapshot against the catalog.
 abstract interface class FirstPlayableRulesCatalogRepository {
   RulesCatalog catalogForNewRoom({required String presetId});
 

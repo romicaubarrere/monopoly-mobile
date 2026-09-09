@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:board_backend_api/backend_api.dart' as api;
@@ -100,6 +101,7 @@ void main() {
         },
       );
       expect(create.metrics.firestoreWriteCount, 4);
+      expect(create.metrics.snapshotBytes, 0);
 
       final duplicate = await store.transactRoomEntry(
         kind: FirstPlayableRoomEntryKind.create,
@@ -122,6 +124,7 @@ void main() {
         },
       );
       expect(duplicate.metrics.firestoreWriteCount, 0);
+      expect(duplicate.metrics.snapshotBytes, 0);
 
       final join = await store.transactRoomEntry(
         kind: FirstPlayableRoomEntryKind.join,
@@ -156,6 +159,7 @@ void main() {
         },
       );
       expect(join.metrics.firestoreWriteCount, 3);
+      expect(join.metrics.snapshotBytes, 0);
 
       const readyMembers = <ReadyRoomMember>[
         ReadyRoomMember(
@@ -171,7 +175,7 @@ void main() {
           ready: true,
         ),
       ];
-      await store.transactRoom(
+      final ready = await store.transactRoom(
         roomId: roomId,
         commandId: 'cmd-ready-rest',
         evaluate: (view) {
@@ -191,6 +195,7 @@ void main() {
           );
         },
       );
+      expect(ready.metrics.snapshotBytes, 0);
 
       final roomRead = await store.readRoom(roomId: roomId);
       expect(roomRead.view.roomVersion, 3);
@@ -238,7 +243,13 @@ void main() {
           );
         },
       );
+      expect(started.metrics.firestoreReadCount, 3);
       expect(started.metrics.firestoreWriteCount, 4);
+      expect(started.metrics.retryCount, 0);
+      expect(started.metrics.conflictCount, 0);
+      expect(started.metrics.schemaVersion, 1);
+      expect(started.metrics.stateVersion, 4);
+      expect(started.decision.reply.snapshot, isNull);
 
       final read = await store.readGame(gameId: 'game-vp0');
       expect(read.view.publicState.header.stateVersion, 0);
@@ -247,6 +258,61 @@ void main() {
         'p2': 'uid-p2',
       });
       expect(read.view.privateRng?.seed, orderedEquals(syntheticRollSeed));
+      expect(read.metrics.snapshotBytes, 0);
+      final expectedStartSnapshotBytes = utf8
+          .encode(CanonicalDomainJson.encode(read.view.publicState.toJson()))
+          .length;
+      expect(expectedStartSnapshotBytes, greaterThan(0));
+
+      final startReplay = await store.transactRoom(
+        roomId: roomId,
+        commandId: 'cmd-start-rest',
+        evaluate: (view) {
+          expect(view.roomVersion, 4);
+          expect(view.gameId, 'game-vp0');
+          expect(view.storedReceipt?.actorUid, host.uid);
+          return FirstPlayableRoomTransactionDecision(
+            reply: api.AuthorityCommandReply(
+              commandId: 'cmd-start-rest',
+              status: api.AuthorityCommandStatus.duplicate,
+              versionBefore: 3,
+              versionAfter: 4,
+              publicResult: view.storedReceipt!.receipt.publicResult,
+            ),
+            outcome: AuthorityOutcome.duplicate,
+            reason: AuthorityReason.duplicateCommand,
+          );
+        },
+      );
+      expect(startReplay.decision.startPlan, isNull);
+      expect(startReplay.metrics.firestoreReadCount, 3);
+      expect(startReplay.metrics.firestoreWriteCount, 0);
+      expect(startReplay.metrics.snapshotBytes, 0);
+      expect(startReplay.metrics.stateVersion, 4);
+      final replayedRoom = await store.readRoom(roomId: roomId);
+      expect(replayedRoom.view.gameId, 'game-vp0');
+      expect(replayedRoom.view.roomVersion, 4);
+      final replayedGame = await store.readGame(gameId: 'game-vp0');
+      expect(
+        CanonicalDomainJson.encode(replayedGame.view.publicState.toJson()) ==
+            CanonicalDomainJson.encode(read.view.publicState.toJson()),
+        isTrue,
+        reason: 'StartGame replay must preserve the initial public state',
+      );
+      final rngBeforeReplay = read.view.privateRng!;
+      final rngAfterReplay = replayedGame.view.privateRng!;
+      expect(
+        rngAfterReplay.rngVersion == rngBeforeReplay.rngVersion &&
+            base64Encode(rngAfterReplay.seed) ==
+                base64Encode(rngBeforeReplay.seed) &&
+            RngStream.values.every(
+              (stream) =>
+                  rngAfterReplay.streamCounters[stream] ==
+                  rngBeforeReplay.streamCounters[stream],
+            ),
+        isTrue,
+        reason: 'StartGame replay must not change private RNG material',
+      );
 
       final gameplay = await store.transactGame(
         gameId: 'game-vp0',
@@ -269,7 +335,13 @@ void main() {
           );
         },
       );
+      expect(gameplay.decision.reply.snapshot, isNull);
+      expect(gameplay.metrics.firestoreReadCount, 3);
       expect(gameplay.metrics.firestoreWriteCount, 3);
+      expect(gameplay.metrics.retryCount, 0);
+      expect(gameplay.metrics.conflictCount, 0);
+      expect(gameplay.metrics.bytesRead, greaterThan(0));
+      expect(gameplay.metrics.bytesWritten, greaterThan(0));
 
       final recovered = await store.readGame(
         gameId: 'game-vp0',
@@ -278,6 +350,20 @@ void main() {
       expect(recovered.view.publicState.header.stateVersion, 1);
       expect(recovered.view.storedReceipt?.actorUid, host.uid);
       expect(recovered.view.storedReceipt?.receipt.commandId, 'cmd-game-rest');
+      expect(recovered.metrics.snapshotBytes, 0);
+      expect(gameplay.metrics.schemaVersion, 1);
+      expect(gameplay.metrics.stateVersion, 1);
+      // Independent domain encoding of the public state actually persisted,
+      // not the reply, membership, private RNG, receipt or Firestore wrapper.
+      final expectedSnapshotBytes = utf8
+          .encode(
+            CanonicalDomainJson.encode(recovered.view.publicState.toJson()),
+          )
+          .length;
+      expect(expectedSnapshotBytes, greaterThan(0));
+      expect(gameplay.metrics.snapshotBytes, expectedSnapshotBytes);
+      // Keep the new assertion last so RED also exercises replay and #106.
+      expect(started.metrics.snapshotBytes, expectedStartSnapshotBytes);
     },
     skip: skipReason,
   );

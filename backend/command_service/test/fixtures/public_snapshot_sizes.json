@@ -1,0 +1,103 @@
+{
+  "formatVersion": 1,
+  "evidenceKind": "synthetic-public-snapshot-fixtures",
+  "serialization": "CanonicalDomainJson/UTF-8",
+  "snapshots": [
+    {
+      "fixture": "bankruptcy_plans.json",
+      "snapshotPath": "declareA.initialState",
+      "serializedSnapshotBytes": 2186,
+      "sha256": "b6b09af15a4571562156aef9699d6ab1dda38e8dce4e04692d7788949c789608"
+    },
+    {
+      "fixture": "bankruptcy_plans.json",
+      "snapshotPath": "declareA.stateAfter",
+      "serializedSnapshotBytes": 1873,
+      "sha256": "84a28d8a6c8665f3783d4c3f0ef0e1eaebfbb6d987c2666ed2848a4ee0a08f27"
+    },
+    {
+      "fixture": "bankruptcy_plans.json",
+      "snapshotPath": "declareB.initialState",
+      "serializedSnapshotBytes": 2186,
+      "sha256": "b6b09af15a4571562156aef9699d6ab1dda38e8dce4e04692d7788949c789608"
+    },
+    {
+      "fixture": "bankruptcy_plans.json",
+      "snapshotPath": "declareB.stateAfter",
+      "serializedSnapshotBytes": 1873,
+      "sha256": "c24648022cd7c521031d3c7ae426b0c51a8c7538dc0b239e8209805bb0c3ad02"
+    },
+    {
+      "fixture": "bankruptcy_plans.json",
+      "snapshotPath": "deadline.initialState",
+      "serializedSnapshotBytes": 2186,
+      "sha256": "b6b09af15a4571562156aef9699d6ab1dda38e8dce4e04692d7788949c789608"
+    },
+    {
+      "fixture": "bankruptcy_plans.json",
+      "snapshotPath": "deadline.stateAfter",
+      "serializedSnapshotBytes": 1884,
+      "sha256": "790793df7a5cfafbe00b90c1de9c1bed7521d252d00379f1cfaa936a20bd6cb6"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "tax.initialState",
+      "serializedSnapshotBytes": 1669,
+      "sha256": "782779c9cbf4e2c16b95039a17c21c042f5f1f1d4fa979dafe24c251bd8f6d9d"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "tax.plans.a.stateAfter",
+      "serializedSnapshotBytes": 1692,
+      "sha256": "767774c4097937e99dfd00e529a34f5c24641bf2bc68f98aecdfa154a8c69e62"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "tax.plans.b.stateAfter",
+      "serializedSnapshotBytes": 1692,
+      "sha256": "d4abbb74fbf8192681e2a53996caab9badfaf95746681e80870ed52c657ab558"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "debt.initialState",
+      "serializedSnapshotBytes": 1668,
+      "sha256": "d7f5b6fa658c0558098ec0be5f01a808df469dbd3d5ab95e170842ee495f5308"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "debt.plans.a.stateAfter",
+      "serializedSnapshotBytes": 2131,
+      "sha256": "8704dc28ed210e0f8b1ce2b9061ac278cafbe24a937e5240eb44a6d58925b603"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "collection.initialState",
+      "serializedSnapshotBytes": 1670,
+      "sha256": "6090e0a33c43a70b6479c46b846024cb6ad5922e14ceab7ec625ae271bce6d32"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "collection.plans.a.stateAfter",
+      "serializedSnapshotBytes": 1710,
+      "sha256": "230108957766f079097d137db46247f1b0b74096596169edfd17005b02a68dc8"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "collection.plans.b.stateAfter",
+      "serializedSnapshotBytes": 1710,
+      "sha256": "f7867d2768ad0991c62dde614bec1e0205d2e354fd5df6f02a645d10cb0b0725"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "zeroCollection.initialState",
+      "serializedSnapshotBytes": 1668,
+      "sha256": "733e53765ee4af67e0fde1b617d37e3ba871053500687ec8fdbc6221818a5fd2"
+    },
+    {
+      "fixture": "tax_free_parking_plans.json",
+      "snapshotPath": "zeroCollection.plans.a.stateAfter",
+      "serializedSnapshotBytes": 1715,
+      "sha256": "edf85cee00da60ea004cf7ef20a2a16f41f93c13cd78653eff518f267ac9399b"
+    }
+  ]
+}
