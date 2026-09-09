@@ -85,6 +85,7 @@ void main() {
       final acceptedSnapshotSizes =
           <String, ({Object? measured, int expected})>{};
       final replayDependencyResults = <String, Map<String, Object?>>{};
+      final gameReplayCatalogResults = <String, Map<String, Object?>>{};
       void recordAcceptedSnapshot(
         String label,
         AuthorityPublicSnapshot snapshot, {
@@ -462,6 +463,81 @@ void main() {
               resolution?.identity.commandId == zeroIdentity.commandId &&
               resolution?.identity.inputHash == zeroIdentity.inputHash,
         };
+        for (final variant in ['owner', 'actor', 'hash']) {
+          final caller = variant == 'actor'
+              ? otherMember.client
+              : auctionRoll.actor.client;
+          final request = variant == 'hash'
+              ? _changedGameIdentity(receiptCase.request)
+              : receiptCase.request;
+          final baseline = await caller.send(request);
+          final collision = variant != 'owner';
+          expect(
+            baseline.status,
+            collision
+                ? AuthorityCommandStatus.rejected
+                : AuthorityCommandStatus.duplicate,
+          );
+          expect(
+            baseline.errorCode,
+            collision ? 'commandIdCollision' : receiptCase.reply.errorCode,
+          );
+          if (collision) {
+            expect(baseline.publicResult, isNot(contains('gameId')));
+            expect(baseline.publicResult, isNot(contains('events')));
+          } else {
+            expect(
+              CanonicalDomainJson.encode(baseline.publicResult) ==
+                  CanonicalDomainJson.encode(receiptCase.reply.publicResult),
+              isTrue,
+            );
+          }
+          _expectGameCommandMetrics(logs.events.last, writes: 0);
+          expect(logs.events.last['snapshotBytes'], 0);
+          final eventsBeforeFault = logs.events.length;
+          AuthorityCommandReply? recovered;
+          String? transportError;
+          dependencies.failGameCatalog = true;
+          try {
+            recovered = await caller.send(request);
+          } on AuthorityTransportException catch (error) {
+            transportError = error.code;
+          } finally {
+            dependencies.failGameCatalog = false;
+          }
+          expect(logs.events, hasLength(eventsBeforeFault + 1));
+          final event = logs.events.last;
+          gameReplayCatalogResults['${receiptCase.name}/$variant'] =
+              <String, Object?>{
+                'status':
+                    recovered?.status.wireValue ?? 'transport:$transportError',
+                'matchesDecision':
+                    recovered != null &&
+                    CanonicalDomainJson.encode(recovered.toWireJson()) ==
+                        CanonicalDomainJson.encode(baseline.toWireJson()),
+                'reads': event['firestoreReadCount'],
+                'writes': event['firestoreWriteCount'],
+                'snapshotBytes': event['snapshotBytes'],
+                'outcome': event['outcome'],
+                'reason': event['reason'],
+              };
+          final afterCatalogFault = await _authorityDocumentFingerprints(
+            config: firestoreConfig,
+            gameId: auctionGame.gameId,
+            commandId: receiptCase.request.commandId,
+            expectedReceiptStatus: receiptCase.name,
+          );
+          expect(
+            afterCatalogFault == before,
+            isTrue,
+            reason: 'catalog-fault replay cannot change public, RNG or receipt',
+          );
+          final current = await guest.watchGame(auctionGame.gameId).first;
+          expect(
+            current.toCanonicalJson() == reconnect.snapshot.toCanonicalJson(),
+            isTrue,
+          );
+        }
       }
       final actorBindingLogs = jsonEncode(
         logs.events.skip(actorBindingLogsStart).toList(),
@@ -520,6 +596,21 @@ void main() {
               'snapshotBytes': 0,
               'outcome': 'duplicate',
               'reason': 'duplicateCommand',
+            },
+      });
+      expect(gameReplayCatalogResults, <String, Map<String, Object?>>{
+        for (final status in ['accepted', 'rejected'])
+          for (final variant in ['owner', 'actor', 'hash'])
+            '$status/$variant': <String, Object?>{
+              'status': variant == 'owner' ? 'duplicate' : 'rejected',
+              'matchesDecision': true,
+              'reads': 3,
+              'writes': 0,
+              'snapshotBytes': 0,
+              'outcome': variant == 'owner' ? 'duplicate' : 'collision',
+              'reason': variant == 'owner'
+                  ? 'duplicateCommand'
+                  : 'commandIdCollision',
             },
       });
     },
@@ -951,6 +1042,24 @@ AuthorityCommandRequest _roomCommand({
   ),
 );
 
+AuthorityCommandRequest _changedGameIdentity(AuthorityCommandRequest request) {
+  final command = request.asGameCommand;
+  final changed = AuthorityCommandRequest.game(
+    GameCommand(
+      commandId: command.commandId,
+      schemaVersion: command.schemaVersion,
+      expectedStateVersion: command.expectedStateVersion + 1,
+      clientInstanceId: command.clientInstanceId,
+      gameId: command.gameId,
+      actorPlayerId: command.actorPlayerId,
+      type: command.type,
+      payload: command.payload,
+    ),
+  );
+  expect(changed.inputHash != request.inputHash, isTrue);
+  return changed;
+}
+
 Future<FirstPlayableRoomEntryMaterial> _roomEntryMaterial(
   RoomCommand command,
   DateTime receivedAt,
@@ -987,6 +1096,7 @@ final class _ReplayDependencies implements FirstPlayableRulesCatalogRepository {
   );
   bool failMaterial = false;
   bool failRoomCatalog = false;
+  bool failGameCatalog = false;
 
   Future<FirstPlayableStartMaterial> startMaterial(RoomCommand command) async {
     if (failMaterial) throw StateError('syntheticStartMaterialUnavailable');
@@ -1014,8 +1124,14 @@ final class _ReplayDependencies implements FirstPlayableRulesCatalogRepository {
   }
 
   @override
-  RulesCatalog catalogForGame(PublicGameState state) =>
-      _catalogs.catalogForGame(state);
+  RulesCatalog catalogForGame(PublicGameState state) {
+    if (failGameCatalog) {
+      throw const FirstPlayableRulesCatalogRepositoryViolation(
+        'rulesCatalogUnavailable',
+      );
+    }
+    return _catalogs.catalogForGame(state);
+  }
 }
 
 Future<String> _anonymousIdToken(String emulatorHost) async {
