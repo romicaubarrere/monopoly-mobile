@@ -1311,7 +1311,9 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       }
       final durable = FirstPlayableResponseAdapter.duplicate(prior.receipt);
       return FirstPlayableRoomEntryTransactionDecision(
-        reply: command.type == RoomCommandType.createRoom
+        reply:
+            command.type == RoomCommandType.createRoom &&
+                !durable.isRejectedOutcome
             ? api.AuthorityCommandReply(
                 commandId: durable.commandId,
                 status: durable.status,
