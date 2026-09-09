@@ -53,6 +53,7 @@ existing allowlisted numeric/enum fields.
 | Failed reconnect execution/public validation | Existing zero fallback; no confirmed final size is asserted. |
 | Generic recovery caller without a size extractor | Existing unmeasured zero fallback. |
 | Accepted REST game transitions | Separate [committed game measurement](committed-game-snapshot-size-metrics.md), not supplied or summed by reconnect. |
+| Accepted StartGame | Separate [initial public game measurement](start-game-snapshot-size-metrics.md); not a lobby size or reconnect counter. |
 | Other commands and uninstrumented routes | This increment does not supply their sizes; zero remains unmeasured. |
 
 Consumers must select the instrumented successful recovery boundary. Zero

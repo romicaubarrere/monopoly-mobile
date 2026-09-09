@@ -48,7 +48,8 @@ I/O/retry counters, including on later executor failure.
 | No new public state: rejected, duplicate, collision, no-write decision | Unmeasured zero, even if a receipt was read or written. |
 | Failed/exhausted commit | No successful result gauge; failure capture retains unmeasured zero. |
 | Diagnostic conversion/validation/encoding failure after commit | Unmeasured zero; accepted result and I/O counters preserved. |
-| Room entry, room/StartGame transactions, room/game reads | Existing unmeasured zero in the adapter. |
+| Accepted StartGame | Separate [initial public game measurement](start-game-snapshot-size-metrics.md), with room-operation version metadata retained. |
+| Room entry, non-StartGame room transactions, room/game reads | Existing unmeasured zero in the adapter. |
 | Successful HTTP reconnect | Its separate validated-returned-snapshot measurement, unchanged. |
 
 Internal system operations using the same accepted `transactGame` path receive

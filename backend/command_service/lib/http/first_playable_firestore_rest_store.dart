@@ -222,6 +222,9 @@ final class FirstPlayableFirestoreRestStore
           attempt: attempt,
           schemaVersion: FirstPlayablePersistenceCodec.schemaVersion,
           stateVersion: decision.reply.versionAfter,
+          snapshotBytes: _committedPublicSnapshotBytes(
+            decision.startPlan?.publicState,
+          ),
         ),
       );
     });

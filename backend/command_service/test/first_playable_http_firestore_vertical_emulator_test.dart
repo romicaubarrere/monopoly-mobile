@@ -109,14 +109,31 @@ void main() {
         );
       }
 
+      void recordStartedSnapshot(String label, _StartedGame game) {
+        final event = game.startEvent;
+        _expectRoomCommandMetrics(event, writes: 4, roomVersion: 5);
+        expect(event['outcome'], 'success');
+        expect(event['reason'], 'none');
+        expect(game.snapshot.stateVersion, 0);
+        final expected = utf8
+            .encode(CanonicalDomainJson.encode(game.snapshot.snapshot))
+            .length;
+        expect(expected, greaterThan(0));
+        acceptedSnapshotSizes[label] = (
+          measured: event['snapshotBytes'],
+          expected: expected,
+        );
+      }
+
       final buyGame = await _startGame(
         prefix: 'buy',
         roomCode: 'BUY001',
         host: host,
         guest: guest,
+        logs: logs,
+        firestoreConfig: firestoreConfig,
       );
-      expect(logs.events.last['operation'], 'roomCommand');
-      expect(logs.events.last['snapshotBytes'], 0);
+      recordStartedSnapshot('buy StartGame', buyGame);
       await expectLater(
         outsider.watchRoom('buy-room').first,
         throwsA(
@@ -159,9 +176,10 @@ void main() {
         roomCode: 'AUC001',
         host: host,
         guest: guest,
+        logs: logs,
+        firestoreConfig: firestoreConfig,
       );
-      expect(logs.events.last['operation'], 'roomCommand');
-      expect(logs.events.last['snapshotBytes'], 0);
+      recordStartedSnapshot('auction StartGame', auctionGame);
       final auctionRoll = await _rollToProperty(
         game: auctionGame,
         host: host,
@@ -490,6 +508,25 @@ void main() {
   );
 }
 
+void _expectRoomCommandMetrics(
+  Map<String, Object> event, {
+  required int writes,
+  required int roomVersion,
+}) {
+  expect(event['operation'], 'roomCommand');
+  expect(event['retryCount'], 0);
+  expect(event['conflictCount'], 0);
+  expect(event['firestoreReadCount'], 3);
+  expect(event['firestoreWriteCount'], writes);
+  expect(event['bytesRead'], greaterThan(0));
+  expect(event['bytesWritten'], greaterThan(0));
+  expect(event['coldStart'], isFalse);
+  expect(event['schemaVersion'], 1);
+  // The envelope remains a room command even though its gauge sizes a game.
+  expect(event['stateVersion'], roomVersion);
+  expect(event, hasLength(14));
+}
+
 void _expectGameCommandMetrics(
   Map<String, Object> event, {
   required int writes,
@@ -526,6 +563,7 @@ _authorityDocumentFingerprints({
   required String gameId,
   required String commandId,
   required String expectedReceiptStatus,
+  bool roomCommand = false,
 }) async {
   if (!config.isEmulator ||
       config.projectId != 'demo-board-game-local' ||
@@ -586,7 +624,9 @@ _authorityDocumentFingerprints({
       publicGame: await readFingerprint('games/$gameId'),
       privateGame: await readFingerprint('gameSecrets/$gameId'),
       receipt: await readFingerprint(
-        'games/$gameId/commands/$commandId',
+        roomCommand
+            ? 'roomCommands/$commandId'
+            : 'games/$gameId/commands/$commandId',
         receipt: true,
       ),
     );
@@ -613,6 +653,8 @@ Future<_StartedGame> _startGame({
   required String roomCode,
   required WireAuthorityClient host,
   required WireAuthorityClient guest,
+  required _RecordingLogs logs,
+  required FirstPlayableFirestoreRestConfig firestoreConfig,
 }) async {
   final createRequest = AuthorityCommandRequest.room(
     RoomCommand(
@@ -627,10 +669,12 @@ Future<_StartedGame> _startGame({
   );
   final created = await host.send(createRequest);
   expect(created.status, AuthorityCommandStatus.accepted);
+  expect(logs.events.last['snapshotBytes'], 0);
   expect(
     (await host.send(createRequest)).status,
     AuthorityCommandStatus.duplicate,
   );
+  expect(logs.events.last['snapshotBytes'], 0);
   expect(created.publicResult['roomCode'], roomCode);
   final roomId = created.publicResult['roomId']! as String;
   final hostPlayerId = created.publicResult['actorPlayerId']! as String;
@@ -649,6 +693,7 @@ Future<_StartedGame> _startGame({
     ),
   );
   expect(joined.status, AuthorityCommandStatus.accepted);
+  expect(logs.events.last['snapshotBytes'], 0);
   final guestPlayerId = joined.publicResult['actorPlayerId']! as String;
 
   final hostReadyRequest = _roomCommand(
@@ -660,6 +705,7 @@ Future<_StartedGame> _startGame({
   );
   final hostReady = await host.send(hostReadyRequest);
   expect(hostReady.status, AuthorityCommandStatus.accepted);
+  expect(logs.events.last['snapshotBytes'], 0);
   hostContext.applyCommandReply(hostReadyRequest, hostReady);
   final guestReady = await guest.send(
     _roomCommand(
@@ -671,10 +717,12 @@ Future<_StartedGame> _startGame({
     ),
   );
   expect(guestReady.status, AuthorityCommandStatus.accepted);
+  expect(logs.events.last['snapshotBytes'], 0);
+  final pendingStore = _PendingStore();
   final hostSession = AuthorityClientSession(
     gateway: host,
     snapshots: host,
-    pendingStore: _PendingStore(),
+    pendingStore: pendingStore,
   );
   final hostBinding = SessionFirstPlayableAuthorityBinding(
     session: hostSession,
@@ -695,14 +743,73 @@ Future<_StartedGame> _startGame({
   final started = hostSession.state.reply!;
   expect(started.status, AuthorityCommandStatus.accepted);
   expect(started.versionBefore, guestReady.versionAfter);
+  expect(started.versionAfter, 5);
+  final startEvent = logs.events.last;
+  final startRequest = pendingStore.lastSavedRequest!;
+  expect(startRequest.commandId, started.commandId);
+  expect(startRequest.asRoomCommand.type, RoomCommandType.startGame);
+  expect(await pendingStore.load(), isNull);
   final gameId = hostContext.gameId;
   await hostSession.close();
-  expect((await guest.watchRoom(roomId).first).gameId, gameId);
+  final guestRoom = await guest.watchRoom(roomId).first;
+  expect(guestRoom.gameId, gameId);
+  expect(guestRoom.roomVersion, started.versionAfter);
   final snapshot = await host.watchGame(gameId).first;
   expect(snapshot.stateVersion, 0);
+  final guestSnapshot = await guest.watchGame(gameId).first;
+  expect(
+    guestSnapshot.toCanonicalJson() == snapshot.toCanonicalJson(),
+    isTrue,
+    reason: 'both members observe the same committed initial public game',
+  );
+  final beforeReplay = await _authorityDocumentFingerprints(
+    config: firestoreConfig,
+    gameId: gameId,
+    commandId: startRequest.commandId,
+    expectedReceiptStatus: 'accepted',
+    roomCommand: true,
+  );
+  final eventsBeforeReplay = logs.events.length;
+  final replay = await host.send(startRequest);
+  expect(replay.status, AuthorityCommandStatus.duplicate);
+  expect(replay.publicResult['gameId'], gameId);
+  expect(replay.versionBefore, started.versionBefore);
+  expect(replay.versionAfter, started.versionAfter);
+  expect(
+    CanonicalDomainJson.encode(replay.publicResult) ==
+        CanonicalDomainJson.encode(started.publicResult),
+    isTrue,
+    reason: 'replay keeps the original game and starter allocation result',
+  );
+  expect(logs.events, hasLength(eventsBeforeReplay + 1));
+  final replayEvent = logs.events.last;
+  _expectRoomCommandMetrics(replayEvent, writes: 0, roomVersion: 5);
+  expect(replayEvent['outcome'], 'duplicate');
+  expect(replayEvent['reason'], 'duplicateCommand');
+  expect(replayEvent['snapshotBytes'], 0);
+  final afterReplay = await _authorityDocumentFingerprints(
+    config: firestoreConfig,
+    gameId: gameId,
+    commandId: startRequest.commandId,
+    expectedReceiptStatus: 'accepted',
+    roomCommand: true,
+  );
+  expect(
+    afterReplay == beforeReplay,
+    isTrue,
+    reason: 'replay must preserve public game, private RNG and durable receipt',
+  );
+  final replayedRoom = await guest.watchRoom(roomId).first;
+  final replayedSnapshot = await guest.watchGame(gameId).first;
+  expect(replayedRoom.toCanonicalJson() == guestRoom.toCanonicalJson(), isTrue);
+  expect(
+    replayedSnapshot.toCanonicalJson() == snapshot.toCanonicalJson(),
+    isTrue,
+  );
   return _StartedGame(
     gameId: gameId,
     snapshot: snapshot,
+    startEvent: startEvent,
     host: _Participant(hostPlayerId, host),
     guest: _Participant(guestPlayerId, guest),
   );
@@ -820,12 +927,14 @@ final class _StartedGame {
   const _StartedGame({
     required this.gameId,
     required this.snapshot,
+    required this.startEvent,
     required this.host,
     required this.guest,
   });
 
   final String gameId;
   final AuthorityPublicSnapshot snapshot;
+  final Map<String, Object> startEvent;
   final _Participant host;
   final _Participant guest;
 
@@ -876,6 +985,7 @@ final class _Ids implements AuthorityCommandIdSource {
 
 final class _PendingStore implements PendingAuthorityCommandStore {
   AuthorityCommandRequest? _value;
+  AuthorityCommandRequest? lastSavedRequest;
 
   @override
   Future<void> clear(String commandId) async {
@@ -888,5 +998,6 @@ final class _PendingStore implements PendingAuthorityCommandStore {
   @override
   Future<void> save(AuthorityCommandRequest request) async {
     _value = request;
+    lastSavedRequest = request;
   }
 }
