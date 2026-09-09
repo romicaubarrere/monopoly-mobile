@@ -64,11 +64,16 @@ duplicate/collision decisions perform zero writes.
 Create also freezes the server-selected `rulesVersion` in the public room.
 `PinnedFirstPlayableRulesCatalogRepository` owns the active immutable catalog
 for new rooms and resolves only that exact persisted version for Join,
-Ready/Start and gameplay. It verifies the persisted board identity and complete
-`ResolvedPresetConfig` before invoking Engine. Unknown versions, unknown
-presets, duplicate registry entries or mutated frozen config fail closed.
+new Ready/Start and gameplay attempts. It verifies the persisted board identity
+and complete `ResolvedPresetConfig` before invoking Engine. Unknown versions,
+unknown presets, duplicate registry entries or mutated frozen config fail closed.
 Flutter supplies only `presetId`; it never supplies catalog JSON or version
-selection.
+selection. A durable Ready/Start or human game-command replay resolves only the
+historical result before catalog lookup, without a replacement snapshot. GET,
+reconnect and new commands still validate the current catalog; valid stored
+documents and receipt identity are required even for replay. See the
+[game replay boundary](durable-game-replay-catalog.md) and
+[room replay boundary](durable-room-replay-dependencies.md).
 
 `FirstPlayableAuthorityMaterialFactory` derives room/player/game identifiers,
 the six-character room code, SHA-256 locator hash and Start seed with an

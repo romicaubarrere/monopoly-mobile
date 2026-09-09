@@ -582,6 +582,13 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       gameId: command.gameId,
       commandId: command.commandId,
       evaluate: (view) {
+        final replay = _replayGameCommand(
+          actorUid: identity.uid,
+          request: request,
+          command: command,
+          view: view,
+        );
+        if (replay != null) return replay;
         final catalog = _rulesCatalogRepository.catalogForGame(
           view.publicState,
         );
@@ -952,13 +959,11 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     });
   }
 
-  static FirstPlayableGameTransactionDecision _evaluateGameCommand({
-    required IngressContext context,
+  static FirstPlayableGameTransactionDecision? _replayGameCommand({
     required String actorUid,
     required api.AuthorityCommandRequest request,
     required GameCommand command,
     required FirstPlayableGameTransactionView view,
-    required RulesCatalog catalog,
   }) {
     final prior = view.storedReceipt;
     if (prior != null) {
@@ -995,6 +1000,17 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
       );
     }
 
+    return null;
+  }
+
+  static FirstPlayableGameTransactionDecision _evaluateGameCommand({
+    required IngressContext context,
+    required String actorUid,
+    required api.AuthorityCommandRequest request,
+    required GameCommand command,
+    required FirstPlayableGameTransactionView view,
+    required RulesCatalog catalog,
+  }) {
     final evaluation = switch (command.type) {
       GameCommandType.rollDice => _evaluateRoll(
         context: context,
