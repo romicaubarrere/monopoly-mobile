@@ -110,9 +110,13 @@ Tier-1, followed by verification of the accepted tree and post-merge CI.
 
 ## Limits
 
-No executor, store, planner, recovery, GET, transport contract, dependency,
-logging allowlist, service, deployment or billing policy changes. No raw
+The command correction changes no executor, store, planner, recovery, GET,
+transport contract, logging allowlist, service, deployment or billing policy. No raw
 exception, command payload, identity or private state is added to logs.
+
+The same PR includes a separate [Morgan development dependency security patch](morgan-log-safety.md)
+to resolve its OSV failure. That narrow override does not change the Dart runtime
+or the diagnostic boundary described here.
 
 Completing this isolated defect does not close ticket #19, production
 observability, cold/warm measurements, NFR-48, billing limits or M1 acceptance.
