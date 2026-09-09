@@ -89,6 +89,125 @@ void main() {
     },
   );
 
+  for (final disposition in <api.ReconnectDisposition>[
+    api.ReconnectDisposition.uncertainConfirmed,
+    api.ReconnectDisposition.uncertainRejected,
+  ]) {
+    final receiptHash = List<String>.filled(64, 'b').join();
+    for (final fingerprint in <({String name, String value})>[
+      (name: 'zero', value: List<String>.filled(64, '0').join()),
+      (name: 'actual receipt', value: receiptHash),
+      (name: 'different', value: _uncertainHash),
+    ]) {
+      test(
+        '${disposition.name} from another actor fails closed with ${fingerprint.name} request hash',
+        () async {
+          final harness = await _Harness.start(
+            disposition: disposition,
+            receiptActor: 'uid-p2',
+            receiptHash: receiptHash,
+            requestHash: fingerprint.value,
+          );
+          addTearDown(harness.close);
+
+          final response = await harness.reconnect();
+
+          expect(response.status, HttpStatus.ok);
+          expect(response.body['disposition'], 'semanticCollision');
+          expect(response.body['commandResolution'], <String, Object?>{
+            'identity': harness.reconnectRequest.uncertainCommand!.toWireJson(),
+            'action': 'failClosed',
+            'errorCode': 'commandIdCollision',
+          });
+          _expectReadOnlyUncertainRecovery(harness, response);
+        },
+      );
+    }
+
+    test(
+      '${disposition.name} owned receipt permits its matching zero hash',
+      () async {
+        final zeroHash = List<String>.filled(64, '0').join();
+        final harness = await _Harness.start(
+          disposition: disposition,
+          receiptHash: zeroHash,
+          requestHash: zeroHash,
+        );
+        addTearDown(harness.close);
+
+        final response = await harness.reconnect();
+
+        expect(response.status, HttpStatus.ok);
+        expect(response.body['disposition'], disposition.wireValue);
+        final receipt =
+            harness.peer.documents['games/$_gameId/commands/$_commandId']!;
+        expect(response.body['commandResolution'], <String, Object?>{
+          'identity': harness.reconnectRequest.uncertainCommand!.toWireJson(),
+          'action': 'useDurableResult',
+          'publicResult': receipt['resultSummary'],
+        });
+        _expectReadOnlyUncertainRecovery(harness, response);
+      },
+    );
+  }
+
+  test(
+    'missing receipt with zero hash still requires the same command retry',
+    () async {
+      final harness = await _Harness.start(
+        disposition: api.ReconnectDisposition.retrySameCommand,
+        requestHash: List<String>.filled(64, '0').join(),
+      );
+      addTearDown(harness.close);
+
+      final response = await harness.reconnect();
+
+      expect(response.status, HttpStatus.ok);
+      expect(response.body['disposition'], 'retrySameCommand');
+      expect(response.body['commandResolution'], <String, Object?>{
+        'identity': harness.reconnectRequest.uncertainCommand!.toWireJson(),
+        'action': 'retrySameCommand',
+      });
+      expect(
+        harness.peer.documents,
+        isNot(contains('games/$_gameId/commands/$_commandId')),
+      );
+      _expectReadOnlyUncertainRecovery(harness, response);
+    },
+  );
+
+  test(
+    'nonmember zero-hash reconnect cannot inspect another actor receipt',
+    () async {
+      final harness = await _Harness.start(
+        disposition: api.ReconnectDisposition.uncertainConfirmed,
+        uid: 'uid-outsider',
+        requestHash: List<String>.filled(64, '0').join(),
+      );
+      addTearDown(harness.close);
+
+      final response = await harness.reconnect();
+
+      _expectHttpError(response, HttpStatus.forbidden, 'actorForbidden');
+      _expectFailure(harness.onlyEvent);
+      _expectTransfers(harness.onlyEvent, harness.peer.onlyTransfer);
+      expect(harness.onlyEvent['firestoreReadCount'], 3);
+      expect(harness.peer.onlyTransfer.readOnly, isTrue);
+      expect(harness.peer.methods, <String>[
+        'beginTransaction',
+        'batchGet',
+        'rollback',
+      ]);
+      _expectSafe(
+        response,
+        harness.onlyEvent,
+        privateLogValues: <String>[
+          harness.reconnectRequest.uncertainCommand!.inputHash,
+        ],
+      );
+    },
+  );
+
   for (final failure in <({String name, int status, String code})>[
     (name: 'membership', status: HttpStatus.forbidden, code: 'actorForbidden'),
     (
@@ -256,8 +375,16 @@ void main() {
         harness.peer.methods.where((method) => method == 'commit'),
         isEmpty,
       );
-      _expectSafe(replies[0], commandEvent);
-      _expectSafe(replies[1], recoveryEvent);
+      _expectSafe(
+        replies[0],
+        commandEvent,
+        privateLogValues: <String>[command.inputHash],
+      );
+      _expectSafe(
+        replies[1],
+        recoveryEvent,
+        privateLogValues: <String>[command.inputHash],
+      );
     },
   );
 
@@ -400,6 +527,29 @@ void main() {
   });
 }
 
+void _expectReadOnlyUncertainRecovery(_Harness harness, _Response response) {
+  expect(response.body['snapshot'], harness.peer.publicState);
+  final event = harness.onlyEvent;
+  _expectSuccess(event, harness.peer.publicState);
+  _expectTransfers(event, harness.peer.onlyTransfer);
+  expect(event['firestoreReadCount'], 3);
+  expect(harness.peer.onlyTransfer.readOnly, isTrue);
+  expect(harness.peer.methods, <String>[
+    'beginTransaction',
+    'batchGet',
+    'rollback',
+  ]);
+  final receipt = harness.peer.documents['games/$_gameId/commands/$_commandId'];
+  _expectSafe(
+    response,
+    event,
+    privateLogValues: <String>[
+      harness.reconnectRequest.uncertainCommand!.inputHash,
+      if (receipt != null) receipt['inputHash']! as String,
+    ],
+  );
+}
+
 void _expectSuccess(Map<String, Object> event, Map<String, Object?> snapshot) {
   expect(event['operation'], 'recovery');
   expect(event['outcome'], 'success');
@@ -455,7 +605,11 @@ void _expectHttpError(_Response response, int status, String code) {
   });
 }
 
-void _expectSafe(_Response response, Map<String, Object> event) {
+void _expectSafe(
+  _Response response,
+  Map<String, Object> event, {
+  Iterable<String> privateLogValues = const <String>[],
+}) {
   final wire = jsonEncode(response.body);
   final logged = jsonEncode(event);
   for (final secret in <String>[
@@ -481,6 +635,7 @@ void _expectSafe(_Response response, Map<String, Object> event) {
     _commandId,
     _uncertainHash,
     'disposition',
+    ...privateLogValues,
   ]) {
     expect(logged, isNot(contains(privateLogValue)));
   }
@@ -500,6 +655,7 @@ final class _Harness {
     String uid = _uid,
     String receiptActor = _uid,
     String? receiptHash,
+    String? requestHash,
     bool invalidCatalog = false,
     bool privateSnapshot = false,
     String? failMethod,
@@ -512,7 +668,7 @@ final class _Harness {
       _ => api.UncertainCommandIdentity(
         commandId: _commandId,
         inputHashVersion: 1,
-        inputHash: _uncertainHash,
+        inputHash: requestHash ?? _uncertainHash,
       ),
     };
     final peer = await _ReadPeer.start(

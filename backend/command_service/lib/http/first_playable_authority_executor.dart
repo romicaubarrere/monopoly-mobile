@@ -858,16 +858,6 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
     final playerId = _requirePlayerId(read.view, identity.uid);
     final uncertain = request.uncertainCommand;
     final stored = read.view.storedReceipt;
-    final durableReceipt = stored == null
-        ? null
-        : stored.actorUid == identity.uid
-        ? stored.receipt
-        : reconnect_planner.DurableCommandReceipt(
-            commandId: stored.receipt.commandId,
-            inputHashVersion: stored.receipt.inputHashVersion,
-            inputHash: List<String>.filled(64, '0').join(),
-            publicResult: stored.receipt.publicResult,
-          );
     final plan = reconnect_planner.AuthorityReconnectPlanner.reconcile(
       authenticatedActorUid: identity.uid,
       actorPlayerId: playerId,
@@ -881,7 +871,8 @@ final class FirstPlayableAuthorityExecutor implements AuthorityHttpExecutor {
               inputHashVersion: uncertain.inputHashVersion,
               inputHash: uncertain.inputHash,
             ),
-      durableReceipt: durableReceipt,
+      durableReceipt: stored?.receipt,
+      durableReceiptActorUid: stored?.actorUid,
     );
     return FirstPlayableResponseAdapter.reconnect(plan: plan, request: request);
   }
