@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:board_backend_api/backend_api.dart' as api;
@@ -239,6 +240,8 @@ void main() {
         },
       );
       expect(started.metrics.firestoreWriteCount, 4);
+      // StartGame is a room transaction, outside the accepted game boundary.
+      expect(started.metrics.snapshotBytes, 0);
 
       final read = await store.readGame(gameId: 'game-vp0');
       expect(read.view.publicState.header.stateVersion, 0);
@@ -247,6 +250,7 @@ void main() {
         'p2': 'uid-p2',
       });
       expect(read.view.privateRng?.seed, orderedEquals(syntheticRollSeed));
+      expect(read.metrics.snapshotBytes, 0);
 
       final gameplay = await store.transactGame(
         gameId: 'game-vp0',
@@ -269,7 +273,13 @@ void main() {
           );
         },
       );
+      expect(gameplay.decision.reply.snapshot, isNull);
+      expect(gameplay.metrics.firestoreReadCount, 3);
       expect(gameplay.metrics.firestoreWriteCount, 3);
+      expect(gameplay.metrics.retryCount, 0);
+      expect(gameplay.metrics.conflictCount, 0);
+      expect(gameplay.metrics.bytesRead, greaterThan(0));
+      expect(gameplay.metrics.bytesWritten, greaterThan(0));
 
       final recovered = await store.readGame(
         gameId: 'game-vp0',
@@ -278,6 +288,18 @@ void main() {
       expect(recovered.view.publicState.header.stateVersion, 1);
       expect(recovered.view.storedReceipt?.actorUid, host.uid);
       expect(recovered.view.storedReceipt?.receipt.commandId, 'cmd-game-rest');
+      expect(recovered.metrics.snapshotBytes, 0);
+      expect(gameplay.metrics.schemaVersion, 1);
+      expect(gameplay.metrics.stateVersion, 1);
+      // Independent domain encoding of the public state actually persisted,
+      // not the reply, membership, private RNG, receipt or Firestore wrapper.
+      final expectedSnapshotBytes = utf8
+          .encode(
+            CanonicalDomainJson.encode(recovered.view.publicState.toJson()),
+          )
+          .length;
+      expect(expectedSnapshotBytes, greaterThan(0));
+      expect(gameplay.metrics.snapshotBytes, expectedSnapshotBytes);
     },
     skip: skipReason,
   );

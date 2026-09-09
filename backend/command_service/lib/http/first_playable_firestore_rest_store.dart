@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:board_backend_api/backend_api.dart' as api;
 import 'package:board_game_core/game_core.dart';
 
 import '../ingress/command_ingress.dart';
@@ -263,9 +264,25 @@ final class FirstPlayableFirestoreRestStore
           attempt: attempt,
           schemaVersion: view.publicState.header.schemaVersion,
           stateVersion: decision.reply.versionAfter,
+          snapshotBytes: _committedPublicSnapshotBytes(
+            decision.publicStateAfter,
+          ),
         ),
       );
     });
+  }
+
+  // A final-object gauge, measured only after finish confirms the commit. Keep
+  // diagnostic validation/encoding failures out of the transaction retry path.
+  static int _committedPublicSnapshotBytes(PublicGameState? state) {
+    if (state == null) return 0;
+    try {
+      return utf8
+          .encode(api.AuthorityPublicSnapshot(state.toJson()).toCanonicalJson())
+          .length;
+    } on Object {
+      return 0;
+    }
   }
 
   @override
@@ -788,6 +805,7 @@ final class _FirestoreRestTransaction {
     required int attempt,
     required int schemaVersion,
     required int stateVersion,
+    int snapshotBytes = 0,
   }) => AuthorityExecutionMetrics(
     retryCount: attempt,
     conflictCount: attempt,
@@ -797,6 +815,7 @@ final class _FirestoreRestTransaction {
     bytesWritten: operationMetrics.bytesWritten,
     schemaVersion: schemaVersion,
     stateVersion: stateVersion,
+    snapshotBytes: snapshotBytes,
   );
 }
 

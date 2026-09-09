@@ -84,6 +84,30 @@ void main() {
       final host = WireAuthorityClient(hostTransport);
       final guest = WireAuthorityClient(guestTransport);
       final outsider = WireAuthorityClient(outsiderTransport);
+      final acceptedSnapshotSizes =
+          <String, ({Object? measured, int expected})>{};
+      void recordAcceptedSnapshot(
+        String label,
+        AuthorityPublicSnapshot snapshot, {
+        required int writes,
+      }) {
+        final event = logs.events.last;
+        _expectGameCommandMetrics(event, writes: writes);
+        expect(event['outcome'], 'success');
+        expect(event['reason'], 'none');
+        expect(event['schemaVersion'], snapshot.schemaVersion);
+        expect(event['stateVersion'], snapshot.stateVersion);
+        // Use the independent domain encoder on the actual HTTP public map,
+        // not the store's AuthorityPublicSnapshot serialization path.
+        final expected = utf8
+            .encode(CanonicalDomainJson.encode(snapshot.snapshot))
+            .length;
+        expect(expected, greaterThan(0));
+        acceptedSnapshotSizes[label] = (
+          measured: event['snapshotBytes'],
+          expected: expected,
+        );
+      }
 
       final buyGame = await _startGame(
         prefix: 'buy',
@@ -91,6 +115,8 @@ void main() {
         host: host,
         guest: guest,
       );
+      expect(logs.events.last['operation'], 'roomCommand');
+      expect(logs.events.last['snapshotBytes'], 0);
       await expectLater(
         outsider.watchRoom('buy-room').first,
         throwsA(
@@ -106,6 +132,7 @@ void main() {
         host: host,
         guest: guest,
       );
+      recordAcceptedSnapshot('buy Roll', buyRoll.snapshot, writes: 3);
       final buy = await buyRoll.actor.client.send(
         AuthorityCommandRequest.game(
           GameCommand(
@@ -125,6 +152,7 @@ void main() {
       );
       expect(buy.status, AuthorityCommandStatus.accepted);
       expect(buy.snapshot?.snapshot['pendingDecision'], isNull);
+      recordAcceptedSnapshot('Buy', buy.snapshot!, writes: 2);
 
       final auctionGame = await _startGame(
         prefix: 'auction',
@@ -132,11 +160,14 @@ void main() {
         host: host,
         guest: guest,
       );
+      expect(logs.events.last['operation'], 'roomCommand');
+      expect(logs.events.last['snapshotBytes'], 0);
       final auctionRoll = await _rollToProperty(
         game: auctionGame,
         host: host,
         guest: guest,
       );
+      recordAcceptedSnapshot('auction Roll', auctionRoll.snapshot, writes: 3);
       final declineRequest = AuthorityCommandRequest.game(
         GameCommand(
           commandId: 'auction-decline',
@@ -155,6 +186,7 @@ void main() {
       final declined = await auctionRoll.actor.client.send(declineRequest);
       expect(declined.status, AuthorityCommandStatus.accepted);
       final declinedSnapshot = declined.snapshot!;
+      recordAcceptedSnapshot('Decline', declinedSnapshot, writes: 2);
       final auction =
           declinedSnapshot.snapshot['activeAuction']! as Map<String, Object?>;
       final auctionId = auction['auctionId']! as String;
@@ -176,9 +208,12 @@ void main() {
       );
       expect(bid.status, AuthorityCommandStatus.accepted);
       expect(bid.snapshot?.snapshot['activeAuction'], isNotNull);
+      recordAcceptedSnapshot('Bid', bid.snapshot!, writes: 2);
 
       final lostAckRetry = await auctionRoll.actor.client.send(declineRequest);
       expect(lostAckRetry.status, AuthorityCommandStatus.duplicate);
+      _expectGameCommandMetrics(logs.events.last, writes: 0);
+      expect(logs.events.last['snapshotBytes'], 0);
       final eventsBeforeRecovery = logs.events.length;
       final reconnect = await auctionRoll.actor.client.reconnect(
         AuthorityReconnectRequest(
@@ -272,7 +307,8 @@ void main() {
       expect(stale.status, AuthorityCommandStatus.rejected);
       expect(stale.errorCode, 'staleVersion');
       expect(stale.versionAfter, bid.versionAfter);
-      expect(logs.events.last['firestoreWriteCount'], 1);
+      _expectGameCommandMetrics(logs.events.last, writes: 1);
+      expect(logs.events.last['snapshotBytes'], 0);
 
       final otherMember =
           auctionRoll.actor.playerId == auctionGame.host.playerId
@@ -437,9 +473,51 @@ void main() {
             'identityPreserved': true,
           },
       });
+      // Defer only the new byte comparisons so a RED run still exercises all
+      // accepted commands, lost-ACK/rejected controls and actor-binding checks.
+      expect(
+        <String, Object?>{
+          for (final entry in acceptedSnapshotSizes.entries)
+            entry.key: entry.value.measured,
+        },
+        <String, int>{
+          for (final entry in acceptedSnapshotSizes.entries)
+            entry.key: entry.value.expected,
+        },
+      );
     },
     skip: skipReason,
   );
+}
+
+void _expectGameCommandMetrics(
+  Map<String, Object> event, {
+  required int writes,
+}) {
+  expect(event['operation'], 'gameCommand');
+  expect(event['retryCount'], 0);
+  expect(event['conflictCount'], 0);
+  expect(event['firestoreReadCount'], 3);
+  expect(event['firestoreWriteCount'], writes);
+  expect(event['bytesRead'], greaterThan(0));
+  expect(event['bytesWritten'], greaterThan(0));
+  expect(event['coldStart'], isFalse);
+  expect(event.keys.toSet(), <String>{
+    'operation',
+    'outcome',
+    'reason',
+    'latencyMs',
+    'retryCount',
+    'conflictCount',
+    'firestoreReadCount',
+    'firestoreWriteCount',
+    'bytesRead',
+    'bytesWritten',
+    'snapshotBytes',
+    'coldStart',
+    'schemaVersion',
+    'stateVersion',
+  });
 }
 
 Future<({String publicGame, String privateGame, String receipt})>
