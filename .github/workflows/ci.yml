@@ -48,6 +48,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          # Preserve v6.0.0's fail-closed Temurin download verification.
+          verify-signature: true
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.47.0'
@@ -84,6 +86,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          # Preserve v6.0.0's fail-closed Temurin download verification.
+          verify-signature: true
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.47.0'
